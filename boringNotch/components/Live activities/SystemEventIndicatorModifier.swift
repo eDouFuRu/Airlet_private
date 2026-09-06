@@ -61,7 +61,7 @@ struct SystemEventIndicatorModifier: View {
             if (eventType != .mic) {
                 DraggableProgressBar(value: $value)
             } else {
-                Text("Mic \(value > 0 ? "unmuted" : "muted")")
+                Text(String(format: L("Mic %@"), L(value > 0 ? "unmuted" : "muted")))
                     .foregroundStyle(.gray)
                     .lineLimit(1)
                     .allowsTightening(true)
@@ -91,6 +91,10 @@ struct SystemEventIndicatorModifier: View {
 struct DraggableProgressBar: View {
     @EnvironmentObject var vm: BoringViewModel
     @Binding var value: CGFloat
+    @Default(.enableGradient) private var enableGradient
+    @Default(.systemEventIndicatorUseAccent) private var systemEventIndicatorUseAccent
+    @Default(.systemEventIndicatorShadow) private var systemEventIndicatorShadow
+    @Default(.inlineHUD) private var inlineHUD
     var onChange: ((CGFloat) -> Void)? = nil
     
     @State private var isDragging = false
@@ -104,19 +108,19 @@ struct DraggableProgressBar: View {
                         .fill(.tertiary)
                     Capsule()
                         .fill(
-                            Defaults[.enableGradient] ?
+                            enableGradient ?
                                 AnyShapeStyle(LinearGradient(
-                                    colors: Defaults[.systemEventIndicatorUseAccent] ?
+                                    colors: systemEventIndicatorUseAccent ?
                                         [Color.effectiveAccent, Color.effectiveAccent.ensureMinimumBrightness(factor: 0.2)] :
                                         [Color.white, Color.white.opacity(0.2)],
                                     startPoint: .trailing,
                                     endPoint: .leading
                                 )) :
-                                AnyShapeStyle(Defaults[.systemEventIndicatorUseAccent] ? Color.effectiveAccent : Color.white)
+                                AnyShapeStyle(systemEventIndicatorUseAccent ? Color.effectiveAccent : Color.white)
                         )
                         .frame(width: max(0, min(geo.size.width * value, geo.size.width)))
-                        .shadow(color: Defaults[.systemEventIndicatorShadow] ?
-                            (Defaults[.systemEventIndicatorUseAccent] ?
+                        .shadow(color: systemEventIndicatorShadow ?
+                            (systemEventIndicatorUseAccent ?
                                 Color.effectiveAccent.ensureMinimumBrightness(factor: 0.7) :
                                 Color.white) :
                             Color.clear,
@@ -138,7 +142,7 @@ struct DraggableProgressBar: View {
                         }
                 )
             }
-            .frame(height: Defaults[.inlineHUD] ? isDragging ? 8 : 5 : isDragging ? 9 : 6)
+            .frame(height: inlineHUD ? isDragging ? 8 : 5 : isDragging ? 9 : 6)
         }
     }
     

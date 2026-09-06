@@ -1,0 +1,981 @@
+{
+  "runs": [
+    {
+      "createdAt": "2026-09-06T07:00:41.860698+00:00",
+      "approvalNote": "2026-09-06，用户回复“继续计划”，承接前文明确的本机抠图确认",
+      "catalogWritten": true,
+      "pythonVersion": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+      "pillowVersion": "12.3.0",
+      "numpyVersion": "2.3.5",
+      "macOSVersion": "26.6.2",
+      "planSHA256": "3684927cf80de59d9c20ada60812aeab087488937d7845909b8752efa8535056",
+      "scriptSHA256": "42d3c269c3c89c0c9c54e9a8545367c6bcadac5e3a92aa3609da07e031572b00",
+      "visionSourceSHA256": "e0df467c3d0c47be2d2a0cf3fbde170e3d6d291f0b0c6cfa643d24ed21f908f9",
+      "assets": [
+        {
+          "id": "captain-base",
+          "source": "artwork/shu25d/source/captain-body.png",
+          "sourceSHA256": "574c77d6ad90239f24fc5c8564d21df1f4bb598f2e3a2d250399d1010bc89ff1",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1456,
+            1280
+          ],
+          "processedSHA256": "922ec3a76a5134e68aaa19041e6b0b788c49a5e877dbc422eadc36a13bfebba8",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.0,
+            0.976471,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            0,
+            152,
+            1254,
+            1254
+          ],
+          "paddingPixels": [
+            101,
+            89
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.20120675223214285,
+          "opaqueFraction": 0.19774693080357142,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.94
+            ]
+          }
+        },
+        {
+          "id": "captain-holding",
+          "source": "artwork/shu25d/source/holding-hero.png",
+          "sourceSHA256": "a46804ba155ce910ef0ca218f9dc057f9f0b0dcc5610143b2f8aa1463445afad",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            615,
+            1078
+          ],
+          "processedSHA256": "e5972785322030e93f4f655d630f02dd328f3a192e527fc6ab691c1c385c009b",
+          "method": "vision-foreground-intersect-source-alpha",
+          "maskSHA256": "93a06d1b20a7d8f4511fdc85d2e1f018e600e1787395205a3cb3f391446391d7",
+          "untrimmedBounds": [
+            383,
+            156,
+            912,
+            1084
+          ],
+          "paddingPixels": [
+            43,
+            75
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5063532286528802,
+          "opaqueFraction": 0.4733366517338643,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.94
+            ]
+          }
+        },
+        {
+          "id": "arm-far",
+          "source": "artwork/shu25d/source/captain-welcome.png",
+          "sourceSHA256": "c3d4b974d67a21995d94f5551a13cddc22c37a4b4c9f64249070f232e11186ec",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            179,
+            273
+          ],
+          "processedSHA256": "b8af1d03e9fa54865a6aad9376f1c7af865a5681e72cdb71ec93e0f6708972e4",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.003922,
+            0.984314,
+            0.992157
+          ],
+          "neutralRotationDegrees": 74.805298616742,
+          "untrimmedBounds": [
+            729,
+            1002,
+            882,
+            1237
+          ],
+          "paddingPixels": [
+            13,
+            19
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.4978206151390509,
+          "opaqueFraction": 0.47334602083205435,
+          "landmarks": {
+            "pivot": [
+              0.5864138827937075,
+              0.18151278665052417
+            ],
+            "hand": [
+              0.5864138827937075,
+              0.7545934168788585
+            ]
+          }
+        },
+        {
+          "id": "arm-near",
+          "source": "artwork/shu25d/source/captain-welcome.png",
+          "sourceSHA256": "c3d4b974d67a21995d94f5551a13cddc22c37a4b4c9f64249070f232e11186ec",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            177,
+            284
+          ],
+          "processedSHA256": "e3c9b1ba7f4546c073aff5add1ce4357578e82921e68002ecbec2813f1045382",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.003922,
+            0.984314,
+            0.992157
+          ],
+          "neutralRotationDegrees": -74.11693479074805,
+          "untrimmedBounds": [
+            714,
+            1002,
+            865,
+            1246
+          ],
+          "paddingPixels": [
+            13,
+            20
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5126720776637225,
+          "opaqueFraction": 0.4908092623537837,
+          "landmarks": {
+            "pivot": [
+              0.4109275456495277,
+              0.2460947126677811
+            ],
+            "hand": [
+              0.4109275456495283,
+              0.7478645404695763
+            ]
+          }
+        },
+        {
+          "id": "hoe",
+          "source": "artwork/shu25d/source/hoe.png",
+          "sourceSHA256": "a6eb0b5016a4abfe7c4bc2e9a15ea3ad011240d1f33cdfe7bbcc0ed8e391826f",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1456,
+            1456
+          ],
+          "processedSHA256": "a38ab6d718b36bc51b09c2281f293148a5d812daeaa3093f3e1a0724f5c97cb7",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.031373,
+            0.980392,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            0,
+            0,
+            1254,
+            1254
+          ],
+          "paddingPixels": [
+            101,
+            101
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.07035684096123657,
+          "opaqueFraction": 0.06877801971380268,
+          "landmarks": {
+            "pivot": [
+              0.470717032967033,
+              0.3518626373626374
+            ]
+          }
+        },
+        {
+          "id": "watering-can",
+          "source": "artwork/shu25d/source/watering-can.png",
+          "sourceSHA256": "ae8d005bcba3c5477a1fa8c38a7cf82e1951e412da31bf6e454774ebe9b04f86",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1456,
+            1214
+          ],
+          "processedSHA256": "cd81e420ffe3b64369ccf823040671795dbdf382648fd169d098d0eebe408223",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.0,
+            0.968627,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            0,
+            208,
+            1254,
+            1254
+          ],
+          "paddingPixels": [
+            101,
+            84
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.22659573745858755,
+          "opaqueFraction": 0.2218763012111447,
+          "landmarks": {
+            "pivot": [
+              0.4009546703296703,
+              0.10961285008237232
+            ],
+            "emitter": [
+              0.7704368131868131,
+              0.3854102141680395
+            ]
+          }
+        },
+        {
+          "id": "seedling",
+          "source": "artwork/shu25d/source/seedling.png",
+          "sourceSHA256": "45c94b3aa7345bc92a02e8740d306463c38bb3a1b4d568af3e7b828f4832978f",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1456,
+            1283
+          ],
+          "processedSHA256": "9b1673545b46e998c0fc222b21e727bfe76d7c2bbc804fa61e2f2f8e34186b94",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.007843,
+            0.960784,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            0,
+            149,
+            1254,
+            1254
+          ],
+          "paddingPixels": [
+            101,
+            89
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.11346764108845168,
+          "opaqueFraction": 0.10866209005336051,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.9
+            ]
+          }
+        },
+        {
+          "id": "raw-potato",
+          "source": "artwork/shu25d/source/raw-potato.png",
+          "sourceSHA256": "a08b531199b25a0389e0dfde42cf6605815a1ab14ed6615bd4570aa24068a18e",
+          "sourceSize": [
+            1536,
+            1024
+          ],
+          "outputSize": [
+            1527,
+            852
+          ],
+          "processedSHA256": "e5e2f0926bdeee0839991c9fdc7dd3d673dab425f405409dd8cad4f2006c757b",
+          "method": "vision-foreground-intersect-source-alpha",
+          "maskSHA256": "2655bff9acc338970a70ecbfccdf34a24b95db435a1e366e839525a79741f551",
+          "untrimmedBounds": [
+            126,
+            140,
+            1441,
+            874
+          ],
+          "paddingPixels": [
+            106,
+            59
+          ],
+          "alphaMin": 0,
+          "alphaMax": 254,
+          "visibleFraction": 0.399917294643214,
+          "opaqueFraction": 0.38332549323445586,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        {
+          "id": "roast-potato",
+          "source": "artwork/shu25d/source/roast-potato.png",
+          "sourceSHA256": "7c7e1072a377d4433bcf159b19dc8e78575f2b5f10cf387454ca032839ec6a21",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1456,
+            992
+          ],
+          "processedSHA256": "d0284c145d67c8a79551ce37b89da4310d29b126b6673b0838af66e06d31cc9a",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.0,
+            0.984314,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            0,
+            400,
+            1254,
+            1254
+          ],
+          "paddingPixels": [
+            101,
+            69
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.2054353786334633,
+          "opaqueFraction": 0.20200477445941156,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        {
+          "id": "firepit",
+          "source": "artwork/shu25d/source/firepit.png",
+          "sourceSHA256": "360ab4ee924855972b7b92eac7748058dabc80f3c2b930b32538ec7cd498af0b",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1163,
+            964
+          ],
+          "processedSHA256": "03daa3f58140735a4299a3ccc6648a33435e0c9b9f323761baaccfd393ca8fed",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.003922,
+            0.964706,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            0,
+            424,
+            1001,
+            1254
+          ],
+          "paddingPixels": [
+            81,
+            67
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.2279642361470371,
+          "opaqueFraction": 0.20604531848167745,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.85
+            ]
+          }
+        },
+        {
+          "id": "ground",
+          "source": "artwork/shu25d/source/ground.png",
+          "sourceSHA256": "f0d52fc5406ffe30ab6caff542ae2378af7dcb0292ec4f4342ae418c7184b836",
+          "sourceSize": [
+            1536,
+            1024
+          ],
+          "outputSize": [
+            1782,
+            1188
+          ],
+          "processedSHA256": "ace889d0cbaff32e19af6d0a46ea4303a1243477d87e14413f4806dccfcadba3",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.043137,
+            0.972549,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            0,
+            0,
+            1536,
+            1024
+          ],
+          "paddingPixels": [
+            123,
+            82
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.28787075770801923,
+          "opaqueFraction": 0.2861230146583682,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.8
+            ]
+          }
+        }
+      ],
+      "limitations": "Alpha statistics cannot prove clean edges. Inspect QA backgrounds and native-size timeline render before accepting. Vision output can vary with macOS model versions."
+    },
+    {
+      "createdAt": "2026-09-06T07:02:00.027062+00:00",
+      "approvalNote": "2026-09-06，用户回复“继续计划”，承接前文明确的本机抠图确认；本轮收紧青底残余与蒙版光边",
+      "catalogWritten": true,
+      "pythonVersion": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+      "pillowVersion": "12.3.0",
+      "numpyVersion": "2.3.5",
+      "macOSVersion": "26.6.2",
+      "planSHA256": "3684927cf80de59d9c20ada60812aeab087488937d7845909b8752efa8535056",
+      "scriptSHA256": "57ab4bd05a390e739c6dcb0031afa3956dd7fa4bade3f438d57637256855728b",
+      "visionSourceSHA256": "3361fcbeaa8961ef33fbf98629b8a6a177bb4cd538ce613f442c2ab588237774",
+      "assets": [
+        {
+          "id": "captain-base",
+          "source": "artwork/shu25d/source/captain-body.png",
+          "sourceSHA256": "574c77d6ad90239f24fc5c8564d21df1f4bb598f2e3a2d250399d1010bc89ff1",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            634,
+            1122
+          ],
+          "processedSHA256": "976958b1dc30493d6cebae80c211ed841594fa141e0242994faf1b57eac36ed7",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.0,
+            0.976471,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            354,
+            154,
+            900,
+            1120
+          ],
+          "paddingPixels": [
+            44,
+            78
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5224531452959733,
+          "opaqueFraction": 0.5179349629154788,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.94
+            ]
+          }
+        },
+        {
+          "id": "captain-holding",
+          "source": "artwork/shu25d/source/holding-hero.png",
+          "sourceSHA256": "a46804ba155ce910ef0ca218f9dc057f9f0b0dcc5610143b2f8aa1463445afad",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            608,
+            1071
+          ],
+          "processedSHA256": "c1c89e421986da39f0fe32aa0e6caca2607e26df874944b1b925a688b5a9fcef",
+          "method": "vision-foreground-intersect-source-alpha",
+          "maskSHA256": "69950061512efcb02b969e814862de3b3c5e1daf73fc821e47ca0c0b7de23e8d",
+          "untrimmedBounds": [
+            386,
+            158,
+            910,
+            1081
+          ],
+          "paddingPixels": [
+            42,
+            74
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.50249858715416,
+          "opaqueFraction": 0.4737609956263207,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.94
+            ]
+          }
+        },
+        {
+          "id": "arm-far",
+          "source": "artwork/shu25d/source/captain-welcome.png",
+          "sourceSHA256": "c3d4b974d67a21995d94f5551a13cddc22c37a4b4c9f64249070f232e11186ec",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            173,
+            271
+          ],
+          "processedSHA256": "52e295daffca0bb11325905533e49cd1d8f1b0cabf1765d99dda59ff7c32d0ac",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.003922,
+            0.984314,
+            0.992157
+          ],
+          "neutralRotationDegrees": 74.805298616742,
+          "untrimmedBounds": [
+            731,
+            1002,
+            880,
+            1235
+          ],
+          "paddingPixels": [
+            12,
+            19
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5114860397158885,
+          "opaqueFraction": 0.4930571849071092,
+          "landmarks": {
+            "pivot": [
+              0.5894108960697899,
+              0.18285236441178265
+            ],
+            "hand": [
+              0.5894108960697899,
+              0.7601623719849755
+            ]
+          }
+        },
+        {
+          "id": "arm-near",
+          "source": "artwork/shu25d/source/captain-welcome.png",
+          "sourceSHA256": "c3d4b974d67a21995d94f5551a13cddc22c37a4b4c9f64249070f232e11186ec",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            173,
+            282
+          ],
+          "processedSHA256": "c0eced1dc6e25430c1815a04f7e7d9ec5c83235020bbb3009abc312b5b801627",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.003922,
+            0.984314,
+            0.992157
+          ],
+          "neutralRotationDegrees": -74.11693479074805,
+          "untrimmedBounds": [
+            714,
+            1002,
+            863,
+            1244
+          ],
+          "paddingPixels": [
+            12,
+            20
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5243307506251793,
+          "opaqueFraction": 0.5055548722994302,
+          "landmarks": {
+            "pivot": [
+              0.41464841375703126,
+              0.24784006523989302
+            ],
+            "hand": [
+              0.4146484137570319,
+              0.7531685443026939
+            ]
+          }
+        },
+        {
+          "id": "hoe",
+          "source": "artwork/shu25d/source/hoe.png",
+          "sourceSHA256": "a6eb0b5016a4abfe7c4bc2e9a15ea3ad011240d1f33cdfe7bbcc0ed8e391826f",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            510,
+            1156
+          ],
+          "processedSHA256": "6827358e28e566580acca5fb6de95d6334ef6c2e877088c7901e2e128bea1c8b",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.031373,
+            0.980392,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            495,
+            129,
+            933,
+            1125
+          ],
+          "paddingPixels": [
+            36,
+            80
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.2516961802021847,
+          "opaqueFraction": 0.24729459257751543,
+          "landmarks": {
+            "pivot": [
+              0.24581176470588242,
+              0.31341868512110727
+            ]
+          }
+        },
+        {
+          "id": "watering-can",
+          "source": "artwork/shu25d/source/watering-can.png",
+          "sourceSHA256": "ae8d005bcba3c5477a1fa8c38a7cf82e1951e412da31bf6e454774ebe9b04f86",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            999,
+            955
+          ],
+          "processedSHA256": "4568c66f41ffd87cfb18e891bfa1c6e93e2f5f623c1ff27d138179b3544b89f5",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.0,
+            0.968627,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            234,
+            212,
+            1095,
+            1035
+          ],
+          "paddingPixels": [
+            69,
+            66
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.4152089262036906,
+          "opaqueFraction": 0.4110655157775577,
+          "landmarks": {
+            "pivot": [
+              0.31810810810810813,
+              0.11630366492146596
+            ],
+            "emitter": [
+              0.8566126126126126,
+              0.46689842931937164
+            ]
+          }
+        },
+        {
+          "id": "seedling",
+          "source": "artwork/shu25d/source/seedling.png",
+          "sourceSHA256": "45c94b3aa7345bc92a02e8740d306463c38bb3a1b4d568af3e7b828f4832978f",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            666,
+            1100
+          ],
+          "processedSHA256": "97be11c41a22c3bd40b6d1e17e5cb4fa8ecba1ed767a3b4252d7d9c366b42c16",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.007843,
+            0.960784,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            337,
+            153,
+            911,
+            1101
+          ],
+          "paddingPixels": [
+            46,
+            76
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.2833988533988534,
+          "opaqueFraction": 0.277043407043407,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.9
+            ]
+          }
+        },
+        {
+          "id": "raw-potato",
+          "source": "artwork/shu25d/source/raw-potato.png",
+          "sourceSHA256": "a08b531199b25a0389e0dfde42cf6605815a1ab14ed6615bd4570aa24068a18e",
+          "sourceSize": [
+            1536,
+            1024
+          ],
+          "outputSize": [
+            1527,
+            850
+          ],
+          "processedSHA256": "8f7fa5b80a0bfde8fc9882d7dc9bd3b2e5b175a9d81d554e384b8660e35ea539",
+          "method": "vision-foreground-intersect-source-alpha",
+          "maskSHA256": "e2a46fe41b47422e965c3e3386212717ba42d53215c06ff0015fc780347021a4",
+          "untrimmedBounds": [
+            126,
+            141,
+            1441,
+            873
+          ],
+          "paddingPixels": [
+            106,
+            59
+          ],
+          "alphaMin": 0,
+          "alphaMax": 254,
+          "visibleFraction": 0.3988281520859817,
+          "opaqueFraction": 0.3790484995569937,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        {
+          "id": "roast-potato",
+          "source": "artwork/shu25d/source/roast-potato.png",
+          "sourceSHA256": "7c7e1072a377d4433bcf159b19dc8e78575f2b5f10cf387454ca032839ec6a21",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1108,
+            512
+          ],
+          "processedSHA256": "e04223ce0a78121c367197a0aab1576e14d1e47e8f59a623b315c25e431051e4",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.0,
+            0.984314,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            150,
+            402,
+            1104,
+            842
+          ],
+          "paddingPixels": [
+            77,
+            36
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5178178587545126,
+          "opaqueFraction": 0.514290599616426,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        {
+          "id": "firepit",
+          "source": "artwork/shu25d/source/firepit.png",
+          "sourceSHA256": "360ab4ee924855972b7b92eac7748058dabc80f3c2b930b32538ec7cd498af0b",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            860,
+            556
+          ],
+          "processedSHA256": "fa86277ab22c5af30a7a03fbd392c6040fc37c7c6dd73ceaf99ee8d0d272c362",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.003922,
+            0.964706,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            258,
+            426,
+            998,
+            904
+          ],
+          "paddingPixels": [
+            60,
+            39
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5211059059728961,
+          "opaqueFraction": 0.4830956165300318,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.85
+            ]
+          }
+        },
+        {
+          "id": "ground",
+          "source": "artwork/shu25d/source/ground.png",
+          "sourceSHA256": "f0d52fc5406ffe30ab6caff542ae2378af7dcb0292ec4f4342ae418c7184b836",
+          "sourceSize": [
+            1536,
+            1024
+          ],
+          "outputSize": [
+            1656,
+            622
+          ],
+          "processedSHA256": "73d273a34e59b8ec9379c324133b8eb356afbe9a5ef5a12fc97fc75aabe3ce1d",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.043137,
+            0.972549,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            57,
+            265,
+            1483,
+            801
+          ],
+          "paddingPixels": [
+            115,
+            43
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.590430200226789,
+          "opaqueFraction": 0.5880448374419436,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.8
+            ]
+          }
+        }
+      ],
+      "limitations": "Alpha statistics cannot prove clean edges. Inspect QA backgrounds and native-size timeline render before accepting. Vision output can vary with macOS model versions."
+    },
+    {
+      "createdAt": "2026-09-06T07:05:43.719084+00:00",
+      "approvalNote": "2026-09-06，用户回复“继续计划”，承接前文明确的本机抠图确认；补充熟薯真实内容边界用于六口进度",
+      "catalogWritten": true,
+      "pythonVersion": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+      "pillowVersion": "12.3.0",
+      "numpyVersion": "2.3.5",
+      "macOSVersion": "26.6.2",
+      "planSHA256": "3684927cf80de59d9c20ada60812aeab087488937d7845909b8752efa8535056",
+      "scriptSHA256": "8a507cd273bfa5b07d9002f2b91a27f614fec4946035fb8fa5b7274f2bd4365d",
+      "visionSourceSHA256": "3361fcbeaa8961ef33fbf98629b8a6a177bb4cd538ce613f442c2ab588237774",
+      "assets": [
+        {
+          "id": "roast-potato",
+          "source": "artwork/shu25d/source/roast-potato.png",
+          "sourceSHA256": "7c7e1072a377d4433bcf159b19dc8e78575f2b5f10cf387454ca032839ec6a21",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "outputSize": [
+            1108,
+            512
+          ],
+          "processedSHA256": "e04223ce0a78121c367197a0aab1576e14d1e47e8f59a623b315c25e431051e4",
+          "method": "cyan-unmix",
+          "estimatedBackingRGB": [
+            0.0,
+            0.984314,
+            0.992157
+          ],
+          "untrimmedBounds": [
+            150,
+            402,
+            1104,
+            842
+          ],
+          "paddingPixels": [
+            77,
+            36
+          ],
+          "alphaMin": 0,
+          "alphaMax": 255,
+          "visibleFraction": 0.5178178587545126,
+          "opaqueFraction": 0.514290599616426,
+          "landmarks": {
+            "pivot": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      ],
+      "limitations": "Alpha statistics cannot prove clean edges. Inspect QA backgrounds and native-size timeline render before accepting. Vision output can vary with macOS model versions."
+    }
+  ]
+}

@@ -1,610 +1,400 @@
-//
-//  boringNotchApp.swift
-//  boringNotchApp
-//
-//  Created by Harsh Vardhan  Goswami  on 02/08/24.
-//
-
-import AVFoundation
+// Derived from boring.notch v2.7.3, GPL-3.0. Custom lifecycle for 工位充电岛.
+import AppKit
 import Combine
+import CoreGraphics
 import Defaults
 import KeyboardShortcuts
-import Sparkle
 import SwiftUI
 
 @main
 struct DynamicNotchApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @Default(.menubarIcon) var showMenuBarIcon
-    @Environment(\.openWindow) var openWindow
-
-    let updaterController: SPUStandardUpdaterController
-
-    init() {
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-
-        // Initialize the settings window controller with the updater controller
-        SettingsWindowController.shared.setUpdaterController(updaterController)
-    }
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @ObservedObject private var visibility = IslandVisibility.shared
+    @ObservedObject private var language = AppLanguage.shared
 
     var body: some Scene {
-        MenuBarExtra("boring.notch", systemImage: "sparkle", isInserted: $showMenuBarIcon) {
-            Button("Settings") {
-                SettingsWindowController.shared.showWindow()
-            }
-            .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
-            CheckForUpdatesView(updater: updaterController.updater)
-            Divider()
-            Button("Restart Boring Notch") {
-                ApplicationRelauncher.restart()
-            }
-            Button("Quit", role: .destructive) {
-                NSApplication.shared.terminate(self)
-            }
-            .keyboardShortcut(KeyEquivalent("Q"), modifiers: .command)
+        MenuBarExtra("工位充电岛", systemImage: "leaf") {
+            islandCommands
         }
+        Settings { EmptyView() }
+            .commands {
+                CommandGroup(replacing: .appSettings) {
+                    Button(L("Settings…")) { SettingsWindowController.shared.showWindow() }
+                        .keyboardShortcut(",", modifiers: .command)
+                }
+                CommandMenu(L("Island")) { islandCommands }
+            }
+    }
+
+    @ViewBuilder private var islandCommands: some View {
+        Button(L("Open island")) { appDelegate.expandIsland() }
+        Button(visibility.isHidden ? L("Show island") : L("Hide island")) { visibility.isHidden.toggle() }
+        Divider()
+        Button(L("Settings…")) { SettingsWindowController.shared.showWindow() }
+        #if DEBUG
+        Button(L("Animation diagnostics (20 + 10 cycles)")) { appDelegate.runInteractionCheck() }
+            .disabled(visibility.isChecking)
+        #endif
+        Divider()
+        Button(L("Quit Recharge Island")) { NSApplication.shared.terminate(nil) }
+            .keyboardShortcut("q", modifiers: .command)
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate {
-    var statusItem: NSStatusItem?
-    var windows: [String: NSWindow] = [:] // UUID -> NSWindow
-    var viewModels: [String: BoringViewModel] = [:] // UUID -> BoringViewModel
-    var window: NSWindow?
-    let vm: BoringViewModel = .init()
-    @ObservedObject var coordinator = BoringViewCoordinator.shared
-    var quickShareService = QuickShareService.shared
-    var whatsNewWindow: NSWindow?
-    var timer: Timer?
-    var closeNotchTask: Task<Void, Never>?
-    private var previousScreens: [NSScreen]?
-    private var onboardingWindowController: NSWindowController?
-    private var screenLockedObserver: Any?
-    private var screenUnlockedObserver: Any?
-    private var isScreenLocked: Bool = false
-    private var windowScreenDidChangeObserver: Any?
-    private var dragDetectors: [String: DragDetector] = [:] // UUID -> DragDetector
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private struct Entry {
+        let window: NSWindow
+        let model: BoringViewModel
+        let pointer: NotchPointerCoordinator
+    }
+    private var entries: [String: Entry] = [:]
+    private var tokens: [NSObjectProtocol] = []
+    private var workspaceTokens: [NSObjectProtocol] = []
+    private var distributedTokens: [NSObjectProtocol] = []
+    private var subscriptions = Set<AnyCancellable>()
+    private let coordinator = BoringViewCoordinator.shared
+    private let visibility = IslandVisibility.shared
+    private var guiSession = GUISessionAvailability()
+    private var focusReminderTask: Task<Void, Never>?
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return false
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Tools request their own permissions when opened, not during the island's first launch.
+        coordinator.firstLaunch = false
+        coordinator.currentView = .island
+        Defaults[.menubarIcon] = true
+        Defaults[.showOnLockScreen] = false
+        IslandIconManager.shared.apply()
+        setupLifecycleObservers()
+        // Observe first, then seed current state before creating any windows.
+        // Future-only notifications miss an app launched while already locked.
+        refreshCurrentGUISession()
+        visibility.screenUnavailable = guiSession.isUnavailable
+        HUDStateManager.shared.start()
+        _ = BriefPresentationCoordinator.shared
+        _ = LyricsStore.shared
+        HiNotificationManager.shared.start()
+        rebuildWindows()
+        visibility.$isHidden.combineLatest(visibility.$screenUnavailable)
+            .sink { [weak self] hidden, unavailable in
+                // Close the delivery gate synchronously, before queued timer work can run.
+                if hidden || unavailable {
+                    IslandRestModel.shared.setApplicationAvailable(false)
+                    HUDStateManager.shared.setApplicationAvailable(false)
+                    LyricsStore.shared.setApplicationAvailable(false)
+                    HiNotificationManager.shared.setApplicationAvailable(false)
+                    BriefPresentationCoordinator.shared.setApplicationAvailable(false)
+                }
+                // @Published emits before setting; defer to read the committed values.
+                DispatchQueue.main.async { self?.applyVisibility() }
+            }.store(in: &subscriptions)
+        IslandRestModel.shared.$pendingFocusReminder
+            .sink { [weak self] pending in
+                guard pending else { return }
+                DispatchQueue.main.async { self?.presentFocusReminderIfPossible() }
+            }.store(in: &subscriptions)
+        KeyboardShortcuts.onKeyDown(for: .toggleNotchOpen) { [weak self] in
+            self?.toggleIsland()
+        }
+        KeyboardShortcuts.onKeyDown(for: .toggleSneakPeek) { [weak self] in
+            guard self?.visibility.isAvailable == true else { return }
+            self?.coordinator.toggleSneakPeek(status: true, type: .music, duration: 3)
+        }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        IslandRestModel.shared.refresh()
+        HUDStateManager.shared.refresh()
+        HiNotificationManager.shared.refresh()
+        presentFocusReminderIfPossible()
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        visibility.isHidden = false
+        applyVisibility()
+        return true
+    }
+
+    func expandIsland() {
+        guard !visibility.screenUnavailable else { return }
+        visibility.isHidden = false
+        applyVisibility()
+        guard visibility.isAvailable, let entry = preferredEntry else { return }
+        coordinator.currentView = .island
+        entry.pointer.keepExpandedForUserCommand()
+        entry.model.open(preferredPage: .island)
+    }
+
+    private func toggleIsland() {
+        guard visibility.isAvailable, let entry = preferredEntry,
+              entry.model.notchState == .open else {
+            // A deliberate shortcut, like the menu's Show command, may restore
+            // a manually hidden island. Background events never call this path.
+            expandIsland()
+            return
+        }
+        entry.pointer.keepExpandedForUserCommand(duration: 0)
+        entry.model.close(force: true)
+    }
+
+    private var preferredEntry: Entry? {
+        if let screen = preferredScreen, let id = screen.displayUUID { return entries[id] }
+        return entries.values.first
+    }
+    private var preferredScreen: NSScreen? {
+        if let id = coordinator.preferredScreenUUID, let selected = NSScreen.screen(withUUID: id) { return selected }
+        guard Defaults[.automaticallySwitchDisplay] else { return nil }
+        return NSScreen.main ?? NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.screens.first
+    }
+
+    private func setupLifecycleObservers() {
+        let center = NotificationCenter.default
+        let changes: [Notification.Name] = [NSApplication.didChangeScreenParametersNotification,
+            .selectedScreenChanged, .notchHeightChanged, .showOnAllDisplaysChanged,
+            .automaticallySwitchDisplayChanged]
+        for name in changes {
+            tokens.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.rebuildWindows() }
+            })
+        }
+        let workspace = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification] {
+            workspaceTokens.append(workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.guiSession.setScreenSleeping(true); self?.updateScreenAvailability() }
+            })
+        }
+        for name in [NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification] {
+            workspaceTokens.append(workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    self?.guiSession.setScreenSleeping(false)
+                    self?.refreshCurrentGUISession()
+                    self?.updateScreenAvailability()
+                }
+            })
+        }
+        for (name, active) in [(NSWorkspace.sessionDidResignActiveNotification, false),
+                               (NSWorkspace.sessionDidBecomeActiveNotification, true)] {
+            workspaceTokens.append(workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    self?.guiSession.setSessionActive(active)
+                    if active { self?.refreshCurrentGUISession() }
+                    self?.updateScreenAvailability()
+                }
+            })
+        }
+        for (name, locked) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
+            distributedTokens.append(DistributedNotificationCenter.default().addObserver(
+                forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
+                    Task { @MainActor in
+                        if !locked { self?.refreshCurrentGUISession() }
+                        self?.guiSession.setScreenLocked(locked)
+                        self?.updateScreenAvailability()
+                    }
+                })
+        }
+    }
+
+    private func refreshCurrentGUISession() {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        // These two keys are public CGSession API; missing data fails closed.
+        let onConsole = session?[kCGSessionOnConsoleKey as String] as? Bool
+        let loginDone = session?[kCGSessionLoginDoneKey as String] as? Bool
+        // CGSSessionScreenIsLocked is an undocumented/private optional field,
+        // not a public CoreGraphics guarantee. Lock/unlock notifications remain
+        // authoritative if it is absent; never use absence to clear a known lock.
+        let locked = session?["CGSSessionScreenIsLocked"] as? Bool
+        guiSession.refreshSession(onConsole: onConsole, loginDone: loginDone, locked: locked)
+    }
+
+    private func updateScreenAvailability() {
+        visibility.screenUnavailable = guiSession.isUnavailable
+        applyVisibility()
+        if visibility.isAvailable { rebuildWindows() }
+        IslandRestModel.shared.refresh()
+        HUDStateManager.shared.refresh()
+        HiNotificationManager.shared.refresh()
+    }
+
+    private func rebuildWindows() {
+        cleanupWindows()
+        let screens = Defaults[.showOnAllDisplays] ? NSScreen.screens : preferredScreen.map { [$0] } ?? []
+        for screen in screens {
+            guard let id = screen.displayUUID else { continue }
+            let model = BoringViewModel(screenUUID: id)
+            coordinator.selectedScreenUUID = id
+            let frame = CGRect(x: screen.frame.midX - windowSize.width / 2,
+                               y: screen.frame.maxY - windowSize.height,
+                               width: windowSize.width, height: windowSize.height)
+            let window = BoringNotchSkyLightWindow(contentRect: frame,
+                styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+            window.title = "工位充电岛"
+            window.identifier = NSUserInterfaceItemIdentifier("NotchIslandNextPanel-" + id)
+            window.hidesOnDeactivate = false
+            window.animationBehavior = .none
+            let pointer = NotchPointerCoordinator(window: window, screen: screen,
+                isExpanded: { [weak model] in model?.notchState == .open },
+                keepsOpen: { [weak model] in
+                    model?.isBatteryPopoverActive == true || SharingStateManager.shared.preventNotchClose
+                },
+                open: { [weak model] in
+                    guard Defaults[.openNotchOnHover] else { return }
+                    model?.open()
+                }, close: { [weak model] in model?.close() })
+            let host = IslandHostingView(rootView: ContentView().environmentObject(model).environmentObject(pointer))
+            host.sizingOptions = []
+            window.contentView = host
+            entries[id] = Entry(window: window, model: model, pointer: pointer)
+        }
+        applyVisibility()
+    }
+
+    private func applyVisibility() {
+        if !visibility.isAvailable {
+            HUDStateManager.shared.setApplicationAvailable(false)
+            IslandRestModel.shared.setApplicationAvailable(false)
+            cancelFocusReminderPresentation()
+        }
+        for entry in entries.values {
+            if visibility.isAvailable {
+                entry.window.orderFrontRegardless()
+                entry.pointer.setEnabled(true)
+            } else {
+                entry.pointer.setEnabled(false)
+                entry.model.close(force: true)
+                entry.model.isCameraExpanded = false
+                entry.window.orderOut(nil)
+            }
+        }
+        // Never swallow a hardware key unless a real panel can present its result.
+        let hasVisiblePanel = visibility.isAvailable && entries.values.contains { $0.window.isVisible }
+        HUDStateManager.shared.setApplicationAvailable(hasVisiblePanel)
+        BriefPresentationCoordinator.shared.setApplicationAvailable(hasVisiblePanel)
+        LyricsStore.shared.setApplicationAvailable(hasVisiblePanel)
+        HiNotificationManager.shared.setApplicationAvailable(hasVisiblePanel)
+        if !visibility.isAvailable {
+            coordinator.sneakPeek.show = false
+            coordinator.expandingView.show = false
+            WebcamManager.shared.stopSession()
+        } else {
+            IslandRestModel.shared.setApplicationAvailable(hasVisiblePanel)
+            DispatchQueue.main.async { [weak self] in self?.presentFocusReminderIfPossible() }
+        }
+    }
+
+    private func presentFocusReminderIfPossible() {
+        let rest = IslandRestModel.shared
+        guard visibility.isAvailable, rest.pendingFocusReminder, focusReminderTask == nil,
+              let entry = preferredEntry, entry.window.isVisible else { return }
+        coordinator.currentView = .island
+        entry.pointer.keepExpandedForUserCommand(duration: 10)
+        entry.model.open(preferredPage: .island)
+        guard entry.model.notchState == .open else { return }
+        // Keep the persisted reminder pending until it has had a full presentation.
+        // Hiding, locking, quitting or rebuilding the window during this interval
+        // preserves it for the next available island, rather than losing it on open().
+        focusReminderTask = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .seconds(10)) }
+            catch { return }
+            guard let self else { return }
+            self.focusReminderTask = nil
+            if self.visibility.isAvailable, rest.mode == .focus, rest.phase == .completed {
+                rest.consumeFocusReminder()
+            }
+        }
+    }
+
+    private func cancelFocusReminderPresentation() {
+        focusReminderTask?.cancel()
+        focusReminderTask = nil
+    }
+
+    private func cleanupWindows() {
+        LyricsStore.shared.setApplicationAvailable(false)
+        HiNotificationManager.shared.setApplicationAvailable(false)
+        BriefPresentationCoordinator.shared.setApplicationAvailable(false)
+        HUDStateManager.shared.setApplicationAvailable(false)
+        IslandRestModel.shared.setApplicationAvailable(false)
+        cancelFocusReminderPresentation()
+        IslandRestModel.shared.clearPresentationsForWindowRebuild()
+        for entry in entries.values {
+            entry.pointer.setEnabled(false)
+            entry.window.orderOut(nil)
+            entry.window.contentView = nil
+            entry.window.close()
+            entry.model.destroy()
+        }
+        entries.removeAll()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        NotificationCenter.default.removeObserver(self)
-        if let observer = screenLockedObserver {
-            DistributedNotificationCenter.default().removeObserver(observer)
-            screenLockedObserver = nil
-        }
-        if let observer = screenUnlockedObserver {
-            DistributedNotificationCenter.default().removeObserver(observer)
-            screenUnlockedObserver = nil
-        }
-        MusicManager.shared.destroy()
-        cleanupDragDetectors()
+        HUDStateManager.shared.stop()
+        IslandRestModel.shared.setApplicationAvailable(false)
         cleanupWindows()
+        for token in tokens { NotificationCenter.default.removeObserver(token) }
+        for token in workspaceTokens { NSWorkspace.shared.notificationCenter.removeObserver(token) }
+        for token in distributedTokens { DistributedNotificationCenter.default().removeObserver(token) }
+        WebcamManager.shared.stopSession()
+        MusicManager.shared.destroy()
     }
 
-    @MainActor
-    func onScreenLocked(_ notification: Notification) {
-        isScreenLocked = true
-        if !Defaults[.showOnLockScreen] {
-            cleanupWindows()
-        } else {
-            enableSkyLightOnAllWindows()
-        }
-    }
-
-    @MainActor
-    func onScreenUnlocked(_ notification: Notification) {
-        isScreenLocked = false
-        if !Defaults[.showOnLockScreen] {
-            adjustWindowPosition(changeAlpha: true)
-        } else {
-            disableSkyLightOnAllWindows()
-        }
-    }
-    
-    @MainActor
-    private func enableSkyLightOnAllWindows() {
-        if Defaults[.showOnAllDisplays] {
-            windows.values.forEach { window in
-                if let skyWindow = window as? BoringNotchSkyLightWindow {
-                    skyWindow.enableSkyLight()
+    #if DEBUG
+    func runInteractionCheck() {
+        guard !visibility.isChecking, !visibility.screenUnavailable else { return }
+        visibility.isHidden = false
+        applyVisibility()
+        guard let entry = preferredEntry else { return }
+        visibility.isChecking = true
+        entry.pointer.setAutomaticHoverSuspendedForDiagnostics(true)
+        let initialFrame = entry.window.frame
+        let initialApp = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        Task { @MainActor in
+            var samples: [NotchPointerCoordinator.DiagnosticSnapshot] = []
+            @MainActor func sample(for duration: TimeInterval) async {
+                let end = ProcessInfo.processInfo.systemUptime + duration
+                while ProcessInfo.processInfo.systemUptime < end {
+                    if let snapshot = entry.pointer.diagnosticSnapshot() { samples.append(snapshot) }
+                    try? await Task.sleep(for: .milliseconds(16))
                 }
             }
-        } else {
-            if let skyWindow = window as? BoringNotchSkyLightWindow {
-                skyWindow.enableSkyLight()
+            for _ in 0..<20 {
+                entry.model.open(preferredPage: .island); await sample(for: 0.60)
+                entry.model.close(force: true); await sample(for: 0.65)
             }
+            for _ in 0..<10 {
+                entry.model.open(preferredPage: .island); await sample(for: 0.14)
+                entry.model.close(force: true); await sample(for: 0.12)
+                entry.model.open(preferredPage: .island); await sample(for: 0.16)
+                entry.model.close(force: true); await sample(for: 0.60)
+            }
+            var failures: [String] = []
+            if entry.window.frame != initialFrame { failures.append(L("Carrier window position changed")) }
+            if entry.window.isKeyWindow || entry.window.isMainWindow { failures.append(L("The panel became the keyboard window")) }
+            if NSWorkspace.shared.frontmostApplication?.processIdentifier != initialApp {
+                failures.append(L("Frontmost app changed (exclude manual switching)"))
+            }
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("com.dongfengrui.NotchIsland", isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let url = folder.appendingPathComponent("interaction-diagnostics.json")
+            do { try encoder.encode(samples).write(to: url, options: .atomic) }
+            catch { failures.append(String(format: L("Could not save diagnostics: %@"), error.localizedDescription)) }
+            visibility.isChecking = false
+            entry.pointer.setAutomaticHoverSuspendedForDiagnostics(false)
+            let alert = NSAlert()
+            alert.messageText = L("Animation and window diagnostics")
+            alert.informativeText = String(format: L("Ran 20 open/close cycles and 10 mid-animation reversals.\nCaptured %lld geometry and mouse-routing samples.\n%@\nSamples: %@\nReview the samples and real hovering separately; this check does not synthesize mouse input."),
+                samples.count, failures.isEmpty ? L("Window position and nonactivation checks passed.") : failures.joined(separator: "\n"), url.path)
+            alert.addButton(withTitle: L("Done"))
+            alert.runModal()
         }
     }
-    
-    @MainActor
-    private func disableSkyLightOnAllWindows() {
-        // Delay disabling SkyLight to avoid flicker during unlock transition
-        Task {
-            try? await Task.sleep(for: .milliseconds(150))
-            await MainActor.run {
-                if Defaults[.showOnAllDisplays] {
-                    self.windows.values.forEach { window in
-                        if let skyWindow = window as? BoringNotchSkyLightWindow {
-                            skyWindow.disableSkyLight()
-                        }
-                    }
-                } else {
-                    if let skyWindow = self.window as? BoringNotchSkyLightWindow {
-                        skyWindow.disableSkyLight()
-                    }
-                }
-            }
-        }
-    }
+    #endif
+}
 
-    private func cleanupWindows(shouldInvert: Bool = false) {
-        let shouldCleanupMulti = shouldInvert ? !Defaults[.showOnAllDisplays] : Defaults[.showOnAllDisplays]
-        
-        if shouldCleanupMulti {
-            windows.values.forEach { window in
-                window.close()
-                NotchSpaceManager.shared.notchSpace.windows.remove(window)
-            }
-            windows.removeAll()
-            viewModels.removeAll()
-        } else if let window = window {
-            window.close()
-            NotchSpaceManager.shared.notchSpace.windows.remove(window)
-            if let obs = windowScreenDidChangeObserver {
-                NotificationCenter.default.removeObserver(obs)
-                windowScreenDidChangeObserver = nil
-            }
-            self.window = nil
-        }
-    }
-
-    private func cleanupDragDetectors() {
-        dragDetectors.values.forEach { detector in
-            detector.stopMonitoring()
-        }
-        dragDetectors.removeAll()
-    }
-
-    private func setupDragDetectors() {
-        cleanupDragDetectors()
-
-        guard Defaults[.expandedDragDetection] else { return }
-
-        if Defaults[.showOnAllDisplays] {
-            for screen in NSScreen.screens {
-                setupDragDetectorForScreen(screen)
-            }
-        } else {
-            let preferredScreen: NSScreen? = window?.screen
-                ?? NSScreen.screen(withUUID: coordinator.selectedScreenUUID)
-                ?? NSScreen.main
-
-            if let screen = preferredScreen {
-                setupDragDetectorForScreen(screen)
-            }
-        }
-    }
-
-    private func setupDragDetectorForScreen(_ screen: NSScreen) {
-        guard let uuid = screen.displayUUID else { return }
-        
-        let screenFrame = screen.frame
-        let notchHeight = openNotchSize.height
-        let notchWidth = openNotchSize.width
-        
-        // Create notch region at the top-center of the screen where an open notch would occupy
-        let notchRegion = CGRect(
-            x: screenFrame.midX - notchWidth / 2,
-            y: screenFrame.maxY - notchHeight,
-            width: notchWidth,
-            height: notchHeight
-        )
-        
-        let detector = DragDetector(notchRegion: notchRegion)
-        
-        detector.onDragEntersNotchRegion = { [weak self] in
-            Task { @MainActor in
-                self?.handleDragEntersNotchRegion(onScreen: screen)
-            }
-        }
-        
-        dragDetectors[uuid] = detector
-        detector.startMonitoring()
-    }
-
-    private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
-        guard let uuid = screen.displayUUID else { return }
-        
-        if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
-            viewModel.open()
-            coordinator.currentView = .shelf
-        } else if !Defaults[.showOnAllDisplays], let windowScreen = window?.screen, screen == windowScreen {
-            vm.open()
-            coordinator.currentView = .shelf
-        }
-    }
-
-    private func createBoringNotchWindow(for screen: NSScreen, with viewModel: BoringViewModel) -> NSWindow {
-        let rect = NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
-        let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow]
-        
-        let window = BoringNotchSkyLightWindow(contentRect: rect, styleMask: styleMask, backing: .buffered, defer: false)
-        
-        // Enable SkyLight only when screen is locked
-        if isScreenLocked {
-            window.enableSkyLight()
-        } else {
-            window.disableSkyLight()
-        }
-
-        window.contentView = NSHostingView(
-            rootView: ContentView()
-                .environmentObject(viewModel)
-        )
-
-        window.orderFrontRegardless()
-        NotchSpaceManager.shared.notchSpace.windows.insert(window)
-
-        // Observe when the window's screen changes so we can update drag detectors
-        windowScreenDidChangeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didChangeScreenNotification,
-            object: window,
-            queue: .main) { [weak self] _ in
-                Task { @MainActor in
-                    self?.setupDragDetectors()
-                }
-        }
-        return window
-    }
-
-    @MainActor
-    private func positionWindow(_ window: NSWindow, on screen: NSScreen, changeAlpha: Bool = false) {
-        if changeAlpha {
-            window.alphaValue = 0
-        }
-
-        let screenFrame = screen.frame
-        window.setFrameOrigin(
-            NSPoint(
-                x: screenFrame.origin.x + (screenFrame.width / 2) - window.frame.width / 2,
-                y: screenFrame.origin.y + screenFrame.height - window.frame.height
-            ))
-        window.alphaValue = 1
-    }
-
-    func applicationDidFinishLaunching(_ notification: Notification) {
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(screenConfigurationDidChange),
-            name: NSApplication.didChangeScreenParametersNotification,
-            object: nil
-        )
-
-        NotificationCenter.default.addObserver(
-            forName: Notification.Name.selectedScreenChanged, object: nil, queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.adjustWindowPosition(changeAlpha: true)
-                self?.setupDragDetectors()
-            }
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: Notification.Name.notchHeightChanged, object: nil, queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.adjustWindowPosition()
-                self?.setupDragDetectors()
-            }
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: Notification.Name.automaticallySwitchDisplayChanged, object: nil, queue: nil
-        ) { [weak self] _ in
-            guard let self = self, let window = self.window else { return }
-            Task { @MainActor in
-                window.alphaValue = self.coordinator.selectedScreenUUID == self.coordinator.preferredScreenUUID ? 1 : 0
-            }
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: Notification.Name.showOnAllDisplaysChanged, object: nil, queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self else { return }
-                self.cleanupWindows(shouldInvert: true)
-                self.adjustWindowPosition(changeAlpha: true)
-                self.setupDragDetectors()
-            }
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: Notification.Name.expandedDragDetectionChanged, object: nil, queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.setupDragDetectors()
-            }
-        }
-
-        // Use closure-based observers for DistributedNotificationCenter and keep tokens for removal
-        screenLockedObserver = DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name(rawValue: "com.apple.screenIsLocked"),
-            object: nil, queue: .main) { [weak self] notification in
-                Task { @MainActor in
-                    self?.onScreenLocked(notification)
-                }
-        }
-
-        screenUnlockedObserver = DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name(rawValue: "com.apple.screenIsUnlocked"),
-            object: nil, queue: .main) { [weak self] notification in
-                Task { @MainActor in
-                    self?.onScreenUnlocked(notification)
-                }
-        }
-
-        KeyboardShortcuts.onKeyDown(for: .toggleSneakPeek) { [weak self] in
-            guard let self = self else { return }
-            if Defaults[.sneakPeekStyles] == .inline {
-                let newStatus = !self.coordinator.expandingView.show
-                self.coordinator.toggleExpandingView(status: newStatus, type: .music)
-            } else {
-                self.coordinator.toggleSneakPeek(
-                    status: !self.coordinator.sneakPeek.show,
-                    type: .music,
-                    duration: 3.0
-                )
-            }
-        }
-
-        KeyboardShortcuts.onKeyDown(for: .toggleNotchOpen) { [weak self] in
-            Task { [weak self] in
-                guard let self = self else { return }
-
-                let mouseLocation = NSEvent.mouseLocation
-
-                var viewModel = self.vm
-
-                if Defaults[.showOnAllDisplays] {
-                    for screen in NSScreen.screens {
-                        if screen.frame.contains(mouseLocation) {
-                            if let uuid = screen.displayUUID, let screenViewModel = self.viewModels[uuid] {
-                                viewModel = screenViewModel
-                                break
-                            }
-                        }
-                    }
-                }
-
-                self.closeNotchTask?.cancel()
-                self.closeNotchTask = nil
-
-                switch viewModel.notchState {
-                case .closed:
-                    await MainActor.run {
-                        viewModel.open()
-                    }
-
-                    let task = Task { [weak viewModel] in
-                        do {
-                            try await Task.sleep(for: .seconds(3))
-                            await MainActor.run {
-                                viewModel?.close()
-                            }
-                        } catch { }
-                    }
-                    self.closeNotchTask = task
-                case .open:
-                    await MainActor.run {
-                        viewModel.close()
-                    }
-                }
-            }
-        }
-
-        if !Defaults[.showOnAllDisplays] {
-            let viewModel = self.vm
-            let window = createBoringNotchWindow(
-                for: NSScreen.main ?? NSScreen.screens.first!, with: viewModel)
-            self.window = window
-            adjustWindowPosition(changeAlpha: true)
-        } else {
-            adjustWindowPosition(changeAlpha: true)
-        }
-
-        setupDragDetectors()
-
-        if coordinator.firstLaunch {
-            DispatchQueue.main.async {
-                self.showOnboardingWindow()
-            }
-            playWelcomeSound()
-        } else if MusicManager.shared.isNowPlayingDeprecated
-            && Defaults[.mediaController] == .nowPlaying
-        {
-            DispatchQueue.main.async {
-                self.showOnboardingWindow(step: .musicPermission)
-            }
-        }
-        if Defaults[.hudReplacement] {
-            Task { @MainActor in
-               let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
-                if authorized {
-                    MediaKeyInterceptor.shared.start(requireAccessibility: true, promptIfNeeded: false)
-                } else {
-                    let granted = await XPCHelperClient.shared.ensureAccessibilityAuthorization(promptIfNeeded: false)
-                    if granted {
-                        MediaKeyInterceptor.shared.start(requireAccessibility: true, promptIfNeeded: false)
-                    }
-                }
-            }
-        }
-
-        previousScreens = NSScreen.screens
-    }
-
-    func playWelcomeSound() {
-        let audioPlayer = AudioPlayer()
-        audioPlayer.play(fileName: "boring", fileExtension: "m4a")
-    }
-
-    func deviceHasNotch() -> Bool {
-        if #available(macOS 12.0, *) {
-            for screen in NSScreen.screens {
-                if screen.safeAreaInsets.top > 0 {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    @objc func screenConfigurationDidChange() {
-        let currentScreens = NSScreen.screens
-
-        let screensChanged =
-            currentScreens.count != previousScreens?.count
-            || Set(currentScreens.compactMap { $0.displayUUID })
-                != Set(previousScreens?.compactMap { $0.displayUUID } ?? [])
-            || Set(currentScreens.map { $0.frame }) != Set(previousScreens?.map { $0.frame } ?? [])
-
-        previousScreens = currentScreens
-
-        if screensChanged {
-            DispatchQueue.main.async { [weak self] in
-                self?.cleanupWindows()
-                self?.adjustWindowPosition()
-                self?.setupDragDetectors()
-            }
-        }
-    }
-
-    @objc func adjustWindowPosition(changeAlpha: Bool = false) {
-        if Defaults[.showOnAllDisplays] {
-            let currentScreenUUIDs = Set(NSScreen.screens.compactMap { $0.displayUUID })
-
-            // Remove windows for screens that no longer exist
-            for uuid in windows.keys where !currentScreenUUIDs.contains(uuid) {
-                if let window = windows[uuid] {
-                    window.close()
-                    NotchSpaceManager.shared.notchSpace.windows.remove(window)
-                    windows.removeValue(forKey: uuid)
-                    viewModels.removeValue(forKey: uuid)
-                }
-            }
-
-            // Create or update windows for all screens
-            for screen in NSScreen.screens {
-                guard let uuid = screen.displayUUID else { continue }
-                
-                if windows[uuid] == nil {
-                    let viewModel = BoringViewModel(screenUUID: uuid)
-                    let window = createBoringNotchWindow(for: screen, with: viewModel)
-
-                    windows[uuid] = window
-                    viewModels[uuid] = viewModel
-                }
-
-                if let window = windows[uuid], let viewModel = viewModels[uuid] {
-                    positionWindow(window, on: screen, changeAlpha: changeAlpha)
-
-                    if viewModel.notchState == .closed {
-                        viewModel.close()
-                    }
-                }
-            }
-        } else {
-            let selectedScreen: NSScreen
-
-            if let preferredScreen = NSScreen.screen(withUUID: coordinator.preferredScreenUUID ?? "") {
-                coordinator.selectedScreenUUID = coordinator.preferredScreenUUID ?? ""
-                selectedScreen = preferredScreen
-            } else if Defaults[.automaticallySwitchDisplay], let mainScreen = NSScreen.main,
-                      let mainUUID = mainScreen.displayUUID {
-                coordinator.selectedScreenUUID = mainUUID
-                selectedScreen = mainScreen
-            } else {
-                if let window = window {
-                    window.alphaValue = 0
-                }
-                return
-            }
-
-            vm.screenUUID = selectedScreen.displayUUID
-            vm.notchSize = getClosedNotchSize(screenUUID: selectedScreen.displayUUID)
-
-            if window == nil {
-                window = createBoringNotchWindow(for: selectedScreen, with: vm)
-            }
-
-            if let window = window {
-                positionWindow(window, on: selectedScreen, changeAlpha: changeAlpha)
-
-                if vm.notchState == .closed {
-                    vm.close()
-                }
-            }
-        }
-    }
-
-    @objc func togglePopover(_ sender: Any?) {
-        if window?.isVisible == true {
-            window?.orderOut(nil)
-        } else {
-            window?.orderFrontRegardless()
-        }
-    }
-
-    @objc func showMenu() {
-        statusItem?.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
-    }
-
-    @objc func quitAction() {
-        NSApplication.shared.terminate(self)
-    }
-
-    private func showOnboardingWindow(step: OnboardingStep = .welcome) {
-        if onboardingWindowController == nil {
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
-                styleMask: [.titled, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
-            window.center()
-            window.title = "Onboarding"
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.contentView = NSHostingView(
-                rootView: OnboardingView(
-                    step: step,
-                    onFinish: {
-                        window.orderOut(nil)
-//                        NSApp.setActivationPolicy(.accessory)
-                        window.close()
-                        NSApp.deactivate()
-                    },
-                    onOpenSettings: {
-                        window.close()
-                        SettingsWindowController.shared.showWindow()
-                    }
-                ))
-            window.isRestorable = false
-            window.identifier = NSUserInterfaceItemIdentifier("OnboardingWindow")
-
-            onboardingWindowController = NSWindowController(window: window)
-        }
-
-//        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        onboardingWindowController?.window?.makeKeyAndOrderFront(nil)
-        onboardingWindowController?.window?.orderFrontRegardless()
-    }
+private final class IslandHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 extension Notification.Name {

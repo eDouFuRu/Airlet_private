@@ -5,24 +5,19 @@
 //  Created by Richard Kunkli on 07/08/2024.
 //
 
+import AppKit
 import AVFoundation
 import Defaults
 import EventKit
 import KeyboardShortcuts
 import LaunchAtLogin
-import Sparkle
 import SwiftUI
 import SwiftUIIntrospect
 
 struct SettingsView: View {
     @State private var selectedTab = "General"
+    @ObservedObject private var language = AppLanguage.shared
     @State private var accentColorUpdateTrigger = UUID()
-
-    let updaterController: SPUStandardUpdaterController?
-
-    init(updaterController: SPUStandardUpdaterController? = nil) {
-        self.updaterController = updaterController
-    }
 
     var body: some View {
         NavigationSplitView {
@@ -30,11 +25,17 @@ struct SettingsView: View {
                 NavigationLink(value: "General") {
                     Label("General", systemImage: "gear")
                 }
+                NavigationLink(value: "PotatoTimer") {
+                    Label("Sweet Potato Timer", systemImage: "timer")
+                }
                 NavigationLink(value: "Appearance") {
                     Label("Appearance", systemImage: "eye")
                 }
                 NavigationLink(value: "Media") {
                     Label("Media", systemImage: "play.laptopcomputer")
+                }
+                NavigationLink(value: "HiNotifications") {
+                    Label("hi notifications", systemImage: "bell.badge")
                 }
                 NavigationLink(value: "Calendar") {
                     Label("Calendar", systemImage: "calendar")
@@ -73,10 +74,14 @@ struct SettingsView: View {
                 switch selectedTab {
                 case "General":
                     GeneralSettings()
+                case "PotatoTimer":
+                    PotatoTimerSettings()
                 case "Appearance":
                     Appearance()
                 case "Media":
                     Media()
+                case "HiNotifications":
+                    HiNotificationSettings()
                 case "Calendar":
                     CalendarSettings()
                 case "HUD":
@@ -92,21 +97,19 @@ struct SettingsView: View {
                 case "Advanced":
                     Advanced()
                 case "About":
-                    if let controller = updaterController {
-                        About(updaterController: controller)
-                    } else {
-                        // Fallback with a default controller
-                        About(
-                            updaterController: SPUStandardUpdaterController(
-                                startingUpdater: false, updaterDelegate: nil,
-                                userDriverDelegate: nil))
-                    }
+                    About()
                 default:
                     GeneralSettings()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Native navigation chrome can resolve LocalizedStringKey using the
+            // system language. Page titles use L() + verbatim Text below, and
+            // this identity change reevaluates them for the current app language.
+            .id(language.selection)
         }
+        .environment(\.locale, language.locale)
+        .onReceive(NotificationCenter.default.publisher(for: .islandOpenTimerSettings)) { _ in selectedTab = "PotatoTimer" }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
         .toolbar {
@@ -128,38 +131,39 @@ struct SettingsView: View {
 }
 
 struct GeneralSettings: View {
+    @ObservedObject private var language = AppLanguage.shared
     @State private var screens: [(uuid: String, name: String)] = NSScreen.screens.compactMap { screen in
         guard let uuid = screen.displayUUID else { return nil }
         return (uuid, screen.localizedName)
     }
-    @EnvironmentObject var vm: BoringViewModel
     @ObservedObject var coordinator = BoringViewCoordinator.shared
 
     @Default(.mirrorShape) var mirrorShape
     @Default(.showEmojis) var showEmojis
-    @Default(.gestureSensitivity) var gestureSensitivity
-    @Default(.minimumHoverDuration) var minimumHoverDuration
     @Default(.nonNotchHeight) var nonNotchHeight
     @Default(.nonNotchHeightMode) var nonNotchHeightMode
     @Default(.notchHeight) var notchHeight
     @Default(.notchHeightMode) var notchHeightMode
     @Default(.showOnAllDisplays) var showOnAllDisplays
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
-    @Default(.enableGestures) var enableGestures
     @Default(.openNotchOnHover) var openNotchOnHover
     
 
     var body: some View {
         Form {
-            Section {
-                Toggle(isOn: Binding(
-                    get: { Defaults[.menubarIcon] },
-                    set: { Defaults[.menubarIcon] = $0 }
-                )) {
-                    Text("Show menu bar icon")
+            Section("Language") {
+                Picker("App language", selection: $language.selection) {
+                    Text("简体中文").tag("zh-Hans")
+                    Text("English").tag("en")
                 }
-                .tint(.effectiveAccent)
-                LaunchAtLogin.Toggle("Launch at login")
+            }
+
+            Section {
+                Text("菜单栏入口始终保留，方便在隐藏小岛后恢复显示。")
+                    .foregroundStyle(.secondary)
+                LaunchAtLogin.Toggle {
+                    Text("Launch at login")
+                }
                 Defaults.Toggle(key: .showOnAllDisplays) {
                     Text("Show on all displays")
                 }
@@ -172,7 +176,7 @@ struct GeneralSettings: View {
                         Text(screen.name).tag(screen.uuid as String?)
                     }
                 }
-                .onChange(of: NSScreen.screens) {
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
                     screens = NSScreen.screens.compactMap { screen in
                         guard let uuid = screen.displayUUID else { return nil }
                         return (uuid, screen.localizedName)
@@ -206,19 +210,11 @@ struct GeneralSettings: View {
                         .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: notchHeightMode) {
-                    switch notchHeightMode {
-                    case .matchRealNotchSize:
-                        notchHeight = 38
-                    case .matchMenuBar:
-                        notchHeight = 44
-                    case .custom:
-                        notchHeight = 38
-                    }
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil)
                 }
                 if notchHeightMode == .custom {
-                    Slider(value: $notchHeight, in: 15...45, step: 1) {
+                    Slider(value: $notchHeight, in: 24...45, step: 1) {
                         Text("Custom notch size - \(notchHeight, specifier: "%.0f")")
                     }
                     .onChange(of: notchHeight) {
@@ -229,25 +225,17 @@ struct GeneralSettings: View {
                 Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
                     Text("Match menubar height")
                         .tag(WindowHeightMode.matchMenuBar)
-                    Text("Match real notch height")
+                    Text("Simulated notch (32 pt)")
                         .tag(WindowHeightMode.matchRealNotchSize)
                     Text("Custom height")
                         .tag(WindowHeightMode.custom)
                 }
                 .onChange(of: nonNotchHeightMode) {
-                    switch nonNotchHeightMode {
-                    case .matchMenuBar:
-                        nonNotchHeight = 24
-                    case .matchRealNotchSize:
-                        nonNotchHeight = 32
-                    case .custom:
-                        nonNotchHeight = 32
-                    }
                     NotificationCenter.default.post(
                         name: Notification.Name.notchHeightChanged, object: nil)
                 }
                 if nonNotchHeightMode == .custom {
-                    Slider(value: $nonNotchHeight, in: 0...40, step: 1) {
+                    Slider(value: $nonNotchHeight, in: 24...45, step: 1) {
                         Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
                     }
                     .onChange(of: nonNotchHeight) {
@@ -261,7 +249,6 @@ struct GeneralSettings: View {
 
             NotchBehaviour()
 
-            gestureControls()
         }
         .toolbar {
             Button("Quit app") {
@@ -270,51 +257,10 @@ struct GeneralSettings: View {
             .controlSize(.extraLarge)
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("General")
-        .onChange(of: openNotchOnHover) {
-            if !openNotchOnHover {
-                enableGestures = true
-            }
-        }
-    }
-
-    @ViewBuilder
-    func gestureControls() -> some View {
-        Section {
-            Defaults.Toggle(key: .enableGestures) {
-                Text("Enable gestures")
-            }
-                .disabled(!openNotchOnHover)
-            if enableGestures {
-                Toggle("Change media with horizontal gestures", isOn: .constant(false))
-                    .disabled(true)
-                Defaults.Toggle(key: .closeGestureEnabled) {
-                    Text("Close gesture")
-                }
-                Slider(value: $gestureSensitivity, in: 100...300, step: 100) {
-                    HStack {
-                        Text("Gesture sensitivity")
-                        Spacer()
-                        Text(
-                            Defaults[.gestureSensitivity] == 100
-                                ? "High" : Defaults[.gestureSensitivity] == 200 ? "Medium" : "Low"
-                        )
-                        .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        } header: {
-            HStack {
-                Text("Gesture control")
-                customBadge(text: "Beta")
-            }
-        } footer: {
-            Text(
-                "Two-finger swipe up on notch to close, two-finger swipe down on notch to open when **Open notch on hover** option is disabled"
-            )
-            .multilineTextAlignment(.trailing)
-            .foregroundStyle(.secondary)
-            .font(.caption)
+        .navigationTitle(Text(verbatim: L("General")))
+        .onAppear {
+            if notchHeightMode == .custom { notchHeight = min(45, max(24, notchHeight)) }
+            if nonNotchHeightMode == .custom { nonNotchHeight = min(45, max(24, nonNotchHeight)) }
         }
     }
 
@@ -329,18 +275,9 @@ struct GeneralSettings: View {
             }
             Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
             if openNotchOnHover {
-                Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
-                    HStack {
-                        Text("Hover delay")
-                        Spacer()
-                        Text("\(minimumHoverDuration, specifier: "%.1f")s")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .onChange(of: minimumHoverDuration) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.notchHeightChanged, object: nil)
-                }
+                Text("鼠标在摄像头所占用的刘海区域停留 150 毫秒后展开，两侧的状态展示不触发展开。无刘海屏幕使用顶部模拟胶囊。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         } header: {
             Text("Notch behavior")
@@ -372,13 +309,8 @@ struct Charge: View {
                 Text("Battery Information")
             }
         }
-        .onAppear {
-            Task { @MainActor in
-                await XPCHelperClient.shared.isAccessibilityAuthorized()
-            }
-        }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Battery")
+        .navigationTitle(Text(verbatim: L("Battery")))
     }
 }
 
@@ -463,94 +395,79 @@ struct Charge: View {
 //}
 
 struct HUD: View {
-    @EnvironmentObject var vm: BoringViewModel
     @Default(.inlineHUD) var inlineHUD
     @Default(.enableGradient) var enableGradient
     @Default(.optionKeyAction) var optionKeyAction
-    @ObservedObject var coordinator = BoringViewCoordinator.shared
-    @State private var accessibilityAuthorized = false
+    @ObservedObject private var hud = HUDStateManager.shared
+    @State private var diagnosticsExpanded = false
     var body: some View {
         Form {
-            Section {
+            Section("General") {
                 Defaults.Toggle(key: .hudReplacement) {
-                   Text("Replace system HUD")
+                    Text("Replace system HUD")
                 }
-                .disabled(!accessibilityAuthorized)
-                .help("Enable Accessibility in System Settings → Privacy & Security → Accessibility")
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                    Task { @MainActor in
-                        let helper = await XPCHelperClient.shared.isAccessibilityAuthorized()
-                            accessibilityAuthorized = helper
-                        }
-                    }
-
-                if !accessibilityAuthorized {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Accessibility access is required to replace the system HUD.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 12) {
-                            Button("Request Accessibility") {
-                                // Use unsandboxed XPC helper if available so the system prompt is shown
-                                XPCHelperClient.shared.requestAccessibilityAuthorization()
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    }
-                    .padding(.top, 6)
+                Label(L(statusTitle), systemImage: hud.isRunning ? "checkmark.circle.fill" : "info.circle")
+                    .foregroundStyle(hud.isRunning ? Color.green : Color.secondary)
+                if !hud.accessibilityAuthorized {
+                    Text("Accessibility access is required to replace the system HUD.").foregroundStyle(.secondary)
+                    Button("Request Accessibility") { hud.requestPermission() }.buttonStyle(.borderedProminent)
                 }
+                if let error = hud.errorMessage { Text(L(error)).foregroundStyle(.orange) }
+                Button("Refresh permission status") { hud.refresh() }
                 Picker("Option key behaviour", selection: $optionKeyAction) {
-                    ForEach(OptionKeyAction.allCases) { opt in
-                        Text(opt.rawValue).tag(opt)
-                    }
-                }
-                .pickerStyle(.radioGroup)
-            } header: {
-                Text("General")
+                    ForEach(OptionKeyAction.allCases) { option in Text(L(option.rawValue)).tag(option) }
+                }.pickerStyle(.radioGroup)
             }
-            Section {
+            Section("Appearance") {
                 Picker("HUD style", selection: $inlineHUD) {
-                    Text("Default")
-                        .tag(false)
-                    Text("Inline")
-                        .tag(true)
-                }
-                .onChange(of: Defaults[.inlineHUD]) {
-                    if Defaults[.inlineHUD] {
-                        withAnimation {
-                            Defaults[.systemEventIndicatorShadow] = false
-                            Defaults[.enableGradient] = false
-                        }
-                    }
+                    Text("Default").tag(false)
+                    Text("Inline").tag(true)
                 }
                 Picker("Progressbar style", selection: $enableGradient) {
-                    Text("Hierarchical")
-                        .tag(false)
-                    Text("Gradient")
-                        .tag(true)
-                }
+                    Text("Hierarchical").tag(false)
+                    Text("Gradient").tag(true)
+                }.disabled(inlineHUD)
                 Defaults.Toggle(key: .systemEventIndicatorShadow) {
                     Text("Enable glowing effect")
-                }
+                }.disabled(inlineHUD)
+                if inlineHUD { Text("Gradient and glow are available in the default HUD style.").font(.caption).foregroundStyle(.secondary) }
                 Defaults.Toggle(key: .systemEventIndicatorUseAccent) {
                     Text("Tint progress bar with accent color")
                 }
-            } header: {
-                HStack {
-                    Text("Appearance")
+            }
+            Section {
+                DisclosureGroup("HUD diagnostics", isExpanded: $diagnosticsExpanded) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Read-only technical details about this application, its permissions, and the most recent media key event.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        ScrollView([.horizontal, .vertical]) {
+                            Text(verbatim: hud.diagnosticsSummary)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(height: 180)
+                        Button("Copy diagnostics") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(hud.diagnosticsSummary, forType: .string)
+                        }
+                    }
+                    .padding(.top, 8)
                 }
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("HUDs")
-        .task {
-            accessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .accessibilityAuthorizationChanged)) { notification in
-            if let granted = notification.userInfo?["granted"] as? Bool {
-                accessibilityAuthorized = granted
-            }
+        .navigationTitle(Text(verbatim: L("HUDs")))
+        .onAppear { hud.refresh() }
+    }
+    private var statusTitle: String {
+        switch hud.status {
+        case .disabled: return "System HUD is active"
+        case .permissionRequired: return "Permission required for this application"
+        case .running: return "Island HUD is active"
+        case .temporarilySuspended: return "System HUD is active while the island is hidden"
+        case .failed: return "Unable to start HUD replacement"
         }
     }
 }
@@ -563,14 +480,15 @@ struct Media: View {
     @Default(.enableSneakPeek) private var enableSneakPeek
     @Default(.sneakPeekStyles) var sneakPeekStyles
 
-    @Default(.enableLyrics) var enableLyrics
+    @Default(.lyricsDisplayLocation) var lyricsDisplayLocation
+    @ObservedObject private var lyricState = LyricsStore.shared
 
     var body: some View {
         Form {
             Section {
                 Picker("Music Source", selection: $mediaController) {
                     ForEach(availableMediaControllers) { controller in
-                        Text(controller.rawValue).tag(controller)
+                        Text(L(controller.rawValue)).tag(controller)
                     }
                 }
                 .onChange(of: mediaController) { _, _ in
@@ -611,7 +529,7 @@ struct Media: View {
                 Toggle("Show sneak peek on playback changes", isOn: $enableSneakPeek)
                 Picker("Sneak Peek Style", selection: $sneakPeekStyles) {
                     ForEach(SneakPeekStyle.allCases) { style in
-                        Text(style.rawValue).tag(style)
+                        Text(L(style.rawValue)).tag(style)
                     }
                 }
                 HStack {
@@ -643,12 +561,15 @@ struct Media: View {
             
             Section {
                 MusicSlotConfigurationView()
-                Defaults.Toggle(key: .enableLyrics) {
-                    HStack {
-                        Text("Show lyrics below artist name")
-                        customBadge(text: "Beta")
-                    }
+                Picker("Lyrics location", selection: $lyricsDisplayLocation) {
+                    Text("Off").tag(LyricsDisplayLocation.off)
+                    Text("Inside the player").tag(LyricsDisplayLocation.player)
+                    Text("Below the notch").tag(LyricsDisplayLocation.notch)
                 }
+                Button("Retry current song lyrics") { lyricState.retryCurrentTrack() }
+                    .disabled(lyricsDisplayLocation == .off || lyricState.isLoading)
+                Text("Online synced lyrics are matched by track and playback position. They may differ from your music app. Pausing hides the notch lyric row.")
+                    .font(.caption).foregroundStyle(.secondary)
             } header: {
                 Text("Media controls")
             }  footer: {
@@ -658,7 +579,7 @@ struct Media: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Media")
+        .navigationTitle(Text(verbatim: L("Media")))
     }
 
     // Only show controller options that are available on this macOS version
@@ -696,7 +617,10 @@ struct CalendarSettings: View {
                 Text("Always show full event titles")
             }
             Section(header: Text("Calendars")) {
-                if calendarManager.calendarAuthorizationStatus != .fullAccess {
+                if calendarManager.calendarAuthorizationStatus == .notDetermined || calendarManager.calendarAuthorizationStatus == .writeOnly {
+                    Button("Allow calendar access") { Task { await calendarManager.requestCalendarAccess() } }
+                        .disabled(calendarManager.isRequestingAccess)
+                } else if calendarManager.calendarAuthorizationStatus != .fullAccess {
                     Text("Calendar access is denied. Please enable it in System Settings.")
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
@@ -732,7 +656,10 @@ struct CalendarSettings: View {
                 }
             }
             Section(header: Text("Reminders")) {
-                if calendarManager.reminderAuthorizationStatus != .fullAccess {
+                if calendarManager.reminderAuthorizationStatus == .notDetermined {
+                    Button("Allow reminder access") { Task { await calendarManager.requestReminderAccess() } }
+                        .disabled(calendarManager.isRequestingAccess)
+                } else if calendarManager.reminderAuthorizationStatus != .fullAccess {
                     Text("Reminder access is denied. Please enable it in System Settings.")
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
@@ -769,7 +696,7 @@ struct CalendarSettings: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Calendar")
+        .navigationTitle(Text(verbatim: L("Calendar")))
         .onAppear {
             Task {
                 await calendarManager.checkCalendarAuthorization()
@@ -797,90 +724,42 @@ func lighterColor(from nsColor: NSColor, amount: CGFloat = 0.14) -> Color {
 }
 
 struct About: View {
-    @State private var showBuildNumber: Bool = false
-    let updaterController: SPUStandardUpdaterController
-    @Environment(\.openWindow) var openWindow
+    @ObservedObject private var icons = IslandIconManager.shared
     var body: some View {
-        VStack {
-            Form {
-                Section {
-                    HStack {
-                        Text("Release name")
-                        Spacer()
-                        Text(Defaults[.releaseName])
-                            .foregroundStyle(.secondary)
+        Form {
+            Section("工位充电岛") {
+                HStack(spacing: 16) {
+                    Image(icons.selected.assetName).resizable().frame(width: 76, height: 76)
+                        .accessibilityLabel(icons.selected.title)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("工位充电岛").font(.title2.bold())
+                        Text("Sweet Potato Timer").foregroundStyle(.secondary)
                     }
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        if showBuildNumber {
-                            Text("(\(Bundle.main.buildVersionNumber ?? ""))")
-                                .foregroundStyle(.secondary)
-                        }
-                        Text(Bundle.main.releaseVersionNumber ?? "unkown")
-                            .foregroundStyle(.secondary)
-                    }
-                    .onTapGesture {
-                        withAnimation {
-                            showBuildNumber.toggle()
-                        }
-                    }
-                } header: {
-                    Text("Version info")
-                }
-
-                UpdaterSettingsView(updater: updaterController.updater)
-
-                HStack(spacing: 30) {
-                    Spacer(minLength: 0)
-                    Button {
-                        NSWorkspace.shared.open(sponsorPage)
-                    } label: {
-                        VStack(spacing: 5) {
-                            Image(systemName: "cup.and.saucer.fill")
-                                .imageScale(.large)
-                            Text("Support Us")
-                                .foregroundStyle(.white)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    Spacer(minLength: 0)
-                    Button {
-                        NSWorkspace.shared.open(productPage)
-                    } label: {
-                        VStack(spacing: 5) {
-                            Image("Github")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 18)
-                            Text("GitHub")
-                                .foregroundStyle(.white)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    Spacer(minLength: 0)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            VStack(spacing: 0) {
-                Divider()
-                Text("Made with 🫶🏻 by not so boring not.people")
+                }.padding(.vertical, 4)
+                LabeledContent("版本", value: "\(Bundle.main.releaseVersionNumber ?? L("未知")) · \(L("定制版"))")
+                LabeledContent("构建", value: Bundle.main.buildVersionNumber ?? L("未知"))
+                Text("鼠标停留在物理刘海区域，展开薯队长与日常工具。红薯钟、休息进度和红薯库存保存在本机。")
                     .foregroundStyle(.secondary)
-                    .padding(.top, 5)
-                    .padding(.bottom, 7)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 10)
             }
-            .frame(maxWidth: .infinity, alignment: .center)
+
+            Section("开源来源") {
+                LabeledContent("上游", value: "boring.notch v2.7.3")
+                Text("固定提交 16b0f11f51c79d42e27c10d77fd9e53c11410fdb")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                Text("本应用基于 TheBoredTeam 的 boring.notch 定制，保留上游及第三方作者的版权声明，并遵循 GPL-3.0 许可。")
+                    .foregroundStyle(.secondary)
+                Link("查看上游项目", destination: URL(string: "https://github.com/TheBoredTeam/boring.notch/tree/v2.7.3")!)
+                Link("查看 GPL-3.0 许可证", destination: URL(string: "https://github.com/TheBoredTeam/boring.notch/blob/v2.7.3/LICENSE")!)
+            }
+
+            Section {
+                Text("定制版不连接上游更新服务。后续版本通过本项目重新构建。")
+                    .foregroundStyle(.secondary)
+            }
         }
-        .toolbar {
-            //            Button("Welcome window") {
-            //                openWindow(id: "onboarding")
-            //            }
-            //            .controlSize(.extraLarge)
-            CheckForUpdatesView(updater: updaterController.updater)
-        }
-        .navigationTitle("About")
+        .navigationTitle(Text(verbatim: L("关于工位充电岛")))
     }
 }
 
@@ -888,7 +767,6 @@ struct Shelf: View {
     
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
-    @Default(.expandedDragDetection) var expandedDragDetection: Bool
     @StateObject private var quickShareService = QuickShareService.shared
 
     private var selectedProvider: QuickShareProvider? {
@@ -907,15 +785,6 @@ struct Shelf: View {
                 }
                 Defaults.Toggle(key: .openShelfByDefault) {
                     Text("Open shelf by default if items are present")
-                }
-                Defaults.Toggle(key: .expandedDragDetection) {
-                    Text("Expanded drag detection area")
-                }
-                .onChange(of: expandedDragDetection) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.expandedDragDetectionChanged,
-                        object: nil
-                    )
                 }
                 Defaults.Toggle(key: .copyOnDrag) {
                     Text("Copy items on drag")
@@ -989,7 +858,7 @@ struct Shelf: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Shelf")
+        .navigationTitle(Text(verbatim: L("Shelf")))
     }
 }
 
@@ -1136,17 +1005,6 @@ struct Appearance: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
     @Default(.sliderColor) var sliderColor
-    @Default(.useMusicVisualizer) var useMusicVisualizer
-    @Default(.customVisualizers) var customVisualizers
-    @Default(.selectedVisualizer) var selectedVisualizer
-
-    let icons: [String] = ["logo2"]
-    @State private var selectedIcon: String = "logo2"
-    @State private var selectedListVisualizer: CustomVisualizer? = nil
-    @State private var isPresented: Bool = false
-    @State private var name: String = ""
-    @State private var url: String = ""
-    @State private var speed: CGFloat = 1.0
     var body: some View {
         Form {
             Section {
@@ -1163,14 +1021,15 @@ struct Appearance: View {
                 Defaults.Toggle(key: .coloredSpectrogram) {
                     Text("Colored spectrogram")
                 }
-                Defaults
-                    .Toggle("Player tinting", key: .playerColorTinting)
+                Defaults.Toggle(key: .playerColorTinting) {
+                    Text("Player tinting")
+                }
                 Defaults.Toggle(key: .lightingEffect) {
                     Text("Enable blur effect behind album art")
                 }
                 Picker("Slider color", selection: $sliderColor) {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
-                        Text(option.rawValue)
+                        Text(L(option.rawValue))
                     }
                 }
             } header: {
@@ -1178,184 +1037,13 @@ struct Appearance: View {
             }
 
             Section {
-                Toggle(
-                    "Use music visualizer spectrogram",
-                    isOn: $useMusicVisualizer.animation()
-                )
-                .disabled(true)
-                if !useMusicVisualizer {
-                    if customVisualizers.count > 0 {
-                        Picker(
-                            "Selected animation",
-                            selection: $selectedVisualizer
-                        ) {
-                            ForEach(
-                                customVisualizers,
-                                id: \.self
-                            ) { visualizer in
-                                Text(visualizer.name)
-                                    .tag(visualizer)
-                            }
-                        }
-                    } else {
-                        HStack {
-                            Text("Selected animation")
-                            Spacer()
-                            Text("No custom animation available")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } header: {
-                HStack {
-                    Text("Custom music live activity animation")
-                    customBadge(text: "Coming soon")
-                }
-            }
-
-            Section {
-                List {
-                    ForEach(customVisualizers, id: \.self) { visualizer in
-                        HStack {
-                            LottieView(
-                                url: visualizer.url, speed: visualizer.speed,
-                                loopMode: .loop
-                            )
-                            .frame(width: 30, height: 30, alignment: .center)
-                            Text(visualizer.name)
-                            Spacer(minLength: 0)
-                            if selectedVisualizer == visualizer {
-                                Text("selected")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.trailing, 8)
-                            }
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.vertical, 2)
-                        .background(
-                            selectedListVisualizer != nil
-                                ? selectedListVisualizer == visualizer
-                                    ? Color.effectiveAccent : Color.clear : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 5)
-                        )
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if selectedListVisualizer == visualizer {
-                                selectedListVisualizer = nil
-                                return
-                            }
-                            selectedListVisualizer = visualizer
-                        }
-                    }
-                }
-                .safeAreaPadding(
-                    EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0)
-                )
-                .frame(minHeight: 120)
-                .actionBar {
-                    HStack(spacing: 5) {
-                        Button {
-                            name = ""
-                            url = ""
-                            speed = 1.0
-                            isPresented.toggle()
-                        } label: {
-                            Image(systemName: "plus")
-                                .foregroundStyle(.secondary)
-                                .contentShape(Rectangle())
-                        }
-                        Divider()
-                        Button {
-                            if selectedListVisualizer != nil {
-                                let visualizer = selectedListVisualizer!
-                                selectedListVisualizer = nil
-                                customVisualizers.remove(
-                                    at: customVisualizers.firstIndex(of: visualizer)!)
-                                if visualizer == selectedVisualizer && customVisualizers.count > 0 {
-                                    selectedVisualizer = customVisualizers[0]
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "minus")
-                                .foregroundStyle(.secondary)
-                                .contentShape(Rectangle())
-                        }
-                    }
-                }
-                .controlSize(.small)
-                .buttonStyle(PlainButtonStyle())
-                .overlay {
-                    if customVisualizers.isEmpty {
-                        Text("No custom visualizer")
-                            .foregroundStyle(Color(.secondaryLabelColor))
-                            .padding(.bottom, 22)
-                    }
-                }
-                .sheet(isPresented: $isPresented) {
-                    VStack(alignment: .leading) {
-                        Text("Add new visualizer")
-                            .font(.largeTitle.bold())
-                            .padding(.vertical)
-                        TextField("Name", text: $name)
-                        TextField("Lottie JSON URL", text: $url)
-                        HStack {
-                            Text("Speed")
-                            Spacer(minLength: 80)
-                            Text("\(speed, specifier: "%.1f")s")
-                                .multilineTextAlignment(.trailing)
-                                .foregroundStyle(.secondary)
-                            Slider(value: $speed, in: 0...2, step: 0.1)
-                        }
-                        .padding(.vertical)
-                        HStack {
-                            Button {
-                                isPresented.toggle()
-                            } label: {
-                                Text("Cancel")
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                            }
-
-                            Button {
-                                let visualizer: CustomVisualizer = .init(
-                                    UUID: UUID(),
-                                    name: name,
-                                    url: URL(string: url)!,
-                                    speed: speed
-                                )
-
-                                if !customVisualizers.contains(visualizer) {
-                                    customVisualizers.append(visualizer)
-                                }
-
-                                isPresented.toggle()
-                            } label: {
-                                Text("Add")
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                            }
-                            .buttonStyle(BorderedProminentButtonStyle())
-                        }
-                    }
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .controlSize(.extraLarge)
-                    .padding()
-                }
-            } header: {
-                HStack(spacing: 0) {
-                    Text("Custom vizualizers (Lottie)")
-                    if !Defaults[.customVisualizers].isEmpty {
-                        Text(" – \(Defaults[.customVisualizers].count)")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            Section {
                 Defaults.Toggle(key: .showMirror) {
                     Text("Enable boring mirror")
                 }
                     .disabled(!checkVideoInput())
+                if !checkVideoInput() {
+                    Text("No compatible camera is connected.").font(.caption).foregroundStyle(.secondary)
+                }
                 Picker("Mirror shape", selection: $mirrorShape) {
                     Text("Circle")
                         .tag(MirrorShapeEnum.circle)
@@ -1372,7 +1060,7 @@ struct Appearance: View {
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Appearance")
+        .navigationTitle(Text(verbatim: L("Appearance")))
     }
 
     func checkVideoInput() -> Bool {
@@ -1387,14 +1075,10 @@ struct Appearance: View {
 struct Advanced: View {
     @Default(.useCustomAccentColor) var useCustomAccentColor
     @Default(.customAccentColorData) var customAccentColorData
-    @Default(.extendHoverArea) var extendHoverArea
-    @Default(.showOnLockScreen) var showOnLockScreen
     @Default(.hideFromScreenRecording) var hideFromScreenRecording
     
     @State private var customAccentColor: Color = .accentColor
     @State private var selectedPresetColor: PresetAccentColor? = nil
-    let icons: [String] = ["logo2"]
-    @State private var selectedIcon: String = "logo2"
     
     // macOS accent colors
     enum PresetAccentColor: String, CaseIterable, Identifiable {
@@ -1543,69 +1227,22 @@ struct Advanced: View {
                 Text("Window Appearance")
             }
             
-            Section {
-                HStack {
-                    ForEach(icons, id: \.self) { icon in
-                        Spacer()
-                        VStack {
-                            Image(icon)
-                                .resizable()
-                                .frame(width: 80, height: 80)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20, style: .circular)
-                                        .strokeBorder(
-                                            icon == selectedIcon ? Color.effectiveAccent : .clear,
-                                            lineWidth: 2.5
-                                        )
-                                )
-
-                            Text("Default")
-                                .fontWeight(.medium)
-                                .font(.caption)
-                                .foregroundStyle(icon == selectedIcon ? .white : .secondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(icon == selectedIcon ? Color.effectiveAccent : .clear)
-                                )
-                        }
-                        .onTapGesture {
-                            withAnimation {
-                                selectedIcon = icon
-                            }
-                            NSApp.applicationIconImage = NSImage(named: icon)
-                        }
-                        Spacer()
-                    }
-                }
-                .disabled(true)
-            } header: {
-                HStack {
-                    Text("App icon")
-                    customBadge(text: "Coming soon")
-                }
+            Section("App icon") {
+                IslandIconPicker()
             }
             
             Section {
-                Defaults.Toggle(key: .extendHoverArea) {
-                    Text("Extend hover area")
-                }
-                Defaults.Toggle(key: .hideTitleBar) {
-                    Text("Hide title bar")
-                }
-                Defaults.Toggle(key: .showOnLockScreen) {
-                    Text("Show notch on lock screen")
-                }
-                Defaults.Toggle(key: .hideFromScreenRecording) {
-                    Text("Hide from screen recording")
-                }
+                Text("锁屏时小岛自动隐藏，解锁后恢复原来的显示状态。")
+                    .foregroundStyle(.secondary)
+                Toggle("Hide from screen recording", isOn: .constant(false)).disabled(true)
+                Text("macOS cannot reliably exclude this panel from screen recording. Hide the island before sharing your screen.")
+                    .font(.caption).foregroundStyle(.secondary)
             } header: {
                 Text("Window Behavior")
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Advanced")
+        .navigationTitle(Text(verbatim: L("Advanced")))
         .onAppear {
             loadCustomColor()
         }
@@ -1693,7 +1330,7 @@ struct AccentCircleButton: View {
             }
         }
         .buttonStyle(.plain)
-        .help(isSystemDefault ? "Use your macOS system accent color" : "")
+        .help(isSystemDefault ? L("Use your macOS system accent color") : "")
     }
 }
 
@@ -1701,7 +1338,9 @@ struct Shortcuts: View {
     var body: some View {
         Form {
             Section {
-                KeyboardShortcuts.Recorder("Toggle Sneak Peek:", name: .toggleSneakPeek)
+                KeyboardShortcuts.Recorder(for: .toggleSneakPeek) {
+                    Text("Toggle Sneak Peek:")
+                }
             } header: {
                 Text("Media")
             } footer: {
@@ -1713,11 +1352,13 @@ struct Shortcuts: View {
                 .font(.caption)
             }
             Section {
-                KeyboardShortcuts.Recorder("Toggle Notch Open:", name: .toggleNotchOpen)
+                KeyboardShortcuts.Recorder(for: .toggleNotchOpen) {
+                    Text("Toggle Notch Open:")
+                }
             }
         }
         .accentColor(.effectiveAccent)
-        .navigationTitle("Shortcuts")
+        .navigationTitle(Text(verbatim: L("Shortcuts")))
     }
 }
 
@@ -1743,7 +1384,7 @@ func comingSoonTag() -> some View {
 }
 
 func customBadge(text: String) -> some View {
-    Text(text)
+    Text(L(text))
         .foregroundStyle(.secondary)
         .font(.footnote.bold())
         .padding(.vertical, 3)
@@ -1759,9 +1400,9 @@ func warningBadge(_ text: String, _ description: String) -> some View {
                 .font(.system(size: 22))
                 .foregroundStyle(.yellow)
             VStack(alignment: .leading) {
-                Text(text)
+                Text(L(text))
                     .font(.headline)
-                Text(description)
+                Text(L(description))
                     .foregroundStyle(.secondary)
             }
             Spacer()

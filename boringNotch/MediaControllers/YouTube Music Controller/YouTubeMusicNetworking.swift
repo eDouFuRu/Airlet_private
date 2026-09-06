@@ -226,19 +226,19 @@ enum YouTubeMusicError: Error, LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid URL"
+            return L("Invalid URL")
         case .invalidResponse:
-            return "Invalid response"
+            return L("Invalid response")
         case .httpError(let code):
-            return "HTTP error: \(code)"
+            return String(format: L("HTTP error: %lld"), Int64(code))
         case .authenticationRequired:
-            return "Authentication required"
+            return L("Authentication required")
         case .webSocketNotConnected:
-            return "WebSocket not connected"
+            return L("WebSocket not connected")
         case .encodingFailed:
-            return "Failed to encode data"
+            return L("Failed to encode data")
         case .decodingFailed:
-            return "Failed to decode data"
+            return L("Failed to decode data")
         }
     }
 }

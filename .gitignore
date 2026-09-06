@@ -53,3 +53,18 @@ build/
 *.xcarchive
 *.dSYM
 
+
+# Share the locally buildable custom app scheme.
+!boringNotch.xcodeproj/xcshareddata/xcschemes/NotchIslandNext.xcscheme
+
+# Local caches and signing secrets
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.key
+*.keychain
+*.keychain-db

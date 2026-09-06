@@ -7,8 +7,6 @@
 
 import Cocoa
 import SkyLightWindow
-import Defaults
-import Combine
 
 extension SkyLightOperator {
     func undelegateWindow(_ window: NSWindow) {
@@ -48,7 +46,6 @@ class BoringNotchSkyLightWindow: NSPanel {
         )
         
         configureWindow()
-        setupObservers()
     }
     
     private func configureWindow() {
@@ -69,25 +66,9 @@ class BoringNotchSkyLightWindow: NSPanel {
             .ignoresCycle,
         ]
         
-        // Apply initial sharing type setting
-        updateSharingType()
-    }
-    
-    private func setupObservers() {
-        // Listen for changes to the hideFromScreenRecording setting
-        Defaults.publisher(.hideFromScreenRecording)
-            .sink { [weak self] _ in
-                self?.updateSharingType()
-            }
-            .store(in: &observers)
-    }
-    
-    private func updateSharingType() {
-        if Defaults[.hideFromScreenRecording] {
-            sharingType = .none
-        } else {
-            sharingType = .readWrite
-        }
+        // Modern macOS does not provide capture exclusion through sharingType.
+        // Keep the legacy preference stored, without promising capture protection.
+        sharingType = .readOnly
     }
     
     func enableSkyLight() {
@@ -103,8 +84,6 @@ class BoringNotchSkyLightWindow: NSPanel {
             isSkyLightEnabled = false
         }
     }
-    
-    private var observers: Set<AnyCancellable> = []
     
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }

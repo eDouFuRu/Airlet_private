@@ -1,153 +1,135 @@
-//
-//  InlineHUDs.swift
-//  boringNotch
-//
-//  Created by Richard Kunkli on 14/09/2024.
-//
-
+import Defaults
 import SwiftUI
 
+/// Two symmetric wings around the exact camera gap, in both closed and open shells.
 struct InlineHUD: View {
-    @EnvironmentObject var vm: BoringViewModel
-    @Binding var type: SneakContentType
-    @Binding var value: CGFloat
-    @Binding var icon: String
-    @Binding var hoverAnimation: Bool
-    @Binding var gestureProgress: CGFloat
+    @EnvironmentObject private var vm: BoringViewModel
+    let state: SystemHUDState
+    let layout: SystemHUDLayout
+
     var body: some View {
-        HStack {
-            HStack(spacing: 5) {
-                Group {
-                    switch (type) {
-                        case .volume:
-                            if icon.isEmpty {
-                                Image(systemName: SpeakerSymbol(value))
-                                    .contentTransition(.interpolate)
-                                    .symbolVariant(value > 0 ? .none : .slash)
-                                    .frame(width: 20, height: 15, alignment: .leading)
-                            } else {
-                                Image(systemName: icon)
-                                    .contentTransition(.interpolate)
-                                    .opacity(value.isZero ? 0.6 : 1)
-                                    .scaleEffect(value.isZero ? 0.85 : 1)
-                                    .frame(width: 20, height: 15, alignment: .leading)
-                            }
-                        case .brightness:
-                            Image(systemName: BrightnessSymbol(value))
-                                .contentTransition(.interpolate)
-                                .frame(width: 20, height: 15, alignment: .center)
-                        case .backlight:
-                            Image(systemName: value > 0.5 ? "light.max" : "light.min")
-                                .contentTransition(.interpolate)
-                                .frame(width: 20, height: 15, alignment: .center)
-                        case .mic:
-                            Image(systemName: "mic")
-                                .symbolRenderingMode(.hierarchical)
-                                .symbolVariant(value > 0 ? .none : .slash)
-                                .contentTransition(.interpolate)
-                                .frame(width: 20, height: 15, alignment: .center)
-                        default:
-                            EmptyView()
-                    }
-                }
-                .foregroundStyle(.white)
-                .symbolVariant(.fill)
-                
-                Text(Type2Name(type))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                    .allowsTightening(true)
-                    .contentTransition(.numericText())
+        HStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: state.symbolName).frame(width: 18)
+                Text(L(vm.notchState == .closed && state.activeKind == .backlight ? "Backlight" : state.titleKey))
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1).minimumScaleFactor(0.75)
+                    .help(L(state.titleKey))
+                    .accessibilityLabel(Text(L(state.titleKey)))
             }
-            .frame(width: 100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2, height: vm.notchSize.height - (hoverAnimation ? 0 : 12), alignment: .leading)
-            
-            Rectangle()
-                .fill(.black)
-                .frame(width: vm.closedNotchSize.width - 20)
-            
-            HStack {
-                if (type == .mic) {
-                    Text(value.isZero ? "muted" : "unmuted")
-                        .foregroundStyle(.gray)
-                        .lineLimit(1)
-                        .allowsTightening(true)
-                        .multilineTextAlignment(.trailing)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .contentTransition(.interpolate)
-                } else {
-                        HStack {
-                        DraggableProgressBar(value: $value, onChange: { v in
-                            if type == .volume {
-                                VolumeManager.shared.setAbsolute(Float32(v))
-                            } else if type == .brightness {
-                                BrightnessManager.shared.setAbsolute(value: Float32(v))
+            .padding(.horizontal, 10)
+            .frame(width: layout.wingWidth, alignment: .leading)
+
+            Color.clear.frame(width: layout.physicalGapWidth)
+                .accessibilityHidden(true)
+
+            SystemHUDValue(state: state, inline: true)
+                .padding(.horizontal, 10)
+                .frame(width: layout.wingWidth)
+        }
+        .foregroundStyle(.white)
+        .frame(height: layout.headerHeight)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Default HUD adds one row below the header; the page body keeps its own height.
+struct SystemHUDRow: View {
+    let state: SystemHUDState
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: state.symbolName).frame(width: 20)
+            Text(L(state.titleKey)).font(.system(size: 12, weight: .medium)).lineLimit(1)
+            SystemHUDValue(state: state, inline: false)
+        }
+        .padding(.horizontal, 16)
+        .foregroundStyle(.white)
+        .frame(height: SystemHUDLayout.rowHeight)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct SystemHUDValue: View {
+    @EnvironmentObject private var vm: BoringViewModel
+    @Default(.systemEventIndicatorUseAccent) private var useAccent
+    let state: SystemHUDState
+    let inline: Bool
+
+    var body: some View {
+        Group {
+            if let error = state.error {
+                Text(L(inline && vm.notchState == .closed ? "Unavailable" : error))
+                    .font(.system(size: inline ? 10 : 11))
+                    .foregroundStyle(.orange).lineLimit(inline ? 1 : 2)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .help(L(error))
+                    .accessibilityLabel(Text(L(error)))
+            } else if state.activeKind == .mic {
+                Text(L(state.value == 0 ? "muted" : "unmuted"))
+                    .font(.caption).lineLimit(1).frame(maxWidth: .infinity, alignment: .trailing)
+            } else {
+                HStack(spacing: 6) {
+                    if inline {
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(.white.opacity(0.18))
+                                Capsule().fill(useAccent ? Color.effectiveAccent : .white)
+                                    .frame(width: geometry.size.width * state.value)
                             }
-                        })
-                        if (type == .volume && value.isZero) {
-                            Text("muted")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.gray)
-                                .lineLimit(1)
-                                .allowsTightening(true)
-                                .multilineTextAlignment(.trailing)
+                            .contentShape(Rectangle())
+                            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                                guard geometry.size.width > 0 else { return }
+                                updateValue(drag.location.x / geometry.size.width)
+                            })
+                            .allowsHitTesting(vm.notchState == .open)
                         }
+                        .frame(height: 6)
+                    } else {
+                        DraggableProgressBar(value: Binding(get: { CGFloat(state.value) }, set: updateValue))
+                            .frame(height: 9)
+                            .allowsHitTesting(vm.notchState == .open)
                     }
+                    Text("\(Int((state.value * 100).rounded()))%")
+                        .font(.system(size: 10, design: .rounded).monospacedDigit())
+                        .fixedSize()
                 }
+                .accessibilityValue(Text("\(Int((state.value * 100).rounded()))%"))
             }
-            .padding(.trailing, 4)
-            .frame(width: 100 - (hoverAnimation ? 0 : 12) + gestureProgress / 2, height: vm.closedNotchSize.height - (hoverAnimation ? 0 : 12), alignment: .center)
-        }
-        .frame(height: vm.closedNotchSize.height + (hoverAnimation ? 8 : 0), alignment: .center)
-    }
-    
-    func SpeakerSymbol(_ value: CGFloat) -> String {
-        switch(value) {
-            case 0:
-                return "speaker"
-            case 0...0.3:
-                return "speaker.wave.1"
-            case 0.3...0.8:
-                return "speaker.wave.2"
-            case 0.8...1:
-                return "speaker.wave.3"
-            default:
-                return "speaker.wave.2"
         }
     }
-    
-    func BrightnessSymbol(_ value: CGFloat) -> String {
-        switch(value) {
-            case 0...0.6:
-                return "sun.min"
-            case 0.6...1:
-                return "sun.max"
-            default:
-                return "sun.min"
-        }
-    }
-    
-    func Type2Name(_ type: SneakContentType) -> String {
-        switch(type) {
-            case .volume:
-                return "Volume"
-            case .brightness:
-                return "Brightness"
-            case .backlight:
-                return "Backlight"
-            case .mic:
-                return "Mic"
-            default:
-                return ""
+
+    private func updateValue(_ value: CGFloat) {
+        let clamped = Float(min(1, max(0, value)))
+        switch state.activeKind {
+        case .volume: VolumeManager.shared.setAbsolute(clamped)
+        case .brightness: BrightnessManager.shared.setAbsolute(value: clamped)
+        case .backlight: KeyboardBacklightManager.shared.setAbsolute(value: clamped)
+        case .mic, nil: break
         }
     }
 }
 
-#Preview {
-    InlineHUD(type: .constant(.brightness), value: .constant(0.4), icon: .constant(""), hoverAnimation: .constant(false), gestureProgress: .constant(0))
-        .padding(.horizontal, 8)
-        .background(Color.black)
-        .padding()
-        .environmentObject(BoringViewModel())
+private extension SystemHUDState {
+    var titleKey: String {
+        switch activeKind {
+        case .volume: return "Volume"
+        case .brightness: return "Brightness"
+        case .backlight: return "Keyboard backlight"
+        case .mic: return "Microphone"
+        case nil: return ""
+        }
+    }
+    var symbolName: String {
+        if error != nil { return "exclamationmark.triangle.fill" }
+        if !icon.isEmpty { return icon }
+        switch activeKind {
+        case .volume: return value == 0 ? "speaker.slash.fill" : value < 0.34 ? "speaker.wave.1.fill" : value < 0.67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"
+        case .brightness: return "sun.max.fill"
+        case .backlight: return value > 0.5 ? "light.max" : "light.min"
+        case .mic: return value == 0 ? "mic.slash.fill" : "mic.fill"
+        case nil: return "circle"
+        }
+    }
 }

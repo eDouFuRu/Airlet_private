@@ -8,11 +8,9 @@
 import AppKit
 import SwiftUI
 import Defaults
-import Sparkle
 
 class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
-    private var updaterController: SPUStandardUpdaterController?
     
     private init() {
         let window = NSWindow(
@@ -31,16 +29,13 @@ class SettingsWindowController: NSWindowController {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setUpdaterController(_ controller: SPUStandardUpdaterController) {
-        self.updaterController = controller
-        // Recreate the content view with the proper updater controller
-        setupWindow()
-    }
-    
     private func setupWindow() {
         guard let window = window else { return }
         
-        window.title = "Boring Notch Settings"
+        // Once hosted, SwiftUI's explicitly localized navigation title owns both
+        // the page heading and NSWindow title. A second language observer here
+        // would race that title update and replace it with the generic title.
+        window.title = L("General")
         window.titlebarAppearsTransparent = false
         window.titleVisibility = .visible
         window.toolbarStyle = .unified
@@ -58,7 +53,7 @@ class SettingsWindowController: NSWindowController {
         window.identifier = NSUserInterfaceItemIdentifier("BoringNotchSettingsWindow")
         
         // Create the SwiftUI content
-        let settingsView = SettingsView(updaterController: updaterController)
+        let settingsView = SettingsView()
         let hostingView = NSHostingView(rootView: settingsView)
         window.contentView = hostingView
         
@@ -66,6 +61,11 @@ class SettingsWindowController: NSWindowController {
         window.delegate = self
     }
     
+    func showTimerSettings() {
+        showWindow()
+        DispatchQueue.main.async { NotificationCenter.default.post(name: .islandOpenTimerSettings, object: nil) }
+    }
+
     func showWindow() {
         // Set app to regular mode first
         NSApp.setActivationPolicy(.regular)

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "paddingFraction": 0.08,
+  "catalogMaximumDimension": 1024,
+  "assets": [
+    {"id":"captain-base","sources":["captain-body.png"],"matte":"cyan","pivotTrimmed":[0.5,0.94]},
+    {"id":"captain-holding","sources":["holding-hero.png","captain-master.png"],"matte":"vision","pivotTrimmed":[0.5,0.94]},
+    {
+      "id":"arm-far","sources":["captain-welcome.png"],"matte":"cyan","rigShoulder":[53,128],
+      "arm": {
+        "shoulder":[0.3086,0.5941],"hand":[0.1882,0.6268],
+        "polygon":[[0.2815,0.5351],[0.3174,0.5598],[0.3357,0.6021],[0.3118,0.6443],[0.2632,0.6515],[0.2026,0.6707],[0.1635,0.6595],[0.1475,0.6324],[0.1571,0.6053],[0.1762,0.5877],[0.1738,0.5654],[0.1794,0.5494],[0.1954,0.5486],[0.2193,0.5678],[0.2424,0.5718],[0.2624,0.5606]]
+      }
+    },
+    {
+      "id":"arm-near","sources":["captain-welcome.png"],"matte":"cyan","rigShoulder":[128,126],
+      "arm": {
+        "shoulder":[0.7121,0.5614],"hand":[0.8214,0.5925],
+        "polygon":[[0.6874,0.5088],[0.7225,0.5112],[0.7552,0.5359],[0.7807,0.5391],[0.8118,0.5191],[0.8293,0.5183],[0.8365,0.5319],[0.8317,0.5542],[0.8509,0.5742],[0.8612,0.5973],[0.8589,0.6164],[0.8453,0.6340],[0.8222,0.6388],[0.7903,0.6332],[0.7496,0.6196],[0.7105,0.6100],[0.6794,0.5853],[0.6730,0.5558]]
+      }
+    },
+    {"id":"hoe","sources":["hoe.png"],"matte":"cyan","pivotSource":[0.466,0.328]},
+    {"id":"watering-can","sources":["watering-can.png"],"matte":"cyan","pivotSource":[0.385,0.205],"emitterSource":[0.814,0.472]},
+    {"id":"seedling","sources":["seedling.png"],"matte":"cyan","pivotTrimmed":[0.5,0.9]},
+    {"id":"raw-potato","sources":["raw-potato.png"],"matte":"vision","pivotTrimmed":[0.5,0.5],"notes":"Source already has alpha; intersect Vision foreground with it to remove the visible soft glow. --preserve-raw-alpha skips Vision for comparison."},
+    {"id":"roast-potato","sources":["roast-potato.png"],"matte":"cyan","pivotTrimmed":[0.5,0.5]},
+    {"id":"firepit","sources":["firepit.png"],"matte":"cyan","pivotTrimmed":[0.5,0.85]},
+    {"id":"ground","sources":["ground.png"],"matte":"cyan","pivotTrimmed":[0.5,0.8],"optional":true}
+  ]
+}

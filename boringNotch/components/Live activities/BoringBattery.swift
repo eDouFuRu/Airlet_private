@@ -4,6 +4,8 @@ import Defaults
 /// A view that displays the battery status with an icon and charging indicator.
 struct BatteryView: View {
 
+    @Default(.showPowerStatusIcons) private var showPowerStatusIcons
+
     var levelBattery: Float
     var isPluggedIn: Bool
     var isCharging: Bool
@@ -59,7 +61,7 @@ struct BatteryView: View {
                 )
                 .padding(.leading, 2)
 
-            if iconStatus != "" && (isForNotification || Defaults[.showPowerStatusIcons]) {
+            if iconStatus != "" && (isForNotification || showPowerStatusIcons) {
                 ZStack {
                     Image(iconStatus)
                         .resizable()
@@ -168,6 +170,8 @@ struct BatteryMenuView: View {
 
 /// A view that displays the battery status and allows interaction to show detailed information.
 struct BoringBatteryView: View {
+
+    @Default(.showBatteryPercentage) private var showBatteryPercentage
     
     @State var batteryWidth: CGFloat = 26
     var isCharging: Bool = false
@@ -193,7 +197,7 @@ struct BoringBatteryView: View {
             }
         }) {
             HStack {
-                if Defaults[.showBatteryPercentage] {
+                if showBatteryPercentage {
                     Text("\(Int32(levelBattery))%")
                         .font(.callout)
                         .foregroundStyle(.white)

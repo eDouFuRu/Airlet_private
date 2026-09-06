@@ -1,0 +1,1 @@
+Preserved boring.notch v2.7.3 workflows. These are archived outside .github/workflows so source backup does not trigger upstream builds, releases, Pages, or external review services. Configure dedicated workflows before enabling CI.

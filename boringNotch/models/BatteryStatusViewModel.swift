@@ -121,8 +121,16 @@ class BatteryStatusViewModel: ObservableObject {
     /// Notifies important changes in the battery status with an optional delay
     /// - Parameter delay: The delay before notifying the change, default is 0.0
     private func notifyImportanChangeStatus(delay: Double = 0.0) {
-        Task {
-            try? await Task.sleep(for: .seconds(delay))
+        Task { @MainActor in
+            guard Defaults[.showPowerStatusNotifications], IslandVisibility.shared.isAvailable else { return }
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
+            }
+            // A disabled notification must not occupy the shared media presentation state.
+            // Recheck after the suspension in case settings or visibility changed meanwhile.
+            guard Defaults[.showPowerStatusNotifications], IslandVisibility.shared.isAvailable else { return }
             self.coordinator.toggleExpandingView(status: true, type: .battery)
         }
     }

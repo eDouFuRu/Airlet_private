@@ -1,0 +1,49 @@
+{
+  "sourceSHA256": "8463e09708bfbaf5dada253dd995dca5db6e0e1af69f6f01a03f575057e07d52",
+  "sourceSize": [
+    967,
+    1626
+  ],
+  "outputSize": [
+    493,
+    993
+  ],
+  "landmarks": {
+    "pivot": [
+      0.45841784989858014,
+      0.12487411883182276
+    ],
+    "end": [
+      0.6288032454361054,
+      0.7784491440080564
+    ]
+  },
+  "matte": {
+    "method": "cyan-unmix",
+    "estimatedBackingRGB": [
+      0.0,
+      0.988235,
+      0.992157
+    ]
+  },
+  "trim": {
+    "untrimmedBounds": [
+      280,
+      344,
+      719,
+      1229
+    ],
+    "paddingPixels": [
+      27,
+      54
+    ]
+  },
+  "alpha": {
+    "alphaMin": 0,
+    "alphaMax": 255,
+    "visibleFraction": 0.6270403984075138,
+    "opaqueFraction": 0.6232716234738505
+  },
+  "outputSHA256": "9f410f2f4de7c5971e89a72fe03b00b03622f9691bbb485570c2ad78efa66b89",
+  "authorization": "User explicitly requested a shorter, cute single-piece arm after native review; existing local cutout authorization applies."
+}

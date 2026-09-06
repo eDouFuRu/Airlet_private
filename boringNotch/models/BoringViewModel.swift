@@ -149,10 +149,10 @@ class BoringViewModel: NSObject, ObservableObject {
                 NSApp.activate(ignoringOtherApps: true)
 
                 let alert = NSAlert()
-                alert.messageText = "Camera Access Required"
-                alert.informativeText = "Please allow camera access in System Settings."
-                alert.addButton(withTitle: "Open Settings")
-                alert.addButton(withTitle: "Cancel")
+                alert.messageText = L("Camera Access Required")
+                alert.informativeText = L("Please allow camera access in System Settings.")
+                alert.addButton(withTitle: L("Open Settings"))
+                alert.addButton(withTitle: L("Cancel"))
 
                 if alert.runModal() == .alertFirstButtonReturn {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
@@ -189,7 +189,17 @@ class BoringViewModel: NSObject, ObservableObject {
         return false
     }
 
-    func open() {
+    func open(preferredPage: NotchViews? = nil) {
+        guard IslandVisibility.shared.isAvailable else { return }
+        if let preferredPage {
+            coordinator.currentView = preferredPage
+        } else if notchState == .closed {
+            if Defaults[.boringShelf] && Defaults[.openShelfByDefault] && !ShelfStateViewModel.shared.isEmpty {
+                coordinator.currentView = .shelf
+            } else if !coordinator.openLastTabByDefault || (coordinator.currentView == .shelf && !Defaults[.boringShelf]) {
+                coordinator.currentView = .island
+            }
+        }
         self.notchSize = openNotchSize
         self.notchState = .open
         
@@ -197,9 +207,9 @@ class BoringViewModel: NSObject, ObservableObject {
         MusicManager.shared.forceUpdate()
     }
 
-    func close() {
+    func close(force: Bool = false) {
         // Do not close while a share picker or sharing service is active
-        if SharingStateManager.shared.preventNotchClose {
+        if !force && SharingStateManager.shared.preventNotchClose {
             return
         }
         self.notchSize = getClosedNotchSize(screenUUID: self.screenUUID)
@@ -209,13 +219,6 @@ class BoringViewModel: NSObject, ObservableObject {
         self.coordinator.sneakPeek.show = false
         self.edgeAutoOpenActive = false
 
-        // Set the current view to shelf if it contains files and the user enables openShelfByDefault
-        // Otherwise, if the user has not enabled openLastShelfByDefault, set the view to home
-    if !ShelfStateViewModel.shared.isEmpty && Defaults[.openShelfByDefault] {
-            coordinator.currentView = .shelf
-        } else if !coordinator.openLastTabByDefault {
-            coordinator.currentView = .home
-        }
     }
 
     func closeHello() {

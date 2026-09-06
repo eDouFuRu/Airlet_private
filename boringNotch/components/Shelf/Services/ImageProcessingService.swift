@@ -304,17 +304,17 @@ enum ImageProcessingError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidImage:
-            return "The file is not a valid image"
+            return L("The file is not a valid image")
         case .backgroundRemovalFailed:
-            return "Failed to remove background from image"
+            return L("Failed to remove background from image")
         case .conversionFailed:
-            return "Failed to convert image format"
+            return L("Failed to convert image format")
         case .pdfCreationFailed:
-            return "Failed to create PDF from images"
+            return L("Failed to create PDF from images")
         case .noImagesProvided:
-            return "No images were provided"
+            return L("No images were provided")
         case .saveFailed:
-            return "Failed to save processed file"
+            return L("Failed to save processed file")
         }
     }
 }

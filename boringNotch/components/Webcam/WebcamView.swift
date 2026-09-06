@@ -12,6 +12,8 @@ import SwiftUI
 struct CameraPreviewView: View {
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject var webcamManager: WebcamManager
+    @Default(.mirrorShape) private var mirrorShape
+    @Default(.cornerRadiusScaling) private var cornerRadiusScaling
     
     // Track if authorization request is in progress to avoid multiple requests
     @State private var isRequestingAuthorization: Bool = false
@@ -22,14 +24,14 @@ struct CameraPreviewView: View {
                 if let previewLayer = webcamManager.previewLayer {
                     CameraPreviewLayerView(previewLayer: previewLayer)
                         .scaleEffect(x: -1, y: 1)
-                        .clipShape(RoundedRectangle(cornerRadius: Defaults[.mirrorShape] == .rectangle ? !Defaults[.cornerRadiusScaling] ? MusicPlayerImageSizes.cornerRadiusInset.closed : MusicPlayerImageSizes.cornerRadiusInset.opened : 100))
+                        .clipShape(RoundedRectangle(cornerRadius: mirrorShape == .rectangle ? !cornerRadiusScaling ? MusicPlayerImageSizes.cornerRadiusInset.closed : MusicPlayerImageSizes.cornerRadiusInset.opened : 100))
                         .frame(width: geometry.size.width, height: geometry.size.width)
                         .opacity(webcamManager.isSessionRunning ? 1 : 0)
                 }
 
                 if !webcamManager.isSessionRunning {
                     ZStack {
-                        RoundedRectangle(cornerRadius: Defaults[.mirrorShape] == .rectangle ? !Defaults[.cornerRadiusScaling] ? MusicPlayerImageSizes.cornerRadiusInset.closed : 12 : 100)
+                        RoundedRectangle(cornerRadius: mirrorShape == .rectangle ? !cornerRadiusScaling ? MusicPlayerImageSizes.cornerRadiusInset.closed : 12 : 100)
                             .fill(Color(red: 20/255, green: 20/255, blue: 20/255))
                             .strokeBorder(.white.opacity(0.04), lineWidth: 1)
                             .frame(width: geometry.size.width, height: geometry.size.width)
@@ -37,7 +39,7 @@ struct CameraPreviewView: View {
                             Image(systemName: webcamManager.authorizationStatus == .denied ? "exclamationmark.triangle" : "web.camera")
                                 .foregroundStyle(.gray)
                                 .font(.system(size: geometry.size.width/3.5))
-                            Text(webcamManager.authorizationStatus == .denied ? "Access Denied" : "Mirror")
+                            Text(L(webcamManager.authorizationStatus == .denied ? "Access Denied" : "Mirror"))
                                 .font(.caption2)
                                 .foregroundColor(.gray)
                         }
@@ -69,10 +71,10 @@ struct CameraPreviewView: View {
         case .denied, .restricted:
             DispatchQueue.main.async {
                 let alert = NSAlert()
-                alert.messageText = "Camera Access Required"
-                alert.informativeText = "Please allow camera access in System Settings to use the mirror feature."
-                alert.addButton(withTitle: "Open System Settings")
-                alert.addButton(withTitle: "Cancel")
+                alert.messageText = L("Camera Access Required")
+                alert.informativeText = L("Please allow camera access in System Settings to use the mirror feature.")
+                alert.addButton(withTitle: L("Open System Settings"))
+                alert.addButton(withTitle: L("Cancel"))
 
                 if alert.runModal() == .alertFirstButtonReturn {
                     if let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {

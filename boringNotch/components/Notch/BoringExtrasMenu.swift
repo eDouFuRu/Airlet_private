@@ -20,7 +20,7 @@ struct BoringLargeButtons: View {
                     VStack(spacing: 8) {
                         icon.resizable()
                             .aspectRatio(contentMode: .fit).frame(width:20)
-                        Text(title).font(.body)
+                        Text(L(title)).font(.body)
                     }
                 }
             }).buttonStyle(PlainButtonStyle()).shadow(color: .black.opacity(0.5), radius: 10)

@@ -6,6 +6,7 @@
 //
 
 import Defaults
+import EventKit
 import SwiftUI
 
 struct Config: Equatable {
@@ -19,6 +20,7 @@ struct Config: Equatable {
 }
 
 struct WheelPicker: View {
+    @Environment(\.locale) private var locale
     @EnvironmentObject var vm: BoringViewModel
     @Binding var selectedDate: Date
     @State private var scrollPosition: Int?
@@ -173,50 +175,69 @@ struct WheelPicker: View {
 
     private func dateToString(for date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = locale
         formatter.dateFormat = "E"
         return formatter.string(from: date)
     }
 }
 
 struct CalendarView: View {
+    @Environment(\.locale) private var locale
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var selectedDate = Date()
+    @Default(.hideCompletedReminders) private var hideCompletedReminders
+    @Default(.hideAllDayEvents) private var hideAllDayEvents
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading) {
-                    Text(selectedDate.formatted(.dateTime.month(.abbreviated)))
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                    Text(selectedDate.formatted(.dateTime.year()))
-                        .font(.title3)
-                        .fontWeight(.light)
-                        .foregroundColor(Color(white: 0.65))
-                }
+            if calendarManager.hasAnyAccess {
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading) {
+                        Text(selectedDate.formatted(.dateTime.month(.abbreviated).locale(locale)))
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        Text(selectedDate.formatted(.dateTime.year().locale(locale)))
+                            .font(.title3)
+                            .fontWeight(.light)
+                            .foregroundColor(Color(white: 0.65))
+                    }
 
-                ZStack(alignment: .top) {
-                    WheelPicker(selectedDate: $selectedDate, config: Config())
-                    HStack(alignment: .top) {
-                        LinearGradient(
-                            colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: 20)
-                        Spacer()
-                        LinearGradient(
-                            colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: 20)
+                    ZStack(alignment: .top) {
+                        WheelPicker(selectedDate: $selectedDate, config: Config())
+                        HStack(alignment: .top) {
+                            LinearGradient(
+                                colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing
+                            )
+                            .frame(width: 20)
+                            Spacer()
+                            LinearGradient(
+                                colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing
+                            )
+                            .frame(width: 20)
+                        }
                     }
                 }
             }
 
             let filteredEvents = EventListView.filteredEvents(
-                events: calendarManager.events
+                events: calendarManager.events,
+                hideCompletedReminders: hideCompletedReminders,
+                hideAllDayEvents: hideAllDayEvents
             )
-            if filteredEvents.isEmpty {
+            if !calendarManager.hasAnyAccess {
+                calendarPermissionContent
+            } else if !calendarManager.hasSelectedCalendars {
+                VStack(spacing: 4) {
+                    Text(L("No calendars selected"))
+                        .font(.caption)
+                    Text(L("Select calendars in Settings."))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredEvents.isEmpty {
                 EmptyEventsView(selectedDate: selectedDate)
                 Spacer(minLength: 0)
             } else {
@@ -238,10 +259,58 @@ struct CalendarView: View {
         }
         .onAppear {
             Task {
+                await calendarManager.reloadCalendarAndReminderLists()
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await calendarManager.reloadCalendarAndReminderLists() }
+        }
+    }
+
+    private var calendarPermissionContent: some View {
+        VStack(spacing: 4) {
+            Text(L("Connect a calendar to see events."))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            HStack(spacing: 4) {
+                Button(L(canRequestCalendar ? "Allow Calendar" : "Calendar Settings")) {
+                    if canRequestCalendar {
+                        Task { await calendarManager.requestCalendarAccess() }
+                    } else {
+                        openPrivacySettings("Privacy_Calendars")
+                    }
+                }
+                Button(L(canRequestReminders ? "Allow Reminders" : "Reminders Settings")) {
+                    if canRequestReminders {
+                        Task { await calendarManager.requestReminderAccess() }
+                    } else {
+                        openPrivacySettings("Privacy_Reminders")
+                    }
+                }
+            }
+            .controlSize(.mini)
+            .disabled(calendarManager.isRequestingAccess)
+            if let error = calendarManager.permissionErrorMessage {
+                Text(L(error)).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var canRequestCalendar: Bool {
+        calendarManager.calendarAuthorizationStatus == .notDetermined
+            || calendarManager.calendarAuthorizationStatus == .writeOnly
+    }
+    private var canRequestReminders: Bool {
+        calendarManager.reminderAuthorizationStatus == .notDetermined
+            || calendarManager.reminderAuthorizationStatus == .writeOnly
+    }
+    private func openPrivacySettings(_ pane: String) {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?" + pane) else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 
@@ -249,14 +318,14 @@ struct EmptyEventsView: View {
     let selectedDate: Date
     
     var body: some View {
-        VStack {
+        VStack(spacing: 4) {
             Image(systemName: "calendar.badge.checkmark")
                 .font(.title)
                 .foregroundColor(Color(white: 0.65))
-            Text(Calendar.current.isDateInToday(selectedDate) ? "No events today" : "No events")
+            Text(L(Calendar.current.isDateInToday(selectedDate) ? "No events today" : "No events"))
                 .font(.subheadline)
                 .foregroundColor(.white)
-            Text("Enjoy your free time!")
+            Text(L("Enjoy your free time!"))
                 .font(.caption)
                 .foregroundColor(Color(white: 0.65))
         }
@@ -269,17 +338,20 @@ struct EventListView: View {
     let events: [EventModel]
     @Default(.autoScrollToNextEvent) private var autoScrollToNextEvent
     @Default(.showFullEventTitles) private var showFullEventTitles
+    @Default(.hideCompletedReminders) private var hideCompletedReminders
+    @Default(.hideAllDayEvents) private var hideAllDayEvents
 
 
-    static func filteredEvents(events: [EventModel]) -> [EventModel] {
+    static func filteredEvents(
+        events: [EventModel], hideCompletedReminders: Bool, hideAllDayEvents: Bool
+    ) -> [EventModel] {
         events.filter { event in
-            if event.type.isReminder {
-                if case .reminder(let completed) = event.type {
-                    return !completed || !Defaults[.hideCompletedReminders]
-                }
+            if case .reminder(let completed) = event.type,
+               completed && hideCompletedReminders {
+                return false
             }
             // Filter out all-day events if setting is enabled
-            if event.isAllDay && Defaults[.hideAllDayEvents] {
+            if event.isAllDay && hideAllDayEvents {
                 return false
             }
             return true
@@ -287,10 +359,15 @@ struct EventListView: View {
     }
 
     private var filteredEvents: [EventModel] {
-        Self.filteredEvents(events: events)
+        Self.filteredEvents(
+            events: events,
+            hideCompletedReminders: hideCompletedReminders,
+            hideAllDayEvents: hideAllDayEvents
+        )
     }
 
     private func scrollToRelevantEvent(proxy: ScrollViewProxy) {
+        guard autoScrollToNextEvent else { return }
         let now = Date()
         // Determine a single target using preferred search order:
         // 1) first non-all-day upcoming/in-progress event
@@ -302,6 +379,7 @@ struct EventListView: View {
         guard let target = nonAllDayUpcoming ?? firstAllDay ?? lastEvent else { return }
 
         Task { @MainActor in
+            guard Defaults[.autoScrollToNextEvent] else { return }
             withTransaction(Transaction(animation: nil)) {
                 proxy.scrollTo(target.id, anchor: .top)
             }
@@ -336,6 +414,9 @@ struct EventListView: View {
             }
             .onChange(of: filteredEvents) { _, _ in
                 scrollToRelevantEvent(proxy: proxy)
+            }
+            .onChange(of: autoScrollToNextEvent) { _, enabled in
+                if enabled { scrollToRelevantEvent(proxy: proxy) }
             }
         }
         Spacer(minLength: 0)
@@ -373,7 +454,7 @@ struct EventListView: View {
                         Spacer(minLength: 0)
                         VStack(alignment: .trailing, spacing: 4) {
                             if event.isAllDay {
-                                Text("All-day")
+                                Text(L("All-day"))
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.white)
@@ -419,7 +500,7 @@ struct EventListView: View {
                     Spacer(minLength: 0)
                     VStack(alignment: .trailing, spacing: 4) {
                         if event.isAllDay {
-                            Text("All-day")
+                            Text(L("All-day"))
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)

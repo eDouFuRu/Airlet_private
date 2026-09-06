@@ -1,0 +1,128 @@
+{
+  "sourceSHA256": "00f451fb9c395dad9859a241c252c475a46758f32c10bbd412728e66404637d0",
+  "method": "Local macOS Vision foreground mask; sheet crop; new component canvas normalization",
+  "authorization": "User approved local cutout workflow in this conversation; current plan explicitly requests separated imagegen limbs.",
+  "originalCharacterModified": false,
+  "assets": [
+    {
+      "id": "upper-arm",
+      "size": [
+        224,
+        576
+      ],
+      "pivot": [
+        0.48,
+        0.13
+      ],
+      "end": [
+        0.53,
+        0.88
+      ],
+      "sha256": "207a410ae1333b5c4ca9afb74a9e3ac4b02a2b384ce6cb9acb945fd7338ca9a1",
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "forearm",
+      "size": [
+        208,
+        624
+      ],
+      "pivot": [
+        0.5,
+        0.1
+      ],
+      "end": [
+        0.5,
+        0.9
+      ],
+      "sha256": "e7370a49084450b57799e8a75424b91e47ea1b99e5f9ddfa20baf624ab9afe37",
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "palm-back",
+      "size": [
+        240,
+        288
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "end": [
+        0.5,
+        0.9
+      ],
+      "sha256": "245cf8194dcc7b4abdfa9348a67d3afd9772274cbe412033a1c878c9561311bf",
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "fingers-front",
+      "size": [
+        240,
+        288
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "end": [
+        0.5,
+        0.9
+      ],
+      "sha256": "9a4056a13f659dc06f40d408d76ba5a79d37d9ee9148754880baea37ea6d0385",
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "leg-near",
+      "size": [
+        352,
+        672
+      ],
+      "pivot": [
+        0.43,
+        0.1
+      ],
+      "end": [
+        0.43,
+        0.75
+      ],
+      "sha256": "079288a87a3cb5acdf57f8c51cdc2f6e36f1c7191a880641695bf754ca33948a",
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "leg-far",
+      "size": [
+        352,
+        672
+      ],
+      "pivot": [
+        0.43,
+        0.1
+      ],
+      "end": [
+        0.43,
+        0.75
+      ],
+      "sha256": "0d7306a6fae3cb9db3d1c116dcf4d8d40db35115244432c03f7340b09b7cd534",
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    }
+  ]
+}

@@ -97,4 +97,13 @@ enum MusicControlButton: String, CaseIterable, Identifiable, Codable, Defaults.S
     var prefersLargeScale: Bool {
         self == .playPause
     }
+
+    static func normalized(_ slots: [Self]) -> [Self] {
+        MediaSlotReducer.normalize(slots, empty: .none)
+    }
+
+    static func applying(_ payload: MediaControlDragPayload, to target: Int?, in slots: [Self]) -> [Self] {
+        guard let control = Self(rawValue: payload.controlID), control != .none else { return normalized(slots) }
+        return MediaSlotReducer.drop(control, from: payload.sourceSlot, to: target, in: slots, empty: .none)
+    }
 }

@@ -50,10 +50,9 @@ struct ExpandedItem {
 class BoringViewCoordinator: ObservableObject {
     static let shared = BoringViewCoordinator()
 
-    @Published var currentView: NotchViews = .home
+    @Published var currentView: NotchViews = .island
     private var sneakPeekDispatch: DispatchWorkItem?
     private var expandingViewDispatch: DispatchWorkItem?
-    private var hudEnableTask: Task<Void, Never>?
 
     @AppStorage("firstLaunch") var firstLaunch: Bool = true
     @AppStorage("showWhatsNew") var showWhatsNew: Bool = true
@@ -65,7 +64,7 @@ class BoringViewCoordinator: ObservableObject {
             if !alwaysShowTabs {
                 openLastTabByDefault = false
                 if ShelfStateViewModel.shared.isEmpty || !Defaults[.openShelfByDefault] {
-                    currentView = .home
+                    currentView = .island
                 }
             }
         }
@@ -97,10 +96,11 @@ class BoringViewCoordinator: ObservableObject {
     @Published var selectedScreenUUID: String = NSScreen.main?.displayUUID ?? ""
 
     @Published var optionKeyPressed: Bool = true
-    private var accessibilityObserver: Any?
-    private var hudReplacementCancellable: AnyCancellable?
 
     private init() {
+        // New installations prefer the camera-notch display; explicit saved choices stay intact.
+        let defaultScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+            ?? NSScreen.main ?? NSScreen.screens.first
         // Perform migration from name-based to UUID-based storage
         if preferredScreenUUID == nil, let legacyName = legacyPreferredScreenName {
             // Try to find screen by name and migrate to UUID
@@ -109,90 +109,21 @@ class BoringViewCoordinator: ObservableObject {
                 preferredScreenUUID = uuid
                 NSLog("✅ Migrated display preference from name '\(legacyName)' to UUID '\(uuid)'")
             } else {
-                // Fallback to main screen if legacy screen not found
-                preferredScreenUUID = NSScreen.main?.displayUUID
-                NSLog("⚠️ Could not find display named '\(legacyName)', falling back to main screen")
+                // Use the default only when the named legacy display cannot be found.
+                preferredScreenUUID = defaultScreen?.displayUUID
+                NSLog("⚠️ Could not find display named '\(legacyName)', using the default display")
             }
             // Clear legacy value after migration
             legacyPreferredScreenName = nil
         } else if preferredScreenUUID == nil {
-            // No legacy value, use main screen
-            preferredScreenUUID = NSScreen.main?.displayUUID
+            preferredScreenUUID = defaultScreen?.displayUUID
         }
         
-        selectedScreenUUID = preferredScreenUUID ?? NSScreen.main?.displayUUID ?? ""
-        // Observe changes to accessibility authorization and react accordingly
-        accessibilityObserver = NotificationCenter.default.addObserver(
-            forName: Notification.Name.accessibilityAuthorizationChanged,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self else { return }
-                let granted = await XPCHelperClient.shared.isAccessibilityAuthorized()
-                if !granted {
-                    // If permission was revoked, disable HUD replacement
-                    Defaults[.hudReplacement] = false
-                } else {
-                    // If permission granted and user prefers HUD replacement, ensure interceptor is running
-                    if Defaults[.hudReplacement] {
-                        MediaKeyInterceptor.shared.start(requireAccessibility: true, promptIfNeeded: false)
-                    }
-                }
-            }
-        }
-
-        // Observe changes to hudReplacement
-        hudReplacementCancellable = Defaults.publisher(.hudReplacement)
-            .sink { [weak self] change in
-                Task { @MainActor in
-                    guard let self = self else { return }
-
-                    self.hudEnableTask?.cancel()
-                    self.hudEnableTask = nil
-
-                    if change.newValue {
-                        self.hudEnableTask = Task { @MainActor in
-                            // Check prior authorization so we only restart if permissions were newly granted
-                            let priorAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
-
-                            MediaKeyInterceptor.shared.start(requireAccessibility: true, promptIfNeeded: true)
-
-                            let granted = await MediaKeyInterceptor.shared.ensureAccessibilityAuthorization(promptIfNeeded: false)
-
-                            if Task.isCancelled { return }
-
-                            if granted {
-                                // Restart only if authorization was newly granted
-                                if !priorAuthorized {
-                                    // newly granted; restart
-                                    ApplicationRelauncher.restart()
-                                } else {
-                                    // already granted; no restart needed
-                                }
-                            } else {
-                                Defaults[.hudReplacement] = false
-                            }
-                        }
-                    } else {
-                        MediaKeyInterceptor.shared.stop()
-                    }
-                }
-            }
-
-        // On startup, ensure the hudReplacement state reflects current authorization
-        Task { @MainActor in
-            if Defaults[.hudReplacement] {
-                let authorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
-                if !authorized {
-                    Defaults[.hudReplacement] = false
-                } else {
-                    MediaKeyInterceptor.shared.start(requireAccessibility: true, promptIfNeeded: false)
-                }
-            }
-        }
+        selectedScreenUUID = preferredScreenUUID ?? defaultScreen?.displayUUID ?? ""
+        // HUD authorization and event-tap lifecycle are owned by HUDStateManager.
     }
     
+
     @objc func sneakPeekEvent(_ notification: Notification) {
         let decoder = JSONDecoder()
         if let decodedData = try? decoder.decode(
@@ -227,13 +158,30 @@ class BoringViewCoordinator: ObservableObject {
         status: Bool, type: SneakContentType, duration: TimeInterval = 1.5, value: CGFloat = 0,
         icon: String = ""
     ) {
-        sneakPeekDuration = duration
-        if type != .music {
-            // close()
-            if !Defaults[.hudReplacement] {
-                return
-            }
+        let systemKind: SystemHUDKind?
+        switch type {
+        case .volume: systemKind = .volume
+        case .brightness: systemKind = .brightness
+        case .backlight: systemKind = .backlight
+        case .mic: systemKind = .mic
+        case .music, .battery, .download: systemKind = nil
         }
+        if let systemKind {
+            if status {
+                guard HUDStateManager.shared.isRunning else { return }
+                SystemHUDPresentation.shared.show(kind: systemKind, value: Double(value), icon: icon)
+            } else if SystemHUDPresentation.shared.activeKind == systemKind {
+                SystemHUDPresentation.shared.clear()
+            }
+            if type == .mic { currentMicStatus = value == 1 }
+            return
+        }
+        if type == .music {
+            if status { BriefPresentationCoordinator.shared.showSong(duration: duration) }
+            else { BriefPresentationCoordinator.shared.dismissSong() }
+        }
+        // Music owns its own timer and can no longer clear an active system HUD.
+        sneakPeekDuration = duration
         Task { @MainActor in
             withAnimation(.smooth) {
                 self.sneakPeek.show = status
@@ -313,6 +261,6 @@ class BoringViewCoordinator: ObservableObject {
     }
     
     func showEmpty() {
-        currentView = .home
+        currentView = .island
     }
 }

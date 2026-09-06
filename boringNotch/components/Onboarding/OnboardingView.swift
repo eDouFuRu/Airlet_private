@@ -18,9 +18,9 @@ enum OnboardingStep {
     case finished
 }
 
-private let calendarService = CalendarService()
-
+@MainActor
 struct OnboardingView: View {
+    private let calendarService = CalendarService()
     @State var step: OnboardingStep = .welcome
     let onFinish: () -> Void
     let onOpenSettings: () -> Void

@@ -14,7 +14,7 @@ let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
 let openNotchSize: CGSize = .init(width: 640, height: 190)
-let windowSize: CGSize = .init(width: openNotchSize.width, height: openNotchSize.height + shadowPadding)
+let windowSize: CGSize = .init(width: openNotchSize.width + 40, height: SystemHUDLayout.carrierHeight)
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 19, bottom: 24), closed: (top: 6, bottom: 14))
 
 enum MusicPlayerImageSizes {
@@ -39,7 +39,7 @@ enum MusicPlayerImageSizes {
 @MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
     // Default notch size, to avoid using optionals
     var notchHeight: CGFloat = Defaults[.nonNotchHeight]
-    var notchWidth: CGFloat = 185
+    var notchWidth: CGFloat = 120
 
     var selectedScreen = NSScreen.main
 
@@ -53,7 +53,7 @@ enum MusicPlayerImageSizes {
         if let topLeftNotchpadding: CGFloat = screen.auxiliaryTopLeftArea?.width,
            let topRightNotchpadding: CGFloat = screen.auxiliaryTopRightArea?.width
         {
-            notchWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding + 4
+            notchWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
         }
 
         // Check if the Mac has a notch
@@ -70,9 +70,13 @@ enum MusicPlayerImageSizes {
             notchHeight = Defaults[.nonNotchHeight]
             if Defaults[.nonNotchHeightMode] == .matchMenuBar {
                 notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
+            } else if Defaults[.nonNotchHeightMode] == .matchRealNotchSize {
+                notchHeight = 32 // A display without a camera cutout uses the documented capsule size.
             }
         }
     }
 
+    // Custom geometry never advertises a height that the shell silently clamps away.
+    notchHeight = max(24, min(60, notchHeight))
     return .init(width: notchWidth, height: notchHeight)
 }

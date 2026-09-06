@@ -36,6 +36,8 @@ class WebcamManager: NSObject, ObservableObject {
     }
 
     private let sessionQueue = DispatchQueue(label: "BoringNotch.WebcamManager.SessionQueue", qos: .userInitiated)
+    // Serial-queue owned: stopping invalidates setup/start work that was already enqueued.
+    private var sessionIntent = CameraSessionIntent()
     
     private var isCleaningUp: Bool = false
     
@@ -49,11 +51,11 @@ class WebcamManager: NSObject, ObservableObject {
         var errorDescription: String? {
             switch self {
             case .deviceUnavailable:
-                return "No camera devices available"
+                return L("No camera devices available")
             case .accessDenied:
-                return "Camera access denied"
+                return L("Camera access denied")
             case .configurationFailed(let message):
-                return "Camera configuration failed: \(message)"
+                return String(format: L("Camera configuration failed: %@"), message)
             }
         }
     }
@@ -129,9 +131,9 @@ class WebcamManager: NSObject, ObservableObject {
     }
     
     /// Sets up the capture session with a completion handler
-    private func setupCaptureSession(completion: @escaping (Bool) -> Void) {
+    private func setupCaptureSession(generation: UInt64, completion: @escaping (Bool) -> Void) {
         sessionQueue.async { [weak self] in
-            guard let self = self else { 
+            guard let self = self, self.sessionIntent.accepts(generation) else {
                 completion(false)
                 return 
             }
@@ -167,7 +169,7 @@ class WebcamManager: NSObject, ObservableObject {
                 
                 let videoInput = try AVCaptureDeviceInput(device: videoDevice)
                 guard session.canAddInput(videoInput) else {
-                    throw NSError(domain: "BoringNotch.WebcamManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Cannot add video input"])
+                    throw NSError(domain: "BoringNotch.WebcamManager", code: -1, userInfo: [NSLocalizedDescriptionKey: L("Cannot add video input")])
                 }
                 
                 session.beginConfiguration()
@@ -190,9 +192,10 @@ class WebcamManager: NSObject, ObservableObject {
                     previewLayer.videoGravity = .resizeAspectFill
                     self.previewLayer = previewLayer
                     
-                    // Setup is complete, let the caller know
-                    completion(true)
                 }
+                // Keep lifecycle work on its serial queue. A main-queue UI callback must
+                // not revive a camera request after hiding has stopped the session.
+                completion(true)
                 
                 NSLog("Capture session setup completed successfully")
             } catch {
@@ -265,25 +268,27 @@ class WebcamManager: NSObject, ObservableObject {
     func startSession() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
+            let generation = self.sessionIntent.requestStart()
             
             // If no session exists, create new session
             if self.captureSession == nil {
-                self.setupCaptureSession { success in
+                self.setupCaptureSession(generation: generation) { success in
                     if success {
                         // Only start the session if setup was successful
-                        self.startRunningCaptureSession()
+                        self.startRunningCaptureSession(generation: generation)
                     }
                 }
             } else {
                 // Session already exists, just start it
-                self.startRunningCaptureSession()
+                self.startRunningCaptureSession(generation: generation)
             }
         }
     }
     
-    private func startRunningCaptureSession() {
+    private func startRunningCaptureSession(generation: UInt64) {
         sessionQueue.async { [weak self] in
-            guard let self = self, let session = self.captureSession, !session.isRunning else {
+            guard let self = self, self.sessionIntent.accepts(generation),
+                  let session = self.captureSession, !session.isRunning else {
                 return
             }
             
@@ -299,6 +304,7 @@ class WebcamManager: NSObject, ObservableObject {
     func stopSession() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
+            self.sessionIntent.requestStop()
             
             // Update state to indicate we're stopping
             DispatchQueue.main.async {

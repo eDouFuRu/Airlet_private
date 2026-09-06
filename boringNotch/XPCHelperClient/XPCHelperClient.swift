@@ -5,7 +5,7 @@ import AsyncXPCConnection
 final class XPCHelperClient {
     nonisolated static let shared = XPCHelperClient()
     
-    private let serviceName = "theboringteam.boringnotch.BoringNotchXPCHelper"
+    private let serviceName = "com.dongfengrui.NotchIsland.XPCHelper"
     
     private var remoteService: RemoteXPCService<BoringNotchXPCHelperProtocol>?
     private var connection: NSXPCConnection?
@@ -27,17 +27,19 @@ final class XPCHelperClient {
         
         let conn = NSXPCConnection(serviceName: serviceName)
         
-        conn.interruptionHandler = { [weak self] in
+        conn.interruptionHandler = { [weak self, weak conn] in
             Task { @MainActor in
-                self?.connection = nil
-                self?.remoteService = nil
+                guard let self, self.connection === conn else { return }
+                self.connection = nil
+                self.remoteService = nil
             }
         }
         
-        conn.invalidationHandler = { [weak self] in
+        conn.invalidationHandler = { [weak self, weak conn] in
             Task { @MainActor in
-                self?.connection = nil
-                self?.remoteService = nil
+                guard let self, self.connection === conn else { return }
+                self.connection = nil
+                self.remoteService = nil
             }
         }
         
@@ -120,105 +122,65 @@ final class XPCHelperClient {
         }
     }
     
-    // MARK: - Keyboard Brightness
-    
+    // MARK: - Bounded brightness RPCs
+
+    @MainActor
+    private func brightnessRequest<Value>(
+        fallback: Value,
+        _ invoke: (BoringNotchXPCHelperProtocol, @escaping (Value) -> Void) -> Void
+    ) async -> Value {
+        _ = ensureRemoteService()
+        guard let activeConnection = connection else { return fallback }
+        return await withCheckedContinuation { continuation in
+            let reply = OneShotReply<Value> { continuation.resume(returning: $0) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self, weak activeConnection] in
+                guard reply.finish(fallback) else { return }
+                activeConnection?.invalidate()
+                if self?.connection === activeConnection {
+                    self?.connection = nil
+                    self?.remoteService = nil
+                }
+            }
+            let proxy = activeConnection.remoteObjectProxyWithErrorHandler { _ in reply.finish(fallback) }
+            guard let service = proxy as? BoringNotchXPCHelperProtocol else {
+                reply.finish(fallback)
+                return
+            }
+            invoke(service) { reply.finish($0) }
+        }
+    }
+
     nonisolated func isKeyboardBrightnessAvailable() async -> Bool {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            return try await service.withContinuation { service, continuation in
-                service.isKeyboardBrightnessAvailable { available in
-                    continuation.resume(returning: available)
-                }
-            }
-        } catch {
-            return false
-        }
+        await brightnessRequest(fallback: false) { service, reply in service.isKeyboardBrightnessAvailable(with: reply) }
     }
-    
+
     nonisolated func currentKeyboardBrightness() async -> Float? {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            let result: NSNumber? = try await service.withContinuation { service, continuation in
-                service.currentKeyboardBrightness { value in
-                    continuation.resume(returning: value)
-                }
-            }
-            return result?.floatValue
-        } catch {
-            return nil
-        }
+        let value: NSNumber? = await brightnessRequest(fallback: nil) { service, reply in service.currentKeyboardBrightness(with: reply) }
+        return value?.floatValue
     }
-    
+
     nonisolated func setKeyboardBrightness(_ value: Float) async -> Bool {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            return try await service.withContinuation { service, continuation in
-                service.setKeyboardBrightness(value) { success in
-                    continuation.resume(returning: success)
-                }
-            }
-        } catch {
-            return false
-        }
+        guard value.isFinite else { return false }
+        return await brightnessRequest(fallback: false) { service, reply in service.setKeyboardBrightness(value, with: reply) }
     }
-    
-    // MARK: - Screen Brightness
-    
+
     nonisolated func isScreenBrightnessAvailable() async -> Bool {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            return try await service.withContinuation { service, continuation in
-                service.isScreenBrightnessAvailable { available in
-                    continuation.resume(returning: available)
-                }
-            }
-        } catch {
-            return false
-        }
+        await brightnessRequest(fallback: false) { service, reply in service.isScreenBrightnessAvailable(with: reply) }
     }
-    
+
     nonisolated func currentScreenBrightness() async -> Float? {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            let result: NSNumber? = try await service.withContinuation { service, continuation in
-                service.currentScreenBrightness { value in
-                    continuation.resume(returning: value)
-                }
-            }
-            return result?.floatValue
-        } catch {
-            return nil
-        }
+        let value: NSNumber? = await brightnessRequest(fallback: nil) { service, reply in service.currentScreenBrightness(with: reply) }
+        return value?.floatValue
     }
-    
+
     nonisolated func setScreenBrightness(_ value: Float) async -> Bool {
-        do {
-            let service = await MainActor.run {
-                ensureRemoteService()
-            }
-            return try await service.withContinuation { service, continuation in
-                service.setScreenBrightness(value) { success in
-                    continuation.resume(returning: success)
-                }
-            }
-        } catch {
-            return false
-        }
+        guard value.isFinite else { return false }
+        return await brightnessRequest(fallback: false) { service, reply in service.setScreenBrightness(value, with: reply) }
     }
+
 }
 
 extension Notification.Name {
     static let accessibilityAuthorizationChanged = Notification.Name("accessibilityAuthorizationChanged")
 }
-
 

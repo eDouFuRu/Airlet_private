@@ -27,10 +27,12 @@ struct MusicPlayerView: View {
 struct AlbumArtView: View {
     @ObservedObject var musicManager = MusicManager.shared
     @ObservedObject var vm: BoringViewModel
+    @Default(.lightingEffect) private var lightingEffect
+    @Default(.cornerRadiusScaling) private var cornerRadiusScaling
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
-        let cornerRadius = Defaults[.cornerRadiusScaling]
+        let cornerRadius = cornerRadiusScaling
             ? MusicPlayerImageSizes.cornerRadiusInset.opened
             : MusicPlayerImageSizes.cornerRadiusInset.closed
 
@@ -69,7 +71,7 @@ struct AlbumArtView: View {
 
     private func glowOverlay(cornerRadius: CGFloat) -> some View {
         Group {
-            if Defaults[.lightingEffect] {
+            if lightingEffect {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Color(nsColor: musicManager.avgColor).opacity(musicManager.isPlaying ? 0.25 : 0.0))
                     .blur(radius: 24)
@@ -88,7 +90,7 @@ struct AlbumArtView: View {
             .clipped()
             .clipShape(
                 RoundedRectangle(
-                    cornerRadius: Defaults[.cornerRadiusScaling]
+                    cornerRadius: cornerRadiusScaling
                         ? MusicPlayerImageSizes.cornerRadiusInset.opened
                         : MusicPlayerImageSizes.cornerRadiusInset.closed)
             )
@@ -133,7 +135,7 @@ struct AlbumArtView: View {
         .clipped()
         .clipShape(
             RoundedRectangle(
-                cornerRadius: Defaults[.cornerRadiusScaling]
+                cornerRadius: cornerRadiusScaling
                     ? MusicPlayerImageSizes.cornerRadiusInset.opened
                     : MusicPlayerImageSizes.cornerRadiusInset.closed)
         )
@@ -162,6 +164,11 @@ struct MusicControlsView: View {
     @State private var lastDragged: Date = .distantPast
     @Default(.musicControlSlots) private var slotConfig
     @Default(.musicControlSlotLimit) private var slotLimit
+    @Default(.playerColorTinting) private var playerColorTinting
+    @ObservedObject private var lyrics = LyricsStore.shared
+    @State private var lyricPresentationID = UUID()
+    @Default(.showCalendar) private var showCalendar
+    @Default(.showMirror) private var showMirror
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -169,6 +176,9 @@ struct MusicControlsView: View {
             slotToolbar
         }
         .buttonStyle(PlainButtonStyle())
+        .onAppear { lyrics.setPlayerPresentation(sourceID: lyricPresentationID, visible: vm.notchState == .open) }
+        .onChange(of: vm.notchState) { lyrics.setPlayerPresentation(sourceID: lyricPresentationID, visible: vm.notchState == .open) }
+        .onDisappear { lyrics.removePlayerPresentation(sourceID: lyricPresentationID) }
     }
 
     private var songInfoAndSlider: some View {
@@ -191,44 +201,20 @@ struct MusicControlsView: View {
                 $musicManager.artistName,
                 font: .headline,
                 nsFont: .headline,
-                textColor: Defaults[.playerColorTinting]
+                textColor: playerColorTinting
                     ? Color(nsColor: musicManager.avgColor)
                         .ensureMinimumBrightness(factor: 0.6) : .gray,
                 frameWidth: width
             )
             .fontWeight(.medium)
-            if Defaults[.enableLyrics] {
-                TimelineView(.animation(minimumInterval: 0.25)) { timeline in
-                    let currentElapsed: Double = {
-                        guard musicManager.isPlaying else { return musicManager.elapsedTime }
-                        let delta = timeline.date.timeIntervalSince(musicManager.timestampDate)
-                        let progressed = musicManager.elapsedTime + (delta * musicManager.playbackRate)
-                        return min(max(progressed, 0), musicManager.songDuration)
-                    }()
-                    let line: String = {
-                        if musicManager.isFetchingLyrics { return "Loading lyrics…" }
-                        if !musicManager.syncedLyrics.isEmpty {
-                            return musicManager.lyricLine(at: currentElapsed)
-                        }
-                        let trimmed = musicManager.currentLyrics.trimmingCharacters(in: .whitespacesAndNewlines)
-                        return trimmed.isEmpty ? "No lyrics found" : trimmed.replacingOccurrences(of: "\n", with: " ")
-                    }()
-                    let isPersian = line.unicodeScalars.contains { scalar in
-                        let v = scalar.value
-                        return v >= 0x0600 && v <= 0x06FF
-                    }
-                    MarqueeText(
-                        .constant(line),
-                        font: .subheadline,
-                        nsFont: .subheadline,
-                        textColor: musicManager.isFetchingLyrics ? .gray.opacity(0.7) : .gray,
-                        frameWidth: width
-                    )
-                    .font(isPersian ? .custom("Vazirmatn-Regular", size: NSFont.preferredFont(forTextStyle: .subheadline).pointSize) : .subheadline)
+            if lyrics.location == .player && lyrics.isPlaying {
+                Text(verbatim: lyrics.displayText)
+                    .font(.subheadline)
+                    .foregroundStyle(.gray)
                     .lineLimit(1)
-                    .opacity(musicManager.isPlaying ? 1 : 0)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
+                    .truncationMode(.tail)
+                    .frame(width: width, height: 17, alignment: .leading)
+                    .help(lyrics.displayText)
             }
         }
     }
@@ -270,10 +256,10 @@ struct MusicControlsView: View {
             max(slotLimit, MusicControlButton.minSlotCount),
             MusicControlButton.maxSlotCount
         )
-        let padded = slotConfig.padded(to: sanitizedLimit, filler: .none)
+        let padded = MusicControlButton.normalized(slotConfig).padded(to: sanitizedLimit, filler: .none)
         let result = Array(padded.prefix(sanitizedLimit))
         // If calendar and camera are both visible alongside music, hide the edge slots
-        let shouldHideEdges = Defaults[.showCalendar] && Defaults[.showMirror] && webcamManager.cameraAvailable && vm.isCameraExpanded
+        let shouldHideEdges = showCalendar && showMirror && webcamManager.cameraAvailable && vm.isCameraExpanded
         if shouldHideEdges && result.count >= 5 {
             return Array(result.dropFirst().dropLast())
         }
@@ -317,7 +303,7 @@ struct MusicControlsView: View {
                 MusicManager.shared.skip(seconds: 15)
             }
         case .none:
-            Color.clear.frame(height: 1)
+            Color.clear.frame(width: 30, height: 30)
         }
     }
 
@@ -462,6 +448,8 @@ struct NotchHomeView: View {
     @ObservedObject var webcamManager = WebcamManager.shared
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var coordinator = BoringViewCoordinator.shared
+    @Default(.showCalendar) private var showCalendar
+    @Default(.showMirror) private var showMirror
     let albumArtNamespace: Namespace.ID
 
     var body: some View {
@@ -475,14 +463,14 @@ struct NotchHomeView: View {
     }
 
     private var shouldShowCamera: Bool {
-        Defaults[.showMirror] && webcamManager.cameraAvailable && vm.isCameraExpanded
+        showMirror && webcamManager.cameraAvailable && vm.isCameraExpanded
     }
 
     private var mainContent: some View {
-        HStack(alignment: .top, spacing: (shouldShowCamera && Defaults[.showCalendar]) ? 10 : 15) {
+        HStack(alignment: .top, spacing: (shouldShowCamera && showCalendar) ? 10 : 15) {
             MusicPlayerView(albumArtNamespace: albumArtNamespace)
 
-            if Defaults[.showCalendar] {
+            if showCalendar {
                 CalendarView()
                     .frame(width: shouldShowCamera ? 170 : 215)
                     .onHover { isHovering in
@@ -506,6 +494,8 @@ struct NotchHomeView: View {
 }
 
 struct MusicSliderView: View {
+    @Default(.sliderColor) private var sliderColor
+    @Default(.playerColorTinting) private var playerColorTinting
     @Binding var sliderValue: Double
     @Binding var duration: Double
     @Binding var lastDragged: Date
@@ -524,9 +514,9 @@ struct MusicSliderView: View {
             CustomSlider(
                 value: $sliderValue,
                 range: 0...duration,
-                color: Defaults[.sliderColor] == SliderColorEnum.albumArt
+                color: sliderColor == SliderColorEnum.albumArt
                     ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.8)
-                    : Defaults[.sliderColor] == SliderColorEnum.accent ? .effectiveAccent : .white,
+                    : sliderColor == SliderColorEnum.accent ? .effectiveAccent : .white,
                 dragging: $dragging,
                 lastDragged: $lastDragged,
                 onValueChange: onValueChange
@@ -540,7 +530,7 @@ struct MusicSliderView: View {
             }
             .fontWeight(.medium)
             .foregroundColor(
-                Defaults[.playerColorTinting]
+                playerColorTinting
                     ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.6) : .gray
             )
             .font(.caption)
