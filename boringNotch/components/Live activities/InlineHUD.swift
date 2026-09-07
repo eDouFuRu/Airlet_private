@@ -38,8 +38,10 @@ struct SystemHUDRow: View {
     let state: SystemHUDState
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: state.symbolName).frame(width: 20)
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: state.symbolName)
+                .font(.system(size: 15, weight: .medium))
+                .frame(width: 22, height: 22)
             Text(L(state.titleKey)).font(.system(size: 12, weight: .medium)).lineLimit(1)
             SystemHUDValue(state: state, inline: false)
         }

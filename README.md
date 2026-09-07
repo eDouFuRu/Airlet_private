@@ -1,17 +1,20 @@
 # 工位充电岛 · NotchIslandNext
 
-基于 **boring.notch v2.7.3** 的原生 macOS 刘海应用，当前备份为 **270 版**。使用 SwiftUI + AppKit，保留物理刘海悬停、弹簧伸缩、反向圆角及上游常用工具。
+基于 **boring.notch v2.7.3** 的原生 macOS 刘海应用，当前版本为 **280 版**。使用 SwiftUI + AppKit，保留物理刘海悬停、弹簧伸缩、反向圆角及上游常用工具。
 
 <p align="center"><img src="boringNotch/Assets.xcassets/ShuIcon-captain.imageset/icon.png" width="160" alt="薯队长"></p>
 
 ## 当前功能
 
+- **默认主页**：展开显示媒体与日历，左侧红薯图标可进入红薯钟。
 - **薯队长小岛**：软萌 2.5D 角色、种薯与烤薯动作、双手与飘动的云。
 - **红薯钟**：自定义休息和专注时间，暂停、恢复、离线结算与本地库存。
 - **系统 HUD**：MacBook 内置亮度、音量、静音键的刘海提示。
 - **音乐与歌词**：播放器控制、简体同步歌词、长句滚动、28 点紧凑提示行；无歌词或暂停时收起，不扩大刘海宽度。
 - **设置**：中英文切换、图标选择，以及媒体、日历、文件暂存等工具。
-- **hi 通知实验**：适配器与隐私设置已实现，默认关闭；真实 hi 横幅尚待验证，原系统横幅隐藏尚未开放。
+- **系统工具**：新增第四个标签，可选工具及摆放顺序；提供截屏、录屏、秒表、计时器、闹钟、音量／亮度滑块和系统应用入口。标注“打开设置”的功能是设置快捷入口，不等于直接切换系统状态。
+- **截图暂存**：应用截屏和录屏进入文件暂存；系统快捷键保存的新截图自动复制，保留原图。hi／微信截图可通过“暂存剪贴板图片”手动添加。
+- **应用通知实验**：hi、ValOS、Lobi、ChatGPT/Codex 四个来源和独立隐私设置，仅转显实际系统横幅。真实任务通知验收尚未完成，原系统横幅隐藏未开放。
 
 ## 打开与构建
 
@@ -29,6 +32,14 @@ ISLAND_SIGN_IDENTITY=- bash scripts/build.sh Debug
 
 ## 文档与验证
 
+- [271 版原文歌词与时钟修复](LYRICS-271-VALIDATION.md)
+- [272 版歌词颜色设置](LYRICS-COLOR-272-VALIDATION.md)
+- [273 版菜单栏图标与显示开关](MENU-BAR-273-VALIDATION.md)
+- [274 版默认主页](HOME-DEFAULT-274-VALIDATION.md)
+- [275 版紧凑系统提示栏](COMPACT-HUD-275-VALIDATION.md)
+- [276 版系统工具与应用通知](TOOLS-NOTIFICATIONS-276-VALIDATION.md)
+- [280 版音频输出、显示模式与原彩显示验证](TOOLS-NOTIFICATIONS-280-VALIDATION.md)
+
 - [使用和工程说明](README-Island.md)
 - [歌词与 hi 验收记录](BRIEF-NOTIFICATIONS-VALIDATION.md)
 - [系统 HUD 验收记录](HUD25D-VALIDATION.md)
@@ -36,7 +47,7 @@ ISLAND_SIGN_IDENTITY=- bash scripts/build.sh Debug
 - [设置验收矩阵](SETTINGS-VERIFICATION.md)
 - [素材源图与处理说明](artwork/shu25d/README.md)
 
-当前记录：181 项核心测试、87 项原服务测试、37 项歌词服务检查通过。原生系统、硬件或真实消息的待验项目在文档中单独标注。部分文档链接指向本机构建日志或预览，这些 `build/` 产物不纳入源码仓库，可用测试与渲染脚本重新生成。
+276 本轮 **237 项核心测试通过，0 失败**。87 项原服务检查、37 项歌词服务检查属于历史通过记录，本轮未重跑。原生系统、硬件或真实消息的待验项目在文档中单独标注。部分文档链接指向本机构建日志或预览，这些 `build/` 产物不纳入源码仓库，可用测试与渲染脚本重新生成。
 
 ## 上游与许可
 

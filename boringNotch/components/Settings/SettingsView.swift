@@ -28,6 +28,9 @@ struct SettingsView: View {
                 NavigationLink(value: "PotatoTimer") {
                     Label("Sweet Potato Timer", systemImage: "timer")
                 }
+                NavigationLink(value: "SystemTools") {
+                    Label("Quick tools", systemImage: "square.grid.2x2.fill")
+                }
                 NavigationLink(value: "Appearance") {
                     Label("Appearance", systemImage: "eye")
                 }
@@ -35,7 +38,7 @@ struct SettingsView: View {
                     Label("Media", systemImage: "play.laptopcomputer")
                 }
                 NavigationLink(value: "HiNotifications") {
-                    Label("hi notifications", systemImage: "bell.badge")
+                    Label("App notifications", systemImage: "bell.badge")
                 }
                 NavigationLink(value: "Calendar") {
                     Label("Calendar", systemImage: "calendar")
@@ -76,6 +79,8 @@ struct SettingsView: View {
                     GeneralSettings()
                 case "PotatoTimer":
                     PotatoTimerSettings()
+                case "SystemTools":
+                    SystemToolsSettings()
                 case "Appearance":
                     Appearance()
                 case "Media":
@@ -110,6 +115,7 @@ struct SettingsView: View {
         }
         .environment(\.locale, language.locale)
         .onReceive(NotificationCenter.default.publisher(for: .islandOpenTimerSettings)) { _ in selectedTab = "PotatoTimer" }
+        .onReceive(NotificationCenter.default.publisher(for: .islandOpenToolsSettings)) { _ in selectedTab = "SystemTools" }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
         .toolbar {
@@ -159,8 +165,11 @@ struct GeneralSettings: View {
             }
 
             Section {
-                Text("菜单栏入口始终保留，方便在隐藏小岛后恢复显示。")
-                    .foregroundStyle(.secondary)
+                Defaults.Toggle(key: .menubarIcon) {
+                    Text("Show menu bar icon")
+                }
+                Text("Hiding the menu bar icon keeps the island running. Reopen the app to access Settings.")
+                    .font(.caption).foregroundStyle(.secondary)
                 LaunchAtLogin.Toggle {
                     Text("Launch at login")
                 }
@@ -481,6 +490,8 @@ struct Media: View {
     @Default(.sneakPeekStyles) var sneakPeekStyles
 
     @Default(.lyricsDisplayLocation) var lyricsDisplayLocation
+    @Default(.lyricsColorMode) private var lyricsColorMode
+    @Default(.customLyricsColor) private var customLyricsColor
     @ObservedObject private var lyricState = LyricsStore.shared
 
     var body: some View {
@@ -566,6 +577,16 @@ struct Media: View {
                     Text("Inside the player").tag(LyricsDisplayLocation.player)
                     Text("Below the notch").tag(LyricsDisplayLocation.notch)
                 }
+                Picker("Lyrics color", selection: $lyricsColorMode) {
+                    Text("Default (white)").tag(LyricsColorMode.white)
+                    Text("Match album art").tag(LyricsColorMode.albumArt)
+                    Text("Custom color").tag(LyricsColorMode.custom)
+                }
+                if lyricsColorMode == .custom {
+                    ExplicitColorPicker(selection: $customLyricsColor)
+                }
+                Text("Applies to lyrics in the player and below the notch. Match album art follows the current song's cover.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Button("Retry current song lyrics") { lyricState.retryCurrentTrack() }
                     .disabled(lyricsDisplayLocation == .off || lyricState.isLoading)
                 Text("Online synced lyrics are matched by track and playback position. They may differ from your music app. Pausing hides the notch lyric row.")
@@ -589,6 +610,93 @@ struct Media: View {
         } else {
             return MediaControllerType.allCases
         }
+    }
+}
+
+/// A button owns the panel explicitly instead of relying on a color well to
+/// activate it from our accessory application's settings window.
+private struct ExplicitColorPicker: View {
+    @Binding var selection: Color
+    @StateObject private var presenter = SettingsColorPanelPresenter()
+
+    var body: some View {
+        HStack {
+            Text("Custom lyrics color")
+            Spacer()
+            Button {
+                presenter.show(selection: $selection)
+            } label: {
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(selection)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 4)
+                                .strokeBorder(.primary.opacity(0.3), lineWidth: 1)
+                        }
+                        .frame(width: 26, height: 18)
+                    Text("Choose any color")
+                }
+            }
+            .accessibilityLabel(Text("Custom lyrics color"))
+        }
+        .onDisappear { presenter.dismiss() }
+    }
+}
+
+@MainActor
+private final class SettingsColorPanelPresenter: NSObject, ObservableObject {
+    private var selection: Binding<Color>?
+    private weak var panel: NSColorPanel?
+    private weak var ownerWindow: NSWindow?
+
+    func show(selection: Binding<Color>) {
+        dismiss()
+        let panel = NSColorPanel.shared
+        ownerWindow = NSApp.keyWindow
+        self.selection = selection
+        self.panel = panel
+        panel.showsAlpha = false
+        panel.isContinuous = true
+        panel.color = NSColor(selection.wrappedValue).withAlphaComponent(1)
+        panel.setTarget(self)
+        panel.setAction(#selector(colorChanged(_:)))
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(windowWillClose(_:)),
+            name: NSWindow.willCloseNotification, object: nil
+        )
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+        // Activation can finish after the button action returns.
+        DispatchQueue.main.async { [weak self] in
+            self?.panel?.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    @objc private func colorChanged(_ sender: NSColorPanel) {
+        guard sender === panel else { return }
+        selection?.wrappedValue = Color(nsColor: sender.color.withAlphaComponent(1))
+    }
+
+    @objc private func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        if window === panel || window === ownerWindow { dismiss() }
+    }
+
+    func dismiss() {
+        guard let panel else { return }
+        self.panel = nil
+        selection = nil
+        ownerWindow = nil
+        NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: nil)
+        // Release the shared panel before another settings page's color well
+        // takes ownership, so its changes cannot alter the lyric preference.
+        panel.setTarget(nil)
+        panel.setAction(nil)
+        panel.orderOut(nil)
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }
 

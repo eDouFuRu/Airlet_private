@@ -38,6 +38,7 @@ import ImageIO
             let gap = scenario["physicalGapWidth"] as! Double
             let width = scenario["width"] as! Double
             let header = scenario["headerHeight"] as! Double
+            let rowHeight = scenario["rowHeight"] as! Double
             let image = try bitmap(output.appendingPathComponent(name + ".png"))
             let bytes = try pixels(image, rect: CGRect(x: width - gap, y: 0, width: gap * 2, height: header * 2))
             let occupied = stride(from: 0, to: bytes.count, by: 4).filter { bytes[$0] > 2 || bytes[$0 + 1] > 2 || bytes[$0 + 2] > 2 }.count
@@ -47,7 +48,7 @@ import ImageIO
             let iconBytes = try pixels(image, rect: CGRect(
                 x: (leadingInset + (inline ? 10 : 16)) * 2,
                 y: inline ? 0 : header * 2,
-                width: inline ? 36 : 40, height: inline ? header * 2 : 88))
+                width: inline ? 36 : 40, height: inline ? header * 2 : rowHeight * 2))
             let iconPixels = stride(from: 0, to: iconBytes.count, by: 4).filter {
                 iconBytes[$0] > 2 || iconBytes[$0 + 1] > 2 || iconBytes[$0 + 2] > 2
             }.count
@@ -83,5 +84,37 @@ import ImageIO
             .write(to: output.appendingPathComponent("pixel-checks.json"))
         print("Offline pixel checks: \(gapChecks.count) camera gaps + \(iconChecks.count) visible icons + \(bodyChecks.count) page bodies (3/255 channel tolerance); failures=\(failures)")
         if failures > 0 { throw NSError(domain: "HUDPreviewPixels", code: 4) }
+        if CommandLine.arguments.count > 2 {
+            let baseline = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
+            var comparison: [[String: Any]] = []
+            for scenario in scenarios where (scenario["name"] as! String).contains("-inline-") {
+                let name = scenario["name"] as! String
+                let before = try bitmap(baseline.appendingPathComponent(name + ".png"))
+                let after = try bitmap(output.appendingPathComponent(name + ".png"))
+                guard before.width == after.width, before.height == after.height else {
+                    throw NSError(domain: "HUDPreviewPixels", code: 5)
+                }
+                let full = CGRect(x: 0, y: 0, width: after.width, height: after.height)
+                let header = CGRect(x: 0, y: 0, width: Double(after.width),
+                                    height: (scenario["headerHeight"] as! Double) * 2)
+                let beforePixels = try pixels(before, rect: full)
+                let afterPixels = try pixels(after, rect: full)
+                let headerIdentical = try pixels(before, rect: header) == pixels(after, rect: header)
+                let maximumDifference = zip(beforePixels, afterPixels).map { abs(Int($0) - Int($1)) }.max() ?? 0
+                comparison.append(["name": name, "widthPixels": after.width, "heightPixels": after.height,
+                    "headerPixelsIdentical": headerIdentical, "fullImagePixelsIdentical": beforePixels == afterPixels,
+                    "maximumFullImageChannelDifference": maximumDifference,
+                    "pass": headerIdentical && maximumDifference <= 3])
+            }
+            let report: [String: Any] = ["staticOnly": true, "source": "Production inline HUD and isolated previous HUD source from Git",
+                "bodyChannelTolerance": 3, "scenarios": comparison,
+                "failures": comparison.filter { $0["pass"] as? Bool != true }.count]
+            try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+                .write(to: output.appendingPathComponent("inline-baseline-pixels.json"))
+            guard comparison.allSatisfy({ $0["pass"] as? Bool == true }) else {
+                throw NSError(domain: "HUDPreviewPixels", code: 6)
+            }
+            print("Inline baseline comparison: \(comparison.count) HUD headers pixel-identical; full images within 3/255 channel tolerance")
+        }
     }
 }

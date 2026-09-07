@@ -39,6 +39,9 @@ extension PlaybackState: Equatable {
             && lhs.album == rhs.album
             && lhs.currentTime == rhs.currentTime
             && lhs.duration == rhs.duration
+            && lhs.playbackRate == rhs.playbackRate
+            && lhs.lastUpdated == rhs.lastUpdated
+            && lhs.volume == rhs.volume
             && lhs.isShuffled == rhs.isShuffled
             && lhs.repeatMode == rhs.repeatMode
             && lhs.artwork == rhs.artwork

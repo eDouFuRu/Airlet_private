@@ -197,7 +197,7 @@ class BoringViewModel: NSObject, ObservableObject {
             if Defaults[.boringShelf] && Defaults[.openShelfByDefault] && !ShelfStateViewModel.shared.isEmpty {
                 coordinator.currentView = .shelf
             } else if !coordinator.openLastTabByDefault || (coordinator.currentView == .shelf && !Defaults[.boringShelf]) {
-                coordinator.currentView = .island
+                coordinator.currentView = .home
             }
         }
         self.notchSize = openNotchSize

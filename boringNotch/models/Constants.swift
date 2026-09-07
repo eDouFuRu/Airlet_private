@@ -130,6 +130,8 @@ extension Defaults.Keys {
     static let showShuffleAndRepeat = Key<Bool>("showShuffleAndRepeat", default: false)
     static let enableLyrics = Key<Bool>("enableLyrics", default: false) // retained for one-time migration
     static let lyricsDisplayLocation = Key<LyricsDisplayLocation>("lyricsDisplayLocation", default: .off)
+    static let lyricsColorMode = Key<LyricsColorMode>("lyricsColorMode", default: .white)
+    static let customLyricsColor = Key<Color>("customLyricsColor", default: .white)
     static let enableHiNotifications = Key<Bool>("enableHiNotifications", default: false)
     static let hiNotificationDetail = Key<Bool>("hiNotificationDetail", default: false)
     static let hideOriginalHiBanner = Key<Bool>("hideOriginalHiBanner", default: false)

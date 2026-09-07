@@ -28,6 +28,7 @@ public enum NotchViews {
     case island
     case home
     case shelf
+    case tools
 }
 
 enum SettingsEnum {
@@ -67,4 +68,10 @@ enum SliderColorEnum: String, CaseIterable, Defaults.Serializable {
     case white = "White"
     case albumArt = "Match album art"
     case accent = "Accent color"
+}
+
+enum LyricsColorMode: String, CaseIterable, Defaults.Serializable {
+    case white = "white"
+    case albumArt = "albumArt"
+    case custom = "custom"
 }

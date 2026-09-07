@@ -45,7 +45,7 @@ struct SystemHUDState: Equatable, Sendable {
 /// Measurements are shared by the carrier's visible shell and the HUD's contents.
 /// The physical camera gap never depends on a timer, media wing, or HUD width.
 struct SystemHUDLayout: Equatable {
-    static let rowHeight: CGFloat = 44
+    static let rowHeight: CGFloat = BriefPresentationLayout.rowHeight
     static let closedInset: CGFloat = 6
     static let openInset: CGFloat = 31
     static let carrierHeight: CGFloat = 360

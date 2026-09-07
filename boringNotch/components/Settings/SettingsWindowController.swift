@@ -66,6 +66,11 @@ class SettingsWindowController: NSWindowController {
         DispatchQueue.main.async { NotificationCenter.default.post(name: .islandOpenTimerSettings, object: nil) }
     }
 
+    func showToolsSettings() {
+        showWindow()
+        DispatchQueue.main.async { NotificationCenter.default.post(name: .islandOpenToolsSettings, object: nil) }
+    }
+
     func showWindow() {
         // Set app to regular mode first
         NSApp.setActivationPolicy(.regular)

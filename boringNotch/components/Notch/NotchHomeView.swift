@@ -166,6 +166,7 @@ struct MusicControlsView: View {
     @Default(.musicControlSlotLimit) private var slotLimit
     @Default(.playerColorTinting) private var playerColorTinting
     @ObservedObject private var lyrics = LyricsStore.shared
+    private var lyricsAppearance = LyricsAppearance()
     @State private var lyricPresentationID = UUID()
     @Default(.showCalendar) private var showCalendar
     @Default(.showMirror) private var showMirror
@@ -210,7 +211,7 @@ struct MusicControlsView: View {
             if lyrics.location == .player && lyrics.isPlaying {
                 Text(verbatim: lyrics.displayText)
                     .font(.subheadline)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(lyricsAppearance.color)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(width: width, height: 17, alignment: .leading)

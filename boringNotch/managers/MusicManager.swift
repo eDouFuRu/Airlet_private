@@ -384,9 +384,9 @@ class MusicManager: ObservableObject {
         workItem?.cancel()
         withAnimation(.smooth) {
             self.albumArt = newAlbumArt
-            if Defaults[.coloredSpectrogram] {
-                self.calculateAverageColor()
-            }
+            // Lyrics, sliders and text tinting also use the cover color, even
+            // when the user has turned off the colored spectrum.
+            self.calculateAverageColor()
         }
     }
 
@@ -400,10 +400,12 @@ class MusicManager: ObservableObject {
     }
 
     func calculateAverageColor() {
-        albumArt.averageColor { [weak self] color in
+        let artwork = albumArt
+        artwork.averageColor { [weak self] color in
             DispatchQueue.main.async {
+                guard let self, self.albumArt === artwork else { return }
                 withAnimation(.smooth) {
-                    self?.avgColor = color ?? .white
+                    self.avgColor = color ?? .white
                 }
             }
         }

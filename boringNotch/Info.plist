@@ -13,6 +13,19 @@
 	<array>
 		<dict/>
 	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.dongfengrui.NotchIsland.tool-reorder</string>
+			<key>UTTypeDescription</key>
+			<string>Quick tool ordering</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+	</array>
 	<key>SUEnableAutomaticChecks</key>
 	<false/>
 	<key>SUAutomaticallyUpdate</key>
@@ -47,7 +60,9 @@
 	<string>NSApplication</string>
 	<key>NSCameraUsageDescription</key>
 	<string>使用镜子时，工位充电岛需要摄像头来展示实时预览。</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>使用蓝牙工具时，工位充电岛需要读取蓝牙开关状态，并在你点击切换时开启或关闭蓝牙。</string>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>使用媒体控制时，工位充电岛需要控制你选择的音乐应用。</string>
+	<string>工位充电岛控制你选择的媒体应用以播放、暂停和切歌；仅在你点击切换深色模式时，通过 System Events 更改系统外观。</string>
 </dict>
 </plist>

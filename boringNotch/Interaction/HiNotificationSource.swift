@@ -4,15 +4,18 @@ import Defaults
 @preconcurrency import ApplicationServices
 
 enum HiNotificationSourceStatus: String, Equatable {
-    case disabled, paused, accessibilityRequired, waitingForNotificationCenter, mirrorOnly, unsupportedStructure
+    case disabled, notInstalled, paused, accessibilityRequired, waitingForNotificationCenter, waitingForBanner, receivedBanner, mirrorOnly, unsupportedStructure
 
     var labelKey: String {
         switch self {
-        case .disabled: return "Hi notifications are off."
-        case .paused: return "Hi notifications are paused while the island is unavailable."
-        case .accessibilityRequired: return "Accessibility access is required to observe Hi banners."
+        case .disabled: return "Notifications are off for this app."
+        case .notInstalled: return "This app is not installed on this Mac."
+        case .waitingForBanner: return "Waiting for a real desktop banner; delivery is not yet verified."
+        case .receivedBanner: return "A real desktop banner was received in this session. Original banners remain visible."
+        case .paused: return "App notifications are paused while the island is unavailable."
+        case .accessibilityRequired: return "Accessibility access is required to observe app banners."
         case .waitingForNotificationCenter: return "Waiting for Notification Center."
-        case .mirrorOnly: return "Observer running; mirrors recognized Hi banners only. Original banners remain visible."
+        case .mirrorOnly: return "Observer running; mirrors recognized app banners only. Original banners remain visible."
         case .unsupportedStructure: return "This notification layout is not supported. Original banners remain visible."
         }
     }
@@ -26,11 +29,60 @@ final class HiNotificationManager: ObservableObject {
     static let bundleID = HiNotificationSourceEvidence.hiBundleID
     @Published private(set) var current: HiNotificationNotice?
     @Published private(set) var status: HiNotificationSourceStatus = .disabled
-    @Published private(set) var diagnosticsSummary = "AX: false · Observer: false · Host: 0 · Windows: 0 · Cards: 0 · Hi: 0 · Delivered: 0 · Result: not_started · Position: unverified"
+    @Published private(set) var diagnosticsSummary = "AX: false · Observer: false · Host: 0 · Windows: 0 · Cards: 0 · Matched: 0 · Delivered: 0 · Result: not_started · Position: unverified"
+    @Published private(set) var structureDiagnosticsSummary = "Structure-only diagnostic has not run."
+    @Published private(set) var isSamplingStructure = false
+    @Published private(set) var structureSamplesSummary = ""
     /// Deliberately false until a separate native verification establishes safe move/restore.
     let originalBannerHidingSupported = false
-    var enabled: Bool { Defaults[.enableHiNotifications] }
-    var detailed: Bool { Defaults[.hiNotificationDetail] }
+    @Published private(set) var sources = AppNotificationSourceInfo.discover()
+    private var deliveredSources = Set<String>()
+    private var configuredSources = Set<String>()
+    var enabled: Bool { sources.contains { $0.isInstalled && isEnabled($0.id) } }
+    private var enabledSources: Set<String> { Set(sources.filter { $0.isInstalled && isEnabled($0.id) }.map(\.id)) }
+    private var detailedSources: Set<String> { Set(sources.filter { isDetailed($0.id) }.map(\.id)) }
+
+    func isEnabled(_ bundleID: String) -> Bool {
+        bundleID == Self.bundleID ? Defaults[.enableHiNotifications] : Defaults[.enabledAppNotificationSources][bundleID] == true
+    }
+    func isDetailed(_ bundleID: String) -> Bool {
+        bundleID == Self.bundleID ? Defaults[.hiNotificationDetail] : Defaults[.detailedAppNotificationSources][bundleID] == true
+    }
+    func setEnabled(_ enabled: Bool, for bundleID: String) {
+        guard sources.contains(where: { $0.id == bundleID }) else { return }
+        if bundleID == Self.bundleID { Defaults[.enableHiNotifications] = enabled }
+        else { Defaults[.enabledAppNotificationSources][bundleID] = enabled }
+        refresh()
+    }
+    func setDetailed(_ detailed: Bool, for bundleID: String) {
+        guard sources.contains(where: { $0.id == bundleID }) else { return }
+        if bundleID == Self.bundleID { Defaults[.hiNotificationDetail] = detailed }
+        else { Defaults[.detailedAppNotificationSources][bundleID] = detailed }
+        refresh()
+    }
+    func status(for source: AppNotificationSourceInfo) -> HiNotificationSourceStatus {
+        guard source.isInstalled else { return .notInstalled }
+        guard isEnabled(source.id) else { return .disabled }
+        if status == .mirrorOnly {
+            return deliveredSources.contains(source.id) ? .receivedBanner : .waitingForBanner
+        }
+        return status
+    }
+    func icon(for notice: HiNotificationNotice) -> NSImage? { icon(for: notice.sourceBundleID) }
+    func icon(for bundleID: String) -> NSImage? {
+        guard let url = sources.first(where: { $0.id == bundleID })?.applicationURL else { return nil }
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
+    func displayText(for notice: HiNotificationNotice) -> String {
+        let name = sources.first(where: { $0.id == notice.sourceBundleID })?.name ?? "App"
+        let details = [notice.sender, notice.body].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+        // Never infer completion from an app being an AI tool. The actual notification may
+        // instead ask for input, report an error, or carry an unrelated update.
+        let prefix = notice.count > 1
+            ? String(format: L("%@ · %d new notifications"), name, notice.count)
+            : String(format: L("%@ has a new notification"), name)
+        return details.isEmpty ? prefix : "\(name) · \(details)" + (notice.count > 1 ? " (\(notice.count))" : "")
+    }
     var originalBannerHidingRequested: Bool { Defaults[.hideOriginalHiBanner] }
 
     private var state = HiNotificationState()
@@ -47,7 +99,7 @@ final class HiNotificationManager: ObservableObject {
     private var latestAction: ActionReference?
     private var lastWindowCount = 0
     private var lastCardCount = 0
-    private var lastHiCount = 0
+    private var lastMatchedCount = 0
     private var deliveryCount = 0
     private var lastResult = "not_started"
     private var lastPositionSettable: Bool?
@@ -56,6 +108,13 @@ final class HiNotificationManager: ObservableObject {
     private var readHadFailure = false
     private var diagnosticStructure = HiAXDiagnosticStructure()
     private var diagnosticVisitedElements = Set<CFHashCode>()
+    private var observerErrorCounts: [Int32: Int] = [:]
+    private var observerEventCounts: [String: Int] = [:]
+    private var lastObserverEventAt: TimeInterval?
+    private var structureFingerprint = ""
+    private var structureSamplingTask: Task<Void, Never>?
+    private var structureSamplingGeneration: UUID?
+    private var structureSamplingBuffer: StructureSamplingBuffer?
 
     private struct ActionReference {
         let card: AXUIElement
@@ -93,6 +152,12 @@ final class HiNotificationManager: ObservableObject {
         Defaults.publisher(.hiNotificationDetail).sink { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }.store(in: &subscriptions)
+        Defaults.publisher(.enabledAppNotificationSources).sink { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }.store(in: &subscriptions)
+        Defaults.publisher(.detailedAppNotificationSources).sink { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }.store(in: &subscriptions)
         Defaults.publisher(.hideOriginalHiBanner).sink { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }.store(in: &subscriptions)
@@ -107,7 +172,7 @@ final class HiNotificationManager: ObservableObject {
 
     func setApplicationAvailable(_ available: Bool) {
         state.setApplicationAvailable(available)
-        if !available { latestAction = nil }
+        if !available { latestAction = nil; stopStructureSampling() }
         publish()
         refresh()
     }
@@ -115,13 +180,23 @@ final class HiNotificationManager: ObservableObject {
     /// Passive permission check. The Settings permission button is owned by the app.
     func refresh() {
         defer { updateDiagnostics() }
-        state.setEnabled(enabled)
-        state.setDetailed(detailed)
+        objectWillChange.send()
+        let discovered = AppNotificationSourceInfo.discover()
+        if sources != discovered { sources = discovered }
+        let enabled = enabledSources
+        state.configure(enabled: enabled, detailed: detailedSources)
+        if configuredSources != enabled {
+            // Enabling another source must not replay its already-visible notification.
+            configuredSources = enabled
+            stopObserverOnly()
+        }
+        if state.current == nil { latestAction = nil }
         publish()
-        guard enabled else { stopObserving(); status = .disabled; lastResult = "disabled"; return }
+        guard !enabled.isEmpty else { stopObserving(); status = .disabled; lastResult = "disabled"; return }
         guard state.applicationAvailable else { stopObserving(); status = .paused; lastResult = "unavailable"; return }
         ensureHealthCheck()
         guard AXIsProcessTrusted() else {
+            stopStructureSampling()
             stopObserverOnly()
             state.dismiss(); latestAction = nil; publish()
             status = .accessibilityRequired
@@ -143,7 +218,9 @@ final class HiNotificationManager: ObservableObject {
         // Bound a wedged system AX server's individual calls; this is a read timeout.
         AXUIElementSetMessagingTimeout(application, 0.05)
         var result: AXObserver?
-        guard AXObserverCreate(hostPID, hiNotificationAXCallback, &result) == .success, let result else {
+        let creationResult = AXObserverCreate(hostPID, hiNotificationAXCallback, &result)
+        recordObserverError(creationResult)
+        guard creationResult == .success, let result else {
             status = .unsupportedStructure
             lastResult = "observer_creation_failed"
             return
@@ -151,12 +228,13 @@ final class HiNotificationManager: ObservableObject {
         let registered = [kAXWindowCreatedNotification, kAXCreatedNotification].map {
             AXObserverAddNotification(result, application, $0 as CFString, nil)
         }
+        registered.forEach(recordObserverError)
         guard registered.contains(.success) else {
             status = .unsupportedStructure; lastResult = "events_not_supported"; return
         }
         // Some OS versions support this app-level callback; a confirmed empty snapshot then
         // retires card identities before the system can reuse the window/element handles.
-        AXObserverAddNotification(result, application, kAXUIElementDestroyedNotification as CFString, nil)
+        recordObserverError(AXObserverAddNotification(result, application, kAXUIElementDestroyedNotification as CFString, nil))
         observer = result
         host = application
         // A newly enabled/restored observer must not replay banners already on the screen.
@@ -167,12 +245,173 @@ final class HiNotificationManager: ObservableObject {
         status = .mirrorOnly
     }
 
-    /// A user-requested native probe exposes only structural counts/capabilities. It neither
-    /// publishes a notice nor attempts AX writes, clicks, or notification history access.
+    /// Operational observer diagnostics. This path does read banner descriptions and payload
+    /// values for recognition/fingerprinting, though it never publishes or logs their text.
+    /// Use refreshStructureDiagnostics() when the diagnostic must not read notification text.
     func refreshDiagnostics() {
         refresh()
         if observer != nil { _ = captures(includeDetails: false) }
         updateDiagnostics()
+    }
+
+    /// Strict structural probe. This intentionally does not call refresh()/captures(), which
+    /// can establish an observer baseline by reading notification descriptions and fields.
+    /// It does not alter observation, actions, permissions, delivery, or any system window.
+    func refreshStructureDiagnostics() {
+        let trusted = AXIsProcessTrusted()
+        var report = NotificationStructureDiagnostics()
+        guard IslandVisibility.shared.isAvailable, trusted,
+              let process = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.notificationcenterui").first else {
+            structureFingerprint = "AX: \(trusted) · Island available: \(IslandVisibility.shared.isAvailable) · Notification Center unavailable · \(observerStructureSignature)"
+            structureDiagnosticsSummary = structureFingerprint + " · " + report.summary
+            return
+        }
+        let application = AXUIElementCreateApplication(process.processIdentifier)
+        let deadline = ProcessInfo.processInfo.systemUptime + 0.25
+        var visited = Set<CFHashCode>()
+
+        // Never read identifier/description/title/value text. Position is used only for
+        // the on-screen boolean and is never placed in diagnostic output.
+        func read(_ element: AXUIElement, _ attribute: String) -> (CFTypeRef?, AXError) {
+            guard [kAXRoleAttribute, kAXSubroleAttribute, kAXChildrenAttribute, kAXWindowsAttribute,
+                   kAXSizeAttribute, kAXPositionAttribute, kAXFocusedWindowAttribute].contains(attribute) else { return (nil, .attributeUnsupported) }
+            guard ProcessInfo.processInfo.systemUptime < deadline else { report.truncated = true; return (nil, .cannotComplete) }
+            AXUIElementSetMessagingTimeout(element, 0.025)
+            var result: CFTypeRef?
+            let error = AXUIElementCopyAttributeValue(element, attribute as CFString, &result)
+            report.recordError(Int(error.rawValue))
+            return (error == .success ? result : nil, error)
+        }
+        func value(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? { read(element, attribute).0 }
+        func size(_ element: AXUIElement) -> CGSize? {
+            guard let raw = value(element, kAXSizeAttribute), CFGetTypeID(raw) == AXValueGetTypeID() else { return nil }
+            var result = CGSize.zero
+            guard AXValueGetValue(raw as! AXValue, .cgSize, &result), result.width.isFinite, result.height.isFinite else { return nil }
+            return result
+        }
+        func onScreen(_ element: AXUIElement, size: CGSize?) -> Bool? {
+            guard let size, let raw = value(element, kAXPositionAttribute), CFGetTypeID(raw) == AXValueGetTypeID() else { return nil }
+            var origin = CGPoint.zero
+            guard AXValueGetValue(raw as! AXValue, .cgPoint, &origin), origin.x.isFinite, origin.y.isFinite else { return nil }
+            return isOnScreen(CGRect(origin: origin, size: size))
+        }
+        struct Node {
+            let element: AXUIElement
+            let number: Int
+            let parent: Int?
+            let depth: Int
+            let role: String?
+            let subrole: String?
+            let attributes: [String]
+        }
+        func visit(_ element: AXUIElement, parent: Int?, depth: Int, nodes: inout [Node]) {
+            guard depth <= 10, visited.count < 160, ProcessInfo.processInfo.systemUptime < deadline else {
+                report.truncated = true; return
+            }
+            guard visited.insert(CFHash(element)).inserted else { return }
+            let number = visited.count - 1
+            let role = value(element, kAXRoleAttribute) as? String
+            let subrole = value(element, kAXSubroleAttribute) as? String
+            var names: CFArray?
+            if ProcessInfo.processInfo.systemUptime < deadline {
+                let error = AXUIElementCopyAttributeNames(element, &names)
+                report.recordError(Int(error.rawValue))
+            } else { report.truncated = true }
+            let attributes = names as? [String] ?? []
+            report.recordNode(role: role, subrole: subrole, attributeNames: attributes)
+            nodes.append(Node(element: element, number: number, parent: parent, depth: depth,
+                              role: role, subrole: subrole, attributes: attributes))
+            for child in value(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
+                visit(child, parent: number, depth: depth + 1, nodes: &nodes)
+            }
+        }
+        let (focusedWindow, focusedError) = read(application, kAXFocusedWindowAttribute)
+        let windows = value(application, kAXWindowsAttribute) as? [AXUIElement] ?? []
+        if windows.count > 16 { report.truncated = true }
+        for (index, window) in windows.prefix(16).enumerated() {
+            let windowSize = size(window)
+            if let windowSize { report.recordWindowSize(width: windowSize.width, height: windowSize.height) }
+            var nodes: [Node] = []
+            visit(window, parent: nil, depth: 0, nodes: &nodes)
+            let cards = nodes.filter { Self.bannerSubroles.contains($0.subrole ?? "") }
+            guard !cards.isEmpty, let windowNode = nodes.first else { continue }
+            func details(_ node: Node, measured: CGSize?) -> NotificationStructureDiagnostics.BannerNode {
+                NotificationStructureDiagnostics.BannerNode(number: node.number, parent: node.parent, depth: node.depth,
+                    role: node.role, subrole: node.subrole, width: measured.map { Double($0.width) },
+                    height: measured.map { Double($0.height) }, onScreen: onScreen(node.element, size: measured),
+                    attributeNames: node.attributes)
+            }
+            let focused: Bool? = focusedError == .success || focusedError == .noValue
+                ? focusedWindow.map { CFEqual($0, window) } ?? false : nil
+            report.recordBannerWindow(number: index, window: details(windowNode, measured: windowSize), focused: focused,
+                bannerCount: cards.count, stackCount: nodes.filter { Self.stackSubroles.contains($0.subrole ?? "") }.count,
+                cards: cards.prefix(32).map { details($0, measured: size($0.element)) })
+        }
+        structureFingerprint = "AX: true · Windows: \(windows.count) · \(observerStructureSignature) · \(report.summary)"
+        structureDiagnosticsSummary = "AX: true · Windows: \(windows.count) · \(observerStructureSummary) · \(report.summary)"
+    }
+
+    /// Explicit, bounded sampling of the strict structural probe only. Starting again
+    /// replaces old in-memory evidence. No operational refresh or capture is triggered.
+    func startStructureSampling() {
+        stopStructureSampling()
+        structureSamplesSummary = ""
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        structureSamplingBuffer = StructureSamplingBuffer(startedAt: startedAt)
+        guard IslandVisibility.shared.isAvailable, AXIsProcessTrusted() else {
+            structureSamplesSummary = L("Structure sampling requires Accessibility access and a visible, unlocked island.")
+            return
+        }
+        let generation = UUID()
+        structureSamplingGeneration = generation
+        isSamplingStructure = true
+        structureSamplingTask = Task { @MainActor [weak self] in
+            for index in 0..<StructureSamplingBuffer.sampleLimit {
+                let target = startedAt + Double(index)
+                let delay = target - ProcessInfo.processInfo.systemUptime
+                if delay > 0 {
+                    do { try await Task.sleep(for: .seconds(delay)) } catch { break }
+                }
+                guard let self, !Task.isCancelled, self.structureSamplingGeneration == generation else { break }
+                let sampledAt = ProcessInfo.processInfo.systemUptime
+                guard IslandVisibility.shared.isAvailable, AXIsProcessTrusted(),
+                      self.structureSamplingBuffer?.isExpired(at: sampledAt) == false else { break }
+                self.refreshStructureDiagnostics()
+                // Time since the last callback is not a structural change; otherwise every
+                // unchanged second would defeat deduplication. Callback counts still matter.
+                if self.structureSamplingBuffer?.record(at: sampledAt, fingerprint: self.structureFingerprint,
+                                                        summary: self.structureDiagnosticsSummary) == true {
+                    self.structureSamplesSummary = self.structureSamplingBuffer?.summary ?? ""
+                }
+            }
+            guard let self, self.structureSamplingGeneration == generation else { return }
+            self.structureSamplingTask = nil
+            self.structureSamplingGeneration = nil
+            self.isSamplingStructure = false
+        }
+    }
+
+    func stopStructureSampling() {
+        structureSamplingGeneration = nil
+        structureSamplingTask?.cancel()
+        structureSamplingTask = nil
+        isSamplingStructure = false
+    }
+
+    private func recordObserverError(_ error: AXError) {
+        guard error != .success else { return }
+        observerErrorCounts[error.rawValue] = min(999_999, (observerErrorCounts[error.rawValue] ?? 0) + 1)
+    }
+
+    private var observerStructureSignature: String {
+        let events = observerEventCounts.keys.sorted().map { "\($0)=\(observerEventCounts[$0] ?? 0)" }.joined(separator: ",")
+        let errors = observerErrorCounts.keys.sorted().map { "\($0)=\(observerErrorCounts[$0] ?? 0)" }.joined(separator: ",")
+        return "Observer: \(observer != nil) · Callbacks: [\(events)] · Observer AX errors: [\(errors)]"
+    }
+
+    private var observerStructureSummary: String {
+        let age = lastObserverEventAt.map { String(Int(max(0, ProcessInfo.processInfo.systemUptime - $0))) + "s" } ?? "never"
+        return observerStructureSignature + " · Last callback: " + age
     }
 
     /// Called only by the shared presentation coordinator; never closes a system notification.
@@ -183,9 +422,9 @@ final class HiNotificationManager: ObservableObject {
     }
 
     /// Original actions are attempted only while the same, unambiguous live card still exists.
-    /// If it expired, opening Hi is the only fallback; no guessed deep links or UI automation.
+    /// If it expired, opening the attributed application is the only fallback; no guessed deep links or UI automation.
     func clickLatest() {
-        guard enabled, state.applicationAvailable, current != nil else { return }
+        guard enabled, state.applicationAvailable, let notice = current, isEnabled(notice.sourceBundleID) else { return }
         var openedOriginal = false
         if AXIsProcessTrusted(), let action = latestAction, action.hostPID == hostPID,
            let live = captures(includeDetails: false).cards.first(where: {
@@ -196,13 +435,18 @@ final class HiNotificationManager: ObservableObject {
             openedOriginal = AXUIElementPerformAction(live.card, kAXPressAction as CFString) == .success
         }
         dismiss()
-        if !openedOriginal, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.bundleID) {
+        if !openedOriginal, let url = sources.first(where: { $0.id == notice.sourceBundleID })?.applicationURL {
             NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
         }
     }
 
     fileprivate func notificationCenterChanged(_ element: AXUIElement, from sourceObserver: AXObserver, notification: String) {
         guard let observer, CFEqual(observer, sourceObserver), enabled, state.applicationAvailable else { return }
+        // Only the fixed notification names registered above enter diagnostic output.
+        if [kAXWindowCreatedNotification, kAXCreatedNotification, kAXUIElementDestroyedNotification].contains(notification) {
+            observerEventCounts[notification] = min(999_999, (observerEventCounts[notification] ?? 0) + 1)
+            lastObserverEventAt = ProcessInfo.processInfo.systemUptime
+        }
         var pid: pid_t = 0
         if notification != kAXUIElementDestroyedNotification as String {
             guard AXUIElementGetPid(element, &pid) == .success, pid == hostPID else { return }
@@ -224,7 +468,7 @@ final class HiNotificationManager: ObservableObject {
 
     private func scanNewBanners() {
         guard AXIsProcessTrusted() else { refresh(); return }
-        let snapshot = captures(includeDetails: detailed)
+        let snapshot = captures(includeDetails: true)
         let now = ProcessInfo.processInfo.systemUptime
         guard !awaitingBaseline else {
             cardTracker.beginBaseline(snapshot.cards.map(\.content), now: now)
@@ -239,14 +483,15 @@ final class HiNotificationManager: ObservableObject {
             case .ignored: continue
             case let .new(id):
                 eventID = id
-                let candidate = HiNotificationCandidate(identity: id, sender: capture.candidate.sender, body: capture.candidate.body)
+                let candidate = HiNotificationCandidate(identity: id, sender: capture.candidate.sender, body: capture.candidate.body, sourceBundleID: capture.candidate.sourceBundleID)
                 guard state.receive(candidate, now: now) else { continue }
                 deliveryCount += 1
+                deliveredSources.insert(capture.candidate.sourceBundleID)
                 status = .mirrorOnly
             case let .update(id):
                 eventID = id
                 guard state.current?.id == id else { continue }
-                state.refreshCurrentContent(HiNotificationCandidate(identity: id, sender: capture.candidate.sender, body: capture.candidate.body))
+                state.refreshCurrentContent(HiNotificationCandidate(identity: id, sender: capture.candidate.sender, body: capture.candidate.body, sourceBundleID: capture.candidate.sourceBundleID))
             }
             if state.current?.id == eventID {
                 latestAction = ActionReference(card: capture.card, window: capture.window,
@@ -267,11 +512,11 @@ final class HiNotificationManager: ObservableObject {
         let windows = Array(allWindows.prefix(16))
         if allWindows.count > 16 { readHadFailure = true }
         lastWindowCount = windows.count
-        lastCardCount = 0; lastHiCount = 0; lastPositionSettable = nil
+        lastCardCount = 0; lastMatchedCount = 0; lastPositionSettable = nil
         diagnosticStructure = HiAXDiagnosticStructure()
         diagnosticVisitedElements.removeAll(keepingCapacity: true)
         lastKnownFields.removeAll(keepingCapacity: true)
-        lastResult = windows.isEmpty ? "no_visible_windows" : "no_recognized_hi_card"
+        lastResult = windows.isEmpty ? "no_visible_windows" : "no_recognized_app_card"
         defer { updateDiagnostics() }
         var focused: CFTypeRef?
         recordReadResult(AXUIElementCopyAttributeValue(host, kAXFocusedWindowAttribute as CFString, &focused))
@@ -304,11 +549,16 @@ final class HiNotificationManager: ObservableObject {
                 return nil
             }
             let evidence = HiNotificationSourceEvidence(appNames: [appName])
-            let isHi = evidence.isUnambiguouslyHi(knownDisplayNames: knownHiNames())
-            diagnosticStructure.recordSource(isHi ? .hi : .other)
-            guard isHi else { return nil }
-            lastHiCount += 1
-            lastResult = "recognized_hi_card"
+            let matching = sources.filter { source in
+                source.isInstalled && evidence.isUnambiguouslySource(bundleID: source.id, knownDisplayNames: source.attributedNames)
+            }
+            guard matching.count == 1, let source = matching.first, isEnabled(source.id) else {
+                diagnosticStructure.recordSource(.other)
+                return nil
+            }
+            diagnosticStructure.recordSource(source.id == Self.bundleID ? .hi : .other)
+            lastMatchedCount += 1
+            lastResult = "recognized_app_card"
             var settable = DarwinBoolean(false)
             if AXUIElementIsAttributeSettable(window, kAXPositionAttribute as CFString, &settable) == .success {
                 lastPositionSettable = settable.boolValue
@@ -318,7 +568,7 @@ final class HiNotificationManager: ObservableObject {
             // Hasher is randomized per process. Neither this token nor raw text is logged/saved.
             let identity = cardIdentity(window: window, card: card)
             var digest = Hasher()
-            digest.combine(identity)
+            digest.combine(identity); digest.combine(source.id)
             var sender: String?
             var bodyParts: [String] = []
             var hasPayload = false
@@ -330,14 +580,14 @@ final class HiNotificationManager: ObservableObject {
                 lastKnownFields.insert(field)
                 digest.combine(field); digest.combine(value)
                 if field == "body", !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { hasPayload = true }
-                guard includeDetails, seenFields.insert(field + "\u{0}" + value).inserted else { continue }
+                guard includeDetails, isDetailed(source.id), seenFields.insert(field + "\u{0}" + value).inserted else { continue }
                 // No heuristic slicing of arbitrary localized accessibility descriptions.
                 // Unknown layouts retain a useful private notice instead of inventing a sender.
                 if field == "title" { sender = value }
                 else if field == "body" || field == "subtitle" { bodyParts.append(value) }
             }
             return Capture(candidate: HiNotificationCandidate(identity: identity, sender: sender,
-                           body: bodyParts.isEmpty ? nil : bodyParts.joined(separator: " ")),
+                           body: bodyParts.isEmpty ? nil : bodyParts.joined(separator: " "), sourceBundleID: source.id),
                            fingerprint: String(digest.finalize(), radix: 16),
                            hasPayload: hasPayload,
                            card: card, window: window)
@@ -350,24 +600,12 @@ final class HiNotificationManager: ObservableObject {
     private static let bannerSubroles: Set<String> = ["AXNotificationCenterBanner", "AXNotificationCenterAlert"]
     private static let stackSubroles: Set<String> = ["AXNotificationCenterBannerStack", "AXNotificationCenterAlertStack"]
 
-    private func knownHiNames() -> Set<String> {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.bundleID),
-              let bundle = Bundle(url: url), bundle.bundleIdentifier == Self.bundleID else { return [] }
-        var names = Set(["hi", "Hi", bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
-                         bundle.object(forInfoDictionaryKey: "CFBundleName") as? String].compactMap { $0 })
-        let others = NSWorkspace.shared.runningApplications.filter {
-            $0.bundleIdentifier != Self.bundleID && $0.bundleIdentifier != "com.apple.notificationcenterui"
-        }.compactMap(\.localizedName)
-        names = names.filter { name in !others.contains { $0.caseInsensitiveCompare(name) == .orderedSame } }
-        return names
-    }
-
     private func publish() { if current != state.current { current = state.current } }
 
     private func updateDiagnostics() {
         let position = lastPositionSettable.map { String($0) } ?? "unverified"
         let fields = lastKnownFields.sorted().joined(separator: ",")
-        let summary = "AX: \(AXIsProcessTrusted()) · Observer: \(observer != nil) · Host: \(hostPID) · Windows: \(lastWindowCount) · Cards: \(lastCardCount) · Hi: \(lastHiCount) · Delivered: \(deliveryCount) · Result: \(lastResult) · Fields: \(fields) · Position: \(position) (hide unverified) · \(diagnosticStructure.summary)"
+        let summary = "AX: \(AXIsProcessTrusted()) · Observer: \(observer != nil) · Host: \(hostPID) · Windows: \(lastWindowCount) · Cards: \(lastCardCount) · Matched: \(lastMatchedCount) · Delivered: \(deliveryCount) · Result: \(lastResult) · Fields: \(fields) · Position: \(position) (hide unverified) · \(diagnosticStructure.summary)"
         if diagnosticsSummary != summary { diagnosticsSummary = summary }
     }
 

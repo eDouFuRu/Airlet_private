@@ -4,17 +4,24 @@ import Combine
 import CoreGraphics
 import Defaults
 import KeyboardShortcuts
+import LaunchAtLogin
 import SwiftUI
 
-@main
 struct DynamicNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @ObservedObject private var visibility = IslandVisibility.shared
     @ObservedObject private var language = AppLanguage.shared
+    @ObservedObject private var capture = CaptureTools.shared
+    @Default(.menubarIcon) private var showMenuBarIcon
 
     var body: some Scene {
-        MenuBarExtra("工位充电岛", systemImage: "leaf") {
+        // Temporary capture controls must not write back to the user's saved visibility.
+        MenuBarExtra(isInserted: .constant(showMenuBarIcon || capture.isBusy)) {
             islandCommands
+        } label: {
+            Image(nsImage: PotatoStatusIcon.image)
+                .renderingMode(.template)
+                .accessibilityLabel("工位充电岛")
         }
         Settings { EmptyView() }
             .commands {
@@ -27,6 +34,13 @@ struct DynamicNotchApp: App {
     }
 
     @ViewBuilder private var islandCommands: some View {
+        if capture.isRecording {
+            Button(L("Stop recording")) { capture.stopRecording() }
+            Divider()
+        } else if capture.isBusy {
+            Button(L("Cancel capture")) { capture.cancelCapture() }
+            Divider()
+        }
         Button(L("Open island")) { appDelegate.expandIsland() }
         Button(visibility.isHidden ? L("Show island") : L("Hide island")) { visibility.isHidden.toggle() }
         Divider()
@@ -57,14 +71,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let visibility = IslandVisibility.shared
     private var guiSession = GUISessionAvailability()
     private var focusReminderTask: Task<Void, Never>?
+    private var waitsForCaptureBeforeQuitting = false
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard CaptureTools.shared.isBusy else { return .terminateNow }
+        waitsForCaptureBeforeQuitting = true
+        DispatchQueue.main.async { CaptureTools.shared.cancelCapture() }
+        return .terminateLater
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let showSettingsOnLaunch = !Defaults[.menubarIcon] && !LaunchAtLogin.wasLaunchedAtLogin
         // Tools request their own permissions when opened, not during the island's first launch.
         coordinator.firstLaunch = false
-        coordinator.currentView = .island
-        Defaults[.menubarIcon] = true
+        coordinator.currentView = .home
         Defaults[.showOnLockScreen] = false
         IslandIconManager.shared.apply()
         setupLifecycleObservers()
@@ -76,11 +98,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = BriefPresentationCoordinator.shared
         _ = LyricsStore.shared
         HiNotificationManager.shared.start()
+        _ = UtilityClockStore.shared
+        CaptureTools.shared.prepareForCapture = { [weak self] in
+            self?.visibility.captureInProgress = true
+            self?.applyVisibility()
+            SettingsWindowController.shared.window?.orderOut(nil)
+        }
+        CaptureTools.shared.onCaptureFinished = { [weak self] in
+            self?.visibility.captureInProgress = false
+            self?.applyVisibility()
+            if self?.waitsForCaptureBeforeQuitting == true {
+                self?.waitsForCaptureBeforeQuitting = false
+                NSApp.reply(toApplicationShouldTerminate: true)
+            }
+        }
         rebuildWindows()
-        visibility.$isHidden.combineLatest(visibility.$screenUnavailable)
-            .sink { [weak self] hidden, unavailable in
+        // A manually launched app must remain reachable even with both the
+        // island and its menu icon hidden. Login launches stay quiet.
+        if showSettingsOnLaunch && !visibility.screenUnavailable {
+            DispatchQueue.main.async { SettingsWindowController.shared.showWindow() }
+        }
+        Publishers.CombineLatest3(visibility.$isHidden, visibility.$screenUnavailable, visibility.$captureInProgress)
+            .sink { [weak self] hidden, unavailable, capturing in
                 // Close the delivery gate synchronously, before queued timer work can run.
-                if hidden || unavailable {
+                if hidden || unavailable || capturing {
                     IslandRestModel.shared.setApplicationAvailable(false)
                     HUDStateManager.shared.setApplicationAvailable(false)
                     LyricsStore.shared.setApplicationAvailable(false)
@@ -113,6 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         visibility.isHidden = false
         applyVisibility()
+        if !Defaults[.menubarIcon] { SettingsWindowController.shared.showWindow() }
         return true
     }
 
@@ -121,9 +163,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         visibility.isHidden = false
         applyVisibility()
         guard visibility.isAvailable, let entry = preferredEntry else { return }
-        coordinator.currentView = .island
+        coordinator.currentView = .home
         entry.pointer.keepExpandedForUserCommand()
-        entry.model.open(preferredPage: .island)
+        entry.model.open(preferredPage: .home)
     }
 
     private func toggleIsland() {
@@ -398,6 +440,7 @@ private final class IslandHostingView<Content: View>: NSHostingView<Content> {
 }
 
 extension Notification.Name {
+    static let islandOpenToolsSettings = Notification.Name("islandOpenToolsSettings")
     static let selectedScreenChanged = Notification.Name("SelectedScreenChanged")
     static let notchHeightChanged = Notification.Name("NotchHeightChanged")
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")

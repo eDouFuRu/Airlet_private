@@ -22,6 +22,7 @@ struct ContentView: View {
     @ObservedObject private var systemHUD = SystemHUDPresentation.shared
     @ObservedObject private var brief = BriefPresentationCoordinator.shared
     @ObservedObject private var lyrics = LyricsStore.shared
+    private var lyricsAppearance = LyricsAppearance()
     @ObservedObject private var hi = HiNotificationManager.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var presentationID = UUID()
@@ -126,7 +127,8 @@ struct ContentView: View {
                                 baseExpandedHeight: baseExpandedHeight, headerHeight: headerHeight)
     }
     private var baseExpandedHeight: CGFloat {
-        coordinator.currentView == .island ? max(250, headerHeight + 214) : max(openNotchSize.height, headerHeight + 156)
+        if coordinator.currentView == .tools { return max(280, headerHeight + 224) }
+        return coordinator.currentView == .island ? max(250, headerHeight + 214) : max(openNotchSize.height, headerHeight + 156)
     }
     private var baseClosedWidth: CGFloat {
         if vm.hideOnClosed { return vm.closedNotchSize.width }
@@ -179,7 +181,7 @@ struct ContentView: View {
             .onChange(of: lyrics.shouldShowNotch) { syncBriefPresentation() }
             .onChange(of: vm.hideOnClosed) { syncBriefPresentation() }
             .onChange(of: boringShelf) {
-                if !boringShelf && coordinator.currentView == .shelf { coordinator.currentView = .island }
+                if !boringShelf && coordinator.currentView == .shelf { coordinator.currentView = .home }
             }
             .onChange(of: visibility.isHidden) { syncPresentation() }
             .onChange(of: visibility.screenUnavailable) { syncPresentation() }
@@ -218,25 +220,16 @@ struct ContentView: View {
         switch briefSource {
         case .hi:
             if let notice = hi.current {
-                BriefPromptRow(text: hiText(notice), applicationIcon: hiIcon, scrolls: false,
+                BriefPromptRow(text: hi.displayText(for: notice), applicationIcon: hi.icon(for: notice), scrolls: false,
                                action: { hi.clickLatest() })
             }
         case .songChange:
             BriefPromptRow(text: musicManager.songTitle + " – " + musicManager.artistName,
                            tint: playerColorTinting ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.6) : .gray)
         case .lyric:
-            BriefPromptRow(text: lyrics.displayText, symbol: "text.quote")
+            BriefPromptRow(text: lyrics.displayText, symbol: "text.quote", tint: lyricsAppearance.color)
         default: EmptyView()
         }
-    }
-    private var hiIcon: NSImage? {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.electron.redcity") else { return nil }
-        return NSWorkspace.shared.icon(forFile: url.path)
-    }
-    private func hiText(_ notice: HiNotificationNotice) -> String {
-        let details = [notice.sender, notice.body].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
-        let prefix = notice.count > 1 ? String(format: L("hi · %d new messages"), notice.count) : L("hi has a new message")
-        return details.isEmpty ? prefix : (notice.count > 1 ? "\(prefix) · \(details)" : details)
     }
 
     @ViewBuilder
@@ -270,6 +263,8 @@ struct ContentView: View {
                         NotchHomeView(albumArtNamespace: albumArtNamespace)
                     case .shelf:
                         ShelfView()
+                    case .tools:
+                        SystemToolsPage()
                     }
                 }
                 .padding(.top, 8)

@@ -188,7 +188,10 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
         
         process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
-        process.arguments = [scriptURL.path, frameworkPath, "stream"]
+        // Full samples keep elapsed time paired with its timestamp, even when
+        // MediaRemote changes only one field. Microseconds avoid the adapter's
+        // default whole-second ISO timestamp rounding during lyric alignment.
+        process.arguments = [scriptURL.path, frameworkPath, "stream", "--no-diff", "--micros"]
         
         let pipeHandler = JSONLinesPipeHandler()
         process.standardOutput = await pipeHandler.getPipe()
@@ -220,27 +223,33 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         let payload = update.payload
         let diff = update.diff ?? false
 
-        var newPlaybackState = PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
+        var newPlaybackState = diff ? playbackState : PlaybackState(bundleIdentifier: playbackState.bundleIdentifier)
         
         newPlaybackState.title = payload.title ?? (diff ? self.playbackState.title : "")
         newPlaybackState.artist = payload.artist ?? (diff ? self.playbackState.artist : "")
         newPlaybackState.album = payload.album ?? (diff ? self.playbackState.album : "")
-        newPlaybackState.duration = payload.duration ?? (diff ? self.playbackState.duration : 0)
-        
-        if let elapsedTime = payload.elapsedTime {
-            newPlaybackState.currentTime = elapsedTime
-        } else if diff {
-            if payload.playing == false {
-                let timeSinceLastUpdate = Date().timeIntervalSince(self.playbackState.lastUpdated)
-                newPlaybackState.currentTime = self.playbackState.currentTime + (self.playbackState.playbackRate * timeSinceLastUpdate)
-            } else {
-                newPlaybackState.currentTime = self.playbackState.currentTime
-            }
-        } else {
-            newPlaybackState.currentTime = 0
-        }
+        newPlaybackState.duration = payload.resolvedDuration ?? (diff ? self.playbackState.duration : 0)
+        newPlaybackState.bundleIdentifier = (
+            payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier ??
+            (diff ? self.playbackState.bundleIdentifier : "")
+        )
+        let changedTrack = newPlaybackState.bundleIdentifier != playbackState.bundleIdentifier
+            || newPlaybackState.title != playbackState.title
+            || newPlaybackState.artist != playbackState.artist
+            || newPlaybackState.album != playbackState.album
+        let sample = MediaPlaybackClock.merging(
+            previous: .init(elapsed: playbackState.currentTime,
+                            timestamp: playbackState.lastUpdated.timeIntervalSince1970,
+                            rate: playbackState.playbackRate, playing: playbackState.isPlaying),
+            elapsed: payload.resolvedElapsedTime, timestamp: payload.resolvedTimestamp,
+            rate: payload.playbackRate, playing: payload.playing,
+            now: Date().timeIntervalSince1970, duration: newPlaybackState.duration,
+            reset: !diff || changedTrack)
+        newPlaybackState.currentTime = sample.elapsed
+        newPlaybackState.lastUpdated = Date(timeIntervalSince1970: sample.timestamp)
+        newPlaybackState.playbackRate = sample.rate
+        newPlaybackState.isPlaying = sample.playing
 
-        
         if let shuffleMode = payload.shuffleMode {
             newPlaybackState.isShuffled = shuffleMode != 1
         } else if !diff {
@@ -264,23 +273,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
             newPlaybackState.artwork = nil
         }
 
-        if let dateString = payload.timestamp,
-           let date = ISO8601DateFormatter().date(from: dateString) {
-            newPlaybackState.lastUpdated = date
-        } else if !diff {
-            newPlaybackState.lastUpdated = Date()
-        } else {
-            newPlaybackState.lastUpdated = self.playbackState.lastUpdated
-        }
-
-        newPlaybackState.playbackRate = payload.playbackRate ?? (diff ? self.playbackState.playbackRate : 1.0)
-        newPlaybackState.isPlaying = payload.playing ?? (diff ? self.playbackState.isPlaying : false)
-        newPlaybackState.bundleIdentifier = (
-            payload.parentApplicationBundleIdentifier ??
-            payload.bundleIdentifier ??
-            (diff ? self.playbackState.bundleIdentifier : "")
-        )
-        
         newPlaybackState.volume = payload.volume ?? (diff ? self.playbackState.volume : 0.5)
         
         self.playbackState = newPlaybackState
@@ -310,28 +302,6 @@ final class NowPlayingController: ObservableObject, MediaControllerProtocol {
         }
     }
     
-}
-
-struct NowPlayingUpdate: Codable {
-    let payload: NowPlayingPayload
-    let diff: Bool?
-}
-
-struct NowPlayingPayload: Codable {
-    let title: String?
-    let artist: String?
-    let album: String?
-    let duration: Double?
-    let elapsedTime: Double?
-    let shuffleMode: Int?
-    let repeatMode: Int?
-    let artworkData: String?
-    let timestamp: String?
-    let playbackRate: Double?
-    let playing: Bool?
-    let parentApplicationBundleIdentifier: String?
-    let bundleIdentifier: String?
-    let volume: Double?
 }
 
 actor JSONLinesPipeHandler {

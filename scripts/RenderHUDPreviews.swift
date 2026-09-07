@@ -129,6 +129,7 @@ extension Color { static var effectiveAccent: Color { Color(red: 0.96, green: 0.
                         imageNames[language]!.append(name)
                         records.append(["name": name, "width": layout.size.width, "height": layout.size.height,
                             "physicalGapWidth": gap, "headerHeight": headerHeight,
+                            "rowHeight": SystemHUDLayout.rowHeight,
                             "pageBodyHeight": expanded ? baseExpandedHeight - headerHeight - 12 : 0,
                             "pageBodyTop": expanded ? headerHeight + (inline ? 0 : SystemHUDLayout.rowHeight) : 0])
                         if scenario == "volume" {
@@ -141,6 +142,38 @@ extension Color { static var effectiveAccent: Color { Color(red: 0.96, green: 0.
                     }
                 }
             }
+            let comparisonVM = BoringViewModel()
+            comparisonVM.notchState = .closed
+            let rowWidth: CGFloat = 320
+            let comparison = HStack(alignment: .top, spacing: 16) {
+                ForEach(["volume", "brightness", "lyrics"], id: \.self) { kind in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(kind) · \(Int(kind == "lyrics" ? BriefPresentationLayout.rowHeight : SystemHUDLayout.rowHeight)) pt")
+                            .font(.system(size: 13, weight: .medium))
+                        VStack(spacing: 0) {
+                            Color.clear.frame(height: headerHeight)
+                            if kind == "lyrics" {
+                                BriefPromptRow(text: language == "en" ? "A gentle breeze carries the melody" : "微风轻轻吹过，歌声慢慢流淌",
+                                               symbol: "text.quote", scrolls: false)
+                            } else {
+                                SystemHUDRow(state: Self.comparisonState(kind: kind))
+                            }
+                        }
+                        .padding(.horizontal, 6)
+                        .frame(width: rowWidth)
+                        .background(.black)
+                        .clipShape(NotchShape(topCornerRadius: 6, bottomCornerRadius: 14))
+                    }
+                }
+            }
+            .padding(20)
+            .foregroundStyle(.white)
+            .background(Color(white: 0.14))
+            .environmentObject(comparisonVM)
+            .environment(\.locale, Locale(identifier: language))
+            .preferredColorScheme(.dark)
+            .transaction { $0.disablesAnimations = true }
+            _ = try png(comparison, to: output.appendingPathComponent("compact-rows-\(language).png"))
             let sheet = VStack(alignment: .leading, spacing: 16) {
                 Text("Production HUD components · \(language) · static QA").font(.system(size: 22, weight: .bold))
                 Text("Actual camera gap \(gap, specifier: "%.1f") pt · header \(headerHeight, specifier: "%.1f") pt · models and hardware isolated")
@@ -170,5 +203,12 @@ extension Color { static var effectiveAccent: Color { Color(red: 0.96, green: 0.
         try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
             .write(to: output.appendingPathComponent("geometry.json"))
         print("Rendered \(records.count) HUD states, 8 camera guides and 2 contact sheets. Gap=\(gap), safeTop=\(safeTop), realNotch=\(hasRealNotch)")
+    }
+
+    private static func comparisonState(kind: String) -> SystemHUDState {
+        var state = SystemHUDState()
+        state.setApplicationAvailable(true)
+        state.show(kind: kind == "brightness" ? .brightness : .volume, value: 0.625, now: 0)
+        return state
     }
 }

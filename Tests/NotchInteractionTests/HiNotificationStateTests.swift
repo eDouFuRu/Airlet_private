@@ -179,4 +179,82 @@ final class HiNotificationStateTests: XCTestCase {
         XCTAssertNil(HiNotificationSourceEvidence.attributedAppName("hi mentioned in a body"))
         XCTAssertNil(HiNotificationSourceEvidence.attributedAppName(", body"))
     }
+
+    func testNewAppSourcesRequireTheirOwnOptInAndDoNotInheritHiPrivacy() {
+        var state = enabled(detailed: true)
+        let valos = HiNotificationCandidate(identity: "v1", sender: "Task", body: "Ready to review",
+                                            sourceBundleID: "com.xingin.valos")
+        XCTAssertFalse(state.receive(valos, now: 1))
+        state.configure(enabled: ["com.electron.redcity", "com.xingin.valos"], detailed: ["com.electron.redcity"])
+        XCTAssertTrue(state.receive(valos, now: 2))
+        XCTAssertEqual(state.current?.sourceBundleID, "com.xingin.valos")
+        XCTAssertNil(state.current?.sender)
+        XCTAssertNil(state.current?.body)
+        XCTAssertTrue(state.receive(candidate("hi1"), now: 3))
+        XCTAssertEqual(state.current?.body, "A test message")
+        XCTAssertEqual(state.current?.count, 1, "Different applications must not be counted as a single burst")
+    }
+
+    func testDistinctApplicationsWithSameOpaqueIdentityDoNotDeduplicateEachOther() {
+        var state = HiNotificationState()
+        state.configure(enabled: ["com.coral.desktop", "com.openai.codex"], detailed: ["com.openai.codex"])
+        state.setApplicationAvailable(true)
+        let lobi = HiNotificationCandidate(identity: "card", sender: "Task", body: "Working",
+                                           sourceBundleID: "com.coral.desktop")
+        let codex = HiNotificationCandidate(identity: "card", sender: "Needs input", body: "Please choose an option",
+                                            sourceBundleID: "com.openai.codex")
+        XCTAssertTrue(state.receive(lobi, now: 1))
+        XCTAssertTrue(state.receive(codex, now: 2))
+        XCTAssertEqual(state.current?.sourceBundleID, "com.openai.codex")
+        XCTAssertEqual(state.current?.sender, "Needs input", "An AI-app notification is not necessarily task completion")
+        XCTAssertEqual(state.current?.count, 1)
+        XCTAssertEqual(state.recentIdentityCount, 2)
+        XCTAssertFalse(state.receive(codex, now: 3))
+        XCTAssertFalse(state.receive(lobi, now: 4))
+    }
+
+    func testAppBurstKeepsLatestSourceAndDisablingThatSourceDismissesImmediately() {
+        let id = "com.coral.desktop"
+        var state = HiNotificationState()
+        state.configure(enabled: [id, "com.openai.codex"], detailed: [id])
+        state.setApplicationAvailable(true)
+        for index in 1...3 {
+            state.receive(HiNotificationCandidate(identity: "card-\(index)", sender: "Lobi task", body: "Update \(index)",
+                                                   sourceBundleID: id), now: Double(index))
+        }
+        XCTAssertEqual(state.current?.count, 3)
+        XCTAssertEqual(state.current?.body, "Update 3")
+        state.configure(enabled: ["com.openai.codex"], detailed: [id])
+        XCTAssertNil(state.current)
+        XCTAssertTrue(state.isEnabled)
+        XCTAssertFalse(state.receive(HiNotificationCandidate(identity: "late", sender: nil, body: "Late callback",
+                                                             sourceBundleID: id), now: 4))
+    }
+
+    func testPerSourcePrivacyErasesOnlyCurrentMatchingSourceAndNeverRestoresOldPayload() {
+        let id = "com.xingin.valos"
+        var state = HiNotificationState()
+        state.configure(enabled: [id, "com.electron.redcity"], detailed: [id])
+        state.setApplicationAvailable(true)
+        state.receive(HiNotificationCandidate(identity: "card", sender: "Task", body: "Private result", sourceBundleID: id), now: 4)
+        state.configure(enabled: [id, "com.electron.redcity"], detailed: ["com.electron.redcity"])
+        XCTAssertEqual(state.current?.sourceBundleID, id)
+        XCTAssertNil(state.current?.body)
+        state.configure(enabled: [id, "com.electron.redcity"], detailed: [id])
+        XCTAssertNil(state.current?.body)
+        state.refreshCurrentContent(candidate("card", body: "Wrong source must never hydrate the matching card ID"))
+        XCTAssertNil(state.current?.body)
+        state.setApplicationAvailable(false)
+        XCTAssertNil(state.current)
+    }
+
+    func testSourceAttributionNeedsExactInstalledNamesAndRejectsMixedMetadata() {
+        for (id, name) in [("com.xingin.valos", "ValOS"), ("com.coral.desktop", "Lobi"), ("com.openai.codex", "ChatGPT")] {
+            XCTAssertTrue(HiNotificationSourceEvidence(appNames: [name]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+            XCTAssertFalse(HiNotificationSourceEvidence(appNames: [name]).isUnambiguouslySource(bundleID: id, knownDisplayNames: []))
+            XCTAssertFalse(HiNotificationSourceEvidence(appNames: ["\(name) task finished"]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+            XCTAssertFalse(HiNotificationSourceEvidence(sourceBundleIDs: ["com.apple.mail"], appNames: [name]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+            XCTAssertFalse(HiNotificationSourceEvidence(appNames: [name], hasGroupedContent: true).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+        }
+    }
 }

@@ -9,8 +9,8 @@
 | 主应用 Bundle ID | `com.dongfengrui.NotchIsland` |
 | XPC Bundle ID | `com.dongfengrui.NotchIsland.XPCHelper` |
 | XPC 相对路径 | `Contents/XPCServices/NotchIslandXPCHelper.xpc` |
-| Xcode 工程默认 Build | `270` |
-| 构建脚本默认 Build | `270`（紧凑歌词与 hi 实验） |
+| Xcode 工程默认 Build | `280` |
+| 构建脚本默认 Build | `280`（音频输出、显示模式与原彩显示） |
 | 安装位置 | `~/Applications/工位充电岛.app` |
 
 证书已经创建在登录钥匙串，当前用户的 `codeSign` 信任已按用户确认配置，专用 SHA-1 已通过 `security find-identity -v -p codesigning` 验证。没有修改系统范围信任，没有导出私钥。首次私钥访问由 macOS 钥匙串管理；脚本不会代填密码或自动放行。
@@ -105,6 +105,8 @@ diff -u build/validation/local-signing/263-xpc.dr build/validation/local-signing
 此差异对应 [Apple 库验证说明](https://developer.apple.com/documentation/BundleResources/Entitlements/com.apple.security.cs.disable-library-validation)：库必须由 Apple 或与主程序相同的 Team ID 签名。本配置仅针对已固定证书的本机开发版，不是 Developer ID 分发配置。
 
 ## 当前验证界限
+
+280 已使用同一专用证书完成构建、主应用／XPC 验签及固定路径安装；安装器保留被替换版本。见 [280 验证记录](TOOLS-NOTIFICATIONS-280-VALIDATION.md)。新增截图、通知与系统控制的权限和真实操作单独验收，不把签名成功视为功能或授权验证成功。下文保留 264–266 的历史签名与授权证据。
 
 已实际完成专用证书构建、严格资源及身份验证和固定路径安装。曾中止的并行 codesign 在 XPC seal 中遗留 `.cstemp` 记录；只对本工程两份 XPC 和主程序按顺序重新签名后通过 deep/strict 验证，没有编辑 CodeResources 或重签第三方框架。同 Bundle ID 的调试应用运行时，安装器已实际拒绝替换；退出后安装成功。
 

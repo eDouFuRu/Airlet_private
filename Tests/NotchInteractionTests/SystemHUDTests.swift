@@ -99,7 +99,7 @@ final class SystemHUDTests: XCTestCase {
         for inline in [false, true] {
             let hidden = CGSize(width: 120, height: 0)
             let active = makeLayout(active: true, inline: inline, expanded: false, gap: 120, header: 0, baseSize: hidden)
-            XCTAssertEqual(active.size.height, inline ? 24 : 68)
+            XCTAssertEqual(active.size.height, inline ? 24 : 52)
             let expired = makeLayout(active: false, inline: inline, expanded: false, gap: 120, header: 0, baseSize: hidden)
             XCTAssertEqual(expired.size, hidden)
         }
@@ -109,7 +109,7 @@ final class SystemHUDTests: XCTestCase {
         for base in [CGSize(width: 273, height: 32), CGSize(width: 485, height: 32), CGSize(width: 640, height: 72)] {
             for inline in [false, true] {
                 let active = makeLayout(active: true, inline: inline, expanded: false, baseSize: base)
-                XCTAssertEqual(active.size.height, inline ? 32 : 76)
+                XCTAssertEqual(active.size.height, inline ? 32 : 60)
                 let inactive = makeLayout(active: false, inline: inline, expanded: false, baseSize: base)
                 XCTAssertEqual(inactive.size, base)
             }

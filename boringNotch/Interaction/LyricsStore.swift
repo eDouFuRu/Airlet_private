@@ -31,7 +31,8 @@ private actor LRCLIBClient {
         // the closest candidate is unambiguous before any document is accepted.
         if !track.album.isEmpty, let exact = try await data(path: "get", track: track),
            let record = try? JSONDecoder().decode(LRCLIBRecord.self, from: exact),
-           record.matches(track), let document = record.document { return document }
+           record.matches(track), let document = record.document,
+           !OriginalLyricLanguage.isRomanizedMandarin(document, track: track) { return document }
         try Task.checkCancellation()
         // Search is a fallback, and its first result is never accepted blindly.
         try await Task.sleep(for: .milliseconds(250))
@@ -111,10 +112,11 @@ final class LyricsStore: ObservableObject {
     var displayText: String {
         // A timed blank cue is an interlude, not a failed lookup.
         if let document, !document.cues.isEmpty {
-            return LyricsTextPresentation.render(line: currentLine, simplifiedChinese: prefersSimplifiedChinese())
+            return LyricsTextPresentation.render(line: currentLine, simplifiedChinese: prefersSimplifiedChinese() && document.permitsChineseSimplification)
         }
         if isLoading { return L("Looking for synced lyrics…") }
-        return L(lookupStatus.hasPrefix("error:") ? "Lyrics temporarily unavailable" : "No synced lyrics available")
+        if lookupStatus.hasPrefix("error:") { return L("Lyrics temporarily unavailable") }
+        return L("No synced lyrics available")
     }
     @Published private(set) var isLoading = false
     @Published private(set) var lookupStatus = "idle"
@@ -147,7 +149,9 @@ final class LyricsStore: ObservableObject {
     private var playerPresentations = Set<UUID>()
 
     private init() {
-        let client = LRCLIBClient()
+        let library = LRCLIBClient()
+        let netease = NetEaseLyricsClient()
+        let client = OriginalLyricsProvider(netease: { try await netease.lookup($0) }, library: { try await library.lookup($0) })
         lookup = { try await client.lookup($0) }
         // Match L(_:) and AppLanguage's explicit preference. Read on display so
         // changing language takes effect without re-fetching or rewriting lyrics.
@@ -326,6 +330,14 @@ final class LyricsStore: ObservableObject {
                     case .response(let code): status = "error:http_\(code)"
                     case .rateLimited: status = "error:rate_limited"
                     case .oversizedResponse: status = "error:response_too_large"
+                    }
+                } else if let error = error as? NetEaseLyricsError {
+                    switch error {
+                    case .response(let code): status = "error:netease_http_\(code)"
+                    case .service(let code): status = "error:netease_service_\(code)"
+                    case .rateLimited: status = "error:netease_rate_limited"
+                    case .oversizedResponse: status = "error:response_too_large"
+                    case .insecureRedirect: status = "error:lyric_redirect"
                     }
                 } else if let error = error as? URLError {
                     status = "error:network_\(error.code.rawValue)"

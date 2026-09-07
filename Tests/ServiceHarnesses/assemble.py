@@ -28,7 +28,8 @@ def main() -> None:
 
     media_core = (root / "boringNotch/Interaction/Core/MediaKeyRoutingCore.swift").read_text()
     hud_core = (root / "boringNotch/Interaction/Core/SystemHUDState.swift").read_text()
-    hud = media_core + "\n" + hud_core + "\n" + without_defaults_import((root / "boringNotch/managers/HUDStateManager.swift").read_text())
+    brief_core = (root / "boringNotch/Interaction/Core/BriefPresentation.swift").read_text()
+    hud = media_core + "\n" + brief_core + "\n" + hud_core + "\n" + without_defaults_import((root / "boringNotch/managers/HUDStateManager.swift").read_text())
     interceptor = media_core + "\n" + without_defaults_import((root / "boringNotch/observers/MediaKeyInterceptor.swift").read_text())
     manager = without_defaults_import((root / "boringNotch/managers/CalendarManager.swift").read_text())
     # Exercise the real persisted selection enum, with only its Defaults marker protocol stubbed.
@@ -52,6 +53,7 @@ def main() -> None:
     sharing_state = (root / "boringNotch/models/SharingStateManager.swift").read_text()
     quick_share = (root / "boringNotch/components/Shelf/Services/QuickShareService.swift").read_text()
     hardware = "\n".join((root / path).read_text() for path in [
+        "boringNotch/Interaction/Core/BriefPresentation.swift",
         "boringNotch/Interaction/Core/SystemHUDState.swift",
         "boringNotch/Interaction/Core/SerialScalarControl.swift",
         "boringNotch/managers/VolumeManager.swift",

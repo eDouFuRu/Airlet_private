@@ -14,7 +14,7 @@ final class BriefPresentationCoordinator: ObservableObject {
         HiNotificationManager.shared.$current.sink { [weak self] notice in
             guard let self else { return }
             if let notice {
-                self.state.receiveHi(id: notice.id, now: self.now)
+                self.state.receiveHi(id: notice.sourceBundleID + ":" + notice.id, now: self.now)
             } else {
                 self.state.dismissHi()
                 self.hoveredSources.removeAll()

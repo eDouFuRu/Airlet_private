@@ -11,14 +11,20 @@ import Defaults
 struct TabModel: Identifiable {
     let id = UUID()
     let label: String
-    let icon: String
+    let systemIcon: String?
     let view: NotchViews
+
+    var icon: Image {
+        if let systemIcon { return Image(systemName: systemIcon) }
+        return Image(nsImage: PotatoStatusIcon.image).renderingMode(.template)
+    }
 }
 
 private let tabs = [
-    TabModel(label: "小岛", icon: "leaf.fill", view: .island),
-    TabModel(label: "工具主页", icon: "house.fill", view: .home),
-    TabModel(label: "文件暂存", icon: "tray.fill", view: .shelf)
+    TabModel(label: "小岛", systemIcon: nil, view: .island),
+    TabModel(label: "工具主页", systemIcon: "house.fill", view: .home),
+    TabModel(label: "文件暂存", systemIcon: "tray.fill", view: .shelf),
+    TabModel(label: "Quick tools", systemIcon: "square.grid.2x2.fill", view: .tools)
 ]
 
 struct TabSelectionView: View {
@@ -36,11 +42,13 @@ struct TabSelectionView: View {
         if compact {
             Menu {
                 ForEach(availableTabs) { tab in
-                    Button { select(tab) } label: { Label(L(tab.label), systemImage: tab.icon) }
+                    Button { select(tab) } label: {
+                        Label { Text(L(tab.label)) } icon: { tab.icon }
+                    }
                 }
             } label: {
                 let selected = tabs.first { $0.view == coordinator.currentView } ?? tabs[0]
-                Label(L(selected.label), systemImage: selected.icon)
+                Label { Text(L(selected.label)) } icon: { selected.icon }
             }
             .menuStyle(.borderlessButton)
             .fixedSize()

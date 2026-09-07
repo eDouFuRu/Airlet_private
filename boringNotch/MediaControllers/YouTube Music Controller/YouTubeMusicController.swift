@@ -278,7 +278,6 @@ final class YouTubeMusicController: MediaControllerProtocol {
                 default: break
                 }
             }
-            copy.lastUpdated = Date()
             if copy != playbackState { playbackState = copy }
 
         case .shuffleChanged:
@@ -286,7 +285,6 @@ final class YouTubeMusicController: MediaControllerProtocol {
             var copy = playbackState
             if let shuffle = data["shuffle"] as? Bool { copy.isShuffled = shuffle }
             else if let shuffle = data["isShuffled"] as? Bool { copy.isShuffled = shuffle }
-            copy.lastUpdated = Date()
             if copy != playbackState { playbackState = copy }
 
         case .volumeChanged:
@@ -297,7 +295,6 @@ final class YouTubeMusicController: MediaControllerProtocol {
             } else if let volume = data["volume"] as? Int {
                 copy.volume = Double(volume) / 100.0
             }
-            copy.lastUpdated = Date()
             if copy != playbackState { playbackState = copy }
         }
     }
@@ -407,15 +404,22 @@ final class YouTubeMusicController: MediaControllerProtocol {
             newState.album = album
         }
 
-        if let elapsed = response.elapsedSeconds {
-            newState.currentTime = elapsed
-        }
-
         if let duration = response.songDuration {
             newState.duration = duration
         }
 
-        newState.lastUpdated = Date()
+        let changedTrack = newState.title != playbackState.title
+            || newState.artist != playbackState.artist || newState.album != playbackState.album
+        let sample = MediaPlaybackClock.merging(
+            previous: .init(elapsed: playbackState.currentTime,
+                            timestamp: playbackState.lastUpdated.timeIntervalSince1970,
+                            rate: playbackState.playbackRate, playing: playbackState.isPlaying),
+            elapsed: response.elapsedSeconds, timestamp: nil, rate: nil,
+            playing: newState.isPlaying, now: Date().timeIntervalSince1970,
+            duration: newState.duration, reset: changedTrack)
+        newState.currentTime = sample.elapsed
+        newState.lastUpdated = Date(timeIntervalSince1970: sample.timestamp)
+        newState.playbackRate = sample.rate
         
         if let shuffled = response.isShuffled {
             newState.isShuffled = shuffled

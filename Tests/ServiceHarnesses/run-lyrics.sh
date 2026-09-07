@@ -16,6 +16,8 @@ xcrun swiftc -swift-version 5 -parse-as-library -target arm64-apple-macosx14.0 \
     -module-cache-path "$output_dir/module-cache" -I "$products_dir" \
     Tests/ServiceHarnesses/LyricsStoreHarness.swift \
     boringNotch/models/PlaybackState.swift boringNotch/Interaction/Core/LyricsCore.swift \
+    boringNotch/Interaction/Core/OriginalLyricsCore.swift \
+    boringNotch/Interaction/OriginalLyricsProvider.swift boringNotch/Interaction/NetEaseLyricsClient.swift \
     boringNotch/Interaction/LyricsStore.swift "$products_dir/Defaults.o" \
     -o "$output_dir/lyrics-service-harness"
 "$output_dir/lyrics-service-harness" > "$output_dir/lyrics-service-tests.log"

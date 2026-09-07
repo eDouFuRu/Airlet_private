@@ -112,7 +112,7 @@ struct BriefPresentationState: Equatable, Sendable {
 }
 
 /// The brief occupies one independent row without shrinking an expanded page.
-/// SystemHUDLayout owns the standard HUD's 44-point row; never add both rows.
+/// The standard HUD uses this same compact height; never add both rows.
 struct BriefPresentationLayout: Equatable {
     static let rowHeight: CGFloat = 28
 

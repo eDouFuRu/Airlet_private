@@ -182,7 +182,7 @@ final class BriefPresentationTests: XCTestCase {
             let hud = SystemHUDLayout(active: true, inline: false, expanded: true, notchWidth: 185,
                 headerHeight: 32, baseClosedSize: CGSize(width: 197, height: 32), baseExpandedHeight: suppressed.size.height)
             XCTAssertFalse(suppressed.showsBrief)
-            XCTAssertEqual(hud.size.height, baseHeight + 44)
+            XCTAssertEqual(hud.size.height, brief.size.height, "HUD replaces the lyric row without changing the expanded shell height")
         }
     }
 

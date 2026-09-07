@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Render production HUD/Island views offline; never instantiate hardware managers."""
+import argparse
 import datetime
 import hashlib
 import json
@@ -8,12 +9,11 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "build/validation/hud25d/hud-previews"
-BUNDLE = OUTPUT / "RenderHUDPreviews.app/Contents"
-GENERATED = OUTPUT / "generated"
 SOURCES = [ROOT / name for name in [
     "scripts/RenderHUDPreviews.swift",
     "boringNotch/Interaction/Core/SystemHUDState.swift",
+    "boringNotch/Interaction/Core/BriefPresentation.swift",
+    "boringNotch/Interaction/BriefPromptRow.swift",
     "boringNotch/components/Live activities/InlineHUD.swift",
     "boringNotch/components/Live activities/SystemEventIndicatorModifier.swift",
     "boringNotch/components/Notch/NotchShape.swift",
@@ -22,6 +22,7 @@ SOURCES = [ROOT / name for name in [
     "boringNotch/components/Island/Shu25DAssets.swift",
     "boringNotch/components/Island/Shu25DScene.swift",
     "boringNotch/components/Island/Core/ShuAnimationTimeline.swift",
+    "boringNotch/components/Island/Core/ShuAnimationRig.swift",
 ]]
 INPUTS = [ROOT / name for name in [
     "scripts/render-hud-previews.py", "scripts/RenderShuPreviews.swift", "scripts/VerifyHUDPreviews.swift",
@@ -31,6 +32,13 @@ INPUTS = [ROOT / name for name in [
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, default=ROOT / "build/validation/hud25d/hud-previews")
+    parser.add_argument("--baseline-hud-ref", help="Read the two HUD sources from a Git ref into isolated preview copies; never alters production files")
+    args = parser.parse_args()
+    OUTPUT = args.output.resolve()
+    BUNDLE = OUTPUT / "RenderHUDPreviews.app/Contents"
+    GENERATED = OUTPUT / "generated"
     GENERATED.mkdir(parents=True, exist_ok=True)
     (BUNDLE / "MacOS").mkdir(parents=True, exist_ok=True)
     resources = BUNDLE / "Resources"
@@ -59,6 +67,16 @@ def main():
     shape_copy = GENERATED / "ProductionNotchShape.swift"
     shape_copy.write_text(shape_source.read_text().split("#Preview")[0])
     compile_sources = [shape_copy if source == shape_source else source for source in SOURCES]
+    hud_overrides = {}
+    if args.baseline_hud_ref:
+        for relative in ["boringNotch/Interaction/Core/SystemHUDState.swift",
+                         "boringNotch/components/Live activities/InlineHUD.swift"]:
+            contents = subprocess.run(["git", "show", f"{args.baseline_hud_ref}:{relative}"],
+                                      cwd=ROOT, check=True, capture_output=True).stdout
+            isolated_copy = GENERATED / ("Baseline-" + Path(relative).name)
+            isolated_copy.write_bytes(contents)
+            compile_sources = [isolated_copy if source == ROOT / relative else source for source in compile_sources]
+            hud_overrides[relative] = hashlib.sha256(contents).hexdigest()
     # Module named Defaults satisfies the actual views' imports, but all values
     # are held in memory and cannot read or mutate the production preference suite.
     (GENERATED / "PreviewDefaults.swift").write_text('''
@@ -99,6 +117,7 @@ public enum PreviewHUDDefaults { public static var inlineHUD = false }
     manifest = {
         "generatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "staticOnly": True, "productionUserDefaultsAccess": False, "hardwareCallsAllowed": False,
+        "baselineHUDRef": args.baseline_hud_ref, "isolatedHUDSourceOverrides": hud_overrides,
         "sources": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in SOURCES},
         "renderInputs": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in INPUTS},
         "rasterAssets": assets, "snapshots": sorted(path.name for path in OUTPUT.glob("*.png")),

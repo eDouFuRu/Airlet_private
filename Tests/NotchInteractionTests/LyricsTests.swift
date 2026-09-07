@@ -64,10 +64,10 @@ final class LyricsTests: XCTestCase {
     }
     func testSearchRejectsWrongArtistAlbumVersionAndDuration() {
         let expected = track()
-        for wrong in [record(title: "Song (Live)"), record(artist: "Cover Artist"), record(album: "Concert"), record(duration: 182.01)] {
+        for wrong in [record(title: "Song (Live)"), record(artist: "Cover Artist"), record(album: "Concert"), record(duration: 181.01)] {
             XCTAssertFalse(wrong.matches(expected))
         }
-        XCTAssertTrue(record(title: "  SONG ", artist: "ARTIST", duration: 182).matches(expected))
+        XCTAssertTrue(record(title: "  SONG ", artist: "ARTIST", duration: 181).matches(expected))
     }
     func testSearchSelectsValidatedClosestDurationNotFirstResult() {
         let result = LRCLIBRecord.bestMatch([record(title: "Other", lyric: "[00:01]Wrong"),

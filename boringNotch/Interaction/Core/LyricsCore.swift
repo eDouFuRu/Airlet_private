@@ -4,7 +4,7 @@ enum LyricsTextPresentation {
     /// Conversion belongs to presentation only. The provider text and timed
     /// document remain intact for cache identity and language switching.
     static func render(line: String, simplifiedChinese: Bool) -> String {
-        guard simplifiedChinese, !line.isEmpty else { return line }
+        guard simplifiedChinese, !line.isEmpty, !OriginalLyricLanguage.preservesNonChineseScript(line) else { return line }
         return line.applyingTransform(StringTransform("Hant-Hans"), reverse: false) ?? line
     }
 }
@@ -43,6 +43,9 @@ struct LyricsDocument: Equatable, Sendable {
     init(cues: [LyricCue], instrumental: Bool = false) {
         self.cues = cues
         self.instrumental = instrumental
+    }
+    var permitsChineseSimplification: Bool {
+        !cues.contains { OriginalLyricLanguage.preservesNonChineseScript($0.text) }
     }
     func line(at seconds: Double) -> String {
         guard seconds.isFinite, seconds >= 0, !cues.isEmpty else { return "" }
@@ -91,8 +94,8 @@ enum LRCParser {
                 // Parallel translated lines are retained in one visible line.
                 let components = previous.text.components(separatedBy: " · ")
                 if !entry.text.isEmpty && !components.contains(entry.text) {
-                    result[result.count - 1] = LyricCue(time: entry.time,
-                        text: previous.text.isEmpty ? entry.text : previous.text + " · " + entry.text)
+                    let original = OriginalLyricLanguage.withoutPhoneticDuplicates(components.filter { !$0.isEmpty } + [entry.text])
+                    result[result.count - 1] = LyricCue(time: entry.time, text: original.joined(separator: " · "))
                 }
             } else {
                 // Empty timed cues matter: they clear the line during an interlude.
@@ -114,24 +117,16 @@ struct LRCLIBRecord: Decodable, Sendable {
 
     func matches(_ track: LyricsTrack) -> Bool {
         guard LyricsTrack.normalized(trackName) == LyricsTrack.normalized(track.title),
-              Self.artistMatches(artistName, track.artist) else { return false }
-        if !track.album.isEmpty, let albumName, !albumName.isEmpty,
-           LyricsTrack.normalized(albumName) != LyricsTrack.normalized(track.album) { return false }
+              LyricsTrack.artistMatches(artistName, track.artist) else { return false }
+        if !track.album.isEmpty {
+            guard let albumName, !albumName.isEmpty,
+                  LyricsTrack.normalizedAlbum(albumName) == LyricsTrack.normalizedAlbum(track.album) else { return false }
+        }
         if track.duration > 0 {
-            let tolerance = track.album.isEmpty ? 0.5 : 2.0
+            let tolerance = track.album.isEmpty ? 0.5 : 1.0
             guard let duration, duration.isFinite, abs(duration - track.duration) <= tolerance else { return false }
         }
         return true
-    }
-    private static func artistMatches(_ lhs: String, _ rhs: String) -> Bool {
-        let a = LyricsTrack.normalized(lhs), b = LyricsTrack.normalized(rhs)
-        if a == b { return true }
-        // A Latin name followed by the same full Chinese name is an explicit
-        // bilingual credit, not an arbitrary artist alias or a collaboration.
-        func chineseCredit(_ value: String) -> String {
-            value.replacingOccurrences(of: "^[a-z][a-z .]*[ ]+(?=[\\p{Han}])", with: "", options: .regularExpression)
-        }
-        return !a.isEmpty && chineseCredit(a) == chineseCredit(b)
     }
     var document: LyricsDocument? {
         let cues = LRCParser.parse(syncedLyrics ?? "")
@@ -142,7 +137,8 @@ struct LRCLIBRecord: Decodable, Sendable {
         // no synchronized lyric to silently choosing among truncated versions.
         if track.album.isEmpty && records.count >= 20 { return nil }
         let candidates = records.compactMap { record -> (record: LRCLIBRecord, document: LyricsDocument, distance: Double)? in
-            guard record.matches(track), let document = record.document else { return nil }
+            guard record.matches(track), let document = record.document,
+                  !OriginalLyricLanguage.isRomanizedMandarin(document, track: track) else { return nil }
             return (record, document, abs((record.duration ?? track.duration) - track.duration))
         }
         // Without duration/album, multiple versions are ambiguous; avoid guessing.
