@@ -68,3 +68,6 @@ __pycache__/
 *.key
 *.keychain
 *.keychain-db
+
+# AI agent tooling scratch state (browser/device sessions, e2e run state)
+.valos/
