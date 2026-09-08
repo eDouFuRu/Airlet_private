@@ -19,16 +19,17 @@ struct SystemToolBluetoothTile: View {
     }
 
     var body: some View {
-        ExperimentalSystemToggleTile(tool: .bluetooth, enabled: control.enabled,
+        // Clicking opens the macOS pane rather than toggling the radio: switching
+        // Bluetooth off from a card under the pointer is easy to hit by accident and
+        // disconnects every paired device, including the keyboard and trackpad needed
+        // to undo it. The card still reports the real radio state.
+        SystemToggleTile(tool: .bluetooth, enabled: control.enabled,
             isBusy: control.isBusy, unsupported: control.availability == .unsupported,
             errorKey: control.errorKey,
-            helpKey: "Experimental Bluetooth control. Turning Bluetooth off disconnects Bluetooth devices.") {
+            helpKey: "Opens Bluetooth settings. The card shows the current radio state.",
+            blocksWhileBusy: false) {
                 Task { @MainActor in
-                    if control.availability == .unsupported {
-                        _ = await SystemToolActions.shared.openControlSettings(.bluetooth)
-                    } else if control.errorKey != nil || control.enabled == nil {
-                        await control.refresh()
-                    } else { await control.toggle() }
+                    _ = await SystemToolActions.shared.openControlSettings(.bluetooth)
                 }
             }
             .contextMenu {
@@ -55,9 +56,9 @@ struct SystemToolNightShiftTile: View {
     }
 
     var body: some View {
-        ExperimentalSystemToggleTile(tool: .nightShift, enabled: control.enabled,
+        SystemToggleTile(tool: .nightShift, enabled: control.enabled,
             isBusy: control.isBusy, unsupported: unsupported, errorKey: control.errorKey,
-            helpKey: "Experimental Night Shift control. Toggles Night Shift without changing its schedule or color temperature.") {
+            helpKey: "Toggles Night Shift without changing its schedule or color temperature.") {
                 Task { @MainActor in
                     if unsupported {
                         _ = await SystemToolActions.shared.openControlSettings(.displays)
@@ -74,10 +75,10 @@ struct SystemToolTrueToneTile: View {
     @ObservedObject private var control = SystemTrueToneControl.shared
 
     var body: some View {
-        ExperimentalSystemToggleTile(tool: .trueTone, enabled: control.enabled,
+        SystemToggleTile(tool: .trueTone, enabled: control.enabled,
             isBusy: control.isBusy, unsupported: control.availability == .unsupportedABI,
             errorKey: control.errorKey,
-            helpKey: "Experimental True Tone control. Available only when macOS confirms support.") {
+            helpKey: "Available only when macOS confirms support.") {
                 Task { @MainActor in
                     if control.availability == .unsupportedABI {
                         _ = await SystemToolActions.shared.openControlSettings(.displays)
@@ -90,13 +91,17 @@ struct SystemToolTrueToneTile: View {
     }
 }
 
-private struct ExperimentalSystemToggleTile: View {
+private struct SystemToggleTile: View {
     let tool: SystemToolID
     let enabled: Bool?
     let isBusy: Bool
     let unsupported: Bool
     let errorKey: String?
     let helpKey: String
+    /// Toggling tiles block input while a change is in flight so the state cannot be
+    /// flipped twice. A tile that only opens System Settings has nothing to serialise, and
+    /// blocking it would make the card dead during a routine status refresh.
+    var blocksWhileBusy = true
     let action: () -> Void
 
     private var status: String {
@@ -104,7 +109,7 @@ private struct ExperimentalSystemToggleTile: View {
         if unsupported { return L("Unsupported · Open Settings") }
         if errorKey != nil { return L("Unavailable · Retry") }
         guard let enabled else { return L("Reading hardware…") }
-        return L(enabled ? "On" : "Off") + " · " + L("Experimental")
+        return L(enabled ? "On" : "Off")
     }
 
     var body: some View {
@@ -112,7 +117,7 @@ private struct ExperimentalSystemToggleTile: View {
         Button(action: action) {
             SystemToolStateLabel(tool: definition, status: status, hasError: errorKey != nil)
         }
-        .buttonStyle(.plain).disabled(isBusy)
+        .buttonStyle(.plain).disabled(isBusy && blocksWhileBusy)
         .accessibilityLabel(L(definition.titleKey)).accessibilityValue(status)
         .help(L(errorKey ?? helpKey))
     }
@@ -131,33 +136,26 @@ struct SystemToolInputSourceTile: View {
     }
 
     var body: some View {
-        Menu {
-            if let error = control.errorKey { Text(L(error)) }
+        SystemToolPickerTile(tool: SystemToolCatalog.tool(.inputSources), status: status,
+                             hasError: control.errorKey != nil, name: L("Input Sources"),
+                             help: L(control.errorKey ?? "Choose an enabled keyboard input source.")) { dismiss in
+            if let error = control.errorKey { SystemToolPickerNote(text: L(error), isError: true) }
             ForEach(control.sources) { item in
-                Button {
+                SystemToolPickerRow(title: sourceLabel(item), isSelected: item.id == control.selectedID,
+                                    isEnabled: !control.isBusy) {
+                    dismiss()
                     Task { @MainActor in await control.select(id: item.id) }
-                } label: {
-                    HStack {
-                        if item.id == control.selectedID { Image(systemName: "checkmark") }
-                        Text(verbatim: sourceLabel(item))
-                    }
                 }
-                .accessibilityLabel(sourceLabel(item))
-                .disabled(control.isBusy)
             }
             Divider()
-            Button(L("Refresh")) { Task { @MainActor in await control.refresh() } }
-                .disabled(control.isBusy)
-            Button(L("Open keyboard settings")) {
+            SystemToolPickerRow(title: L("Refresh"), isEnabled: !control.isBusy) {
+                Task { @MainActor in await control.refresh() }
+            }
+            SystemToolPickerRow(title: L("Open keyboard settings")) {
+                dismiss()
                 Task { @MainActor in _ = await SystemToolActions.shared.openControlSettings(.keyboard) }
             }
-        } label: {
-            SystemToolStateLabel(tool: SystemToolCatalog.tool(.inputSources), status: status,
-                                 hasError: control.errorKey != nil)
         }
-        .menuStyle(.borderlessButton).menuIndicator(.hidden)
-        .accessibilityLabel(L("Input Sources")).accessibilityValue(status)
-        .help(L(control.errorKey ?? "Choose an enabled keyboard input source."))
         .task { await control.refresh() }
     }
 }
@@ -172,32 +170,26 @@ struct SystemToolAudioOutputTile: View {
     }
 
     var body: some View {
-        Menu {
-            if let error = control.errorKey { Text(L(error)) }
+        SystemToolPickerTile(tool: SystemToolCatalog.tool(.sound), status: status,
+                             hasError: control.errorKey != nil, name: L("Sound & Audio Output"),
+                             help: L(control.errorKey ?? "Choose an available audio output. Each device keeps its own volume; system alert output stays unchanged.")) { dismiss in
+            if let error = control.errorKey { SystemToolPickerNote(text: L(error), isError: true) }
             ForEach(control.devices) { device in
-                Button {
+                SystemToolPickerRow(title: device.displayName, isSelected: device.id == control.selectedID,
+                                    isEnabled: !control.isBusy && control.canSelect) {
+                    dismiss()
                     Task { @MainActor in await control.select(id: device.id) }
-                } label: {
-                    HStack {
-                        if device.id == control.selectedID { Image(systemName: "checkmark") }
-                        Text(verbatim: device.displayName)
-                    }
                 }
-                .disabled(control.isBusy || !control.canSelect)
             }
             Divider()
-            Button(L("Refresh")) { Task { @MainActor in await control.refresh() } }
-                .disabled(control.isBusy)
-            Button(L("Open sound settings")) {
+            SystemToolPickerRow(title: L("Refresh"), isEnabled: !control.isBusy) {
+                Task { @MainActor in await control.refresh() }
+            }
+            SystemToolPickerRow(title: L("Open sound settings")) {
+                dismiss()
                 Task { @MainActor in _ = await SystemToolActions.shared.openControlSettings(.sound) }
             }
-        } label: {
-            SystemToolStateLabel(tool: SystemToolCatalog.tool(.sound), status: status,
-                                 hasError: control.errorKey != nil)
         }
-        .menuStyle(.borderlessButton).menuIndicator(.hidden)
-        .accessibilityLabel(L("Sound & Audio Output")).accessibilityValue(status)
-        .help(L(control.errorKey ?? "Choose an available audio output. Each device keeps its own volume; system alert output stays unchanged."))
         .task { await control.refresh() }
     }
 }
@@ -222,41 +214,36 @@ struct SystemToolDisplayModeTile: View {
     }
 
     var body: some View {
-        Menu {
-            Text(L("Display changes last while the island is running. macOS restores the previous mode when the app quits."))
-            if let error = control.errorKey { Text(L(error)) }
+        SystemToolPickerTile(tool: SystemToolCatalog.tool(.display), status: status,
+                             hasError: control.errorKey != nil, name: L("Display"),
+                             help: L(control.errorKey ?? "Display changes last while the island is running. macOS restores the previous mode when the app quits.")) { dismiss in
+            SystemToolPickerNote(text: L("Display changes last while the island is running. macOS restores the previous mode when the app quits."))
+            if let error = control.errorKey { SystemToolPickerNote(text: L(error), isError: true) }
             ForEach(control.displays) { display in
-                Menu(display.isBuiltIn ? L("Built-in Display") : String(format: L("Display %d"), display.ordinal)) {
+                SystemToolPickerDisclosure(title: display.isBuiltIn ? L("Built-in Display")
+                                                                    : String(format: L("Display %d"), display.ordinal),
+                                           startsExpanded: control.displays.count == 1) {
                     if display.isMirrored {
-                        Text(L("Changing this mirrored display may also change the other displays in its mirror group."))
+                        SystemToolPickerNote(text: L("Changing this mirrored display may also change the other displays in its mirror group."))
                     }
                     ForEach(display.modes) { mode in
-                        Button {
+                        SystemToolPickerRow(title: modeLabel(mode), isSelected: mode.id == display.currentModeID,
+                                            isEnabled: !control.isBusy) {
+                            dismiss()
                             Task { @MainActor in await control.select(displayID: display.id, mode: mode) }
-                        } label: {
-                            HStack {
-                                if mode.id == display.currentModeID { Image(systemName: "checkmark") }
-                                Text(verbatim: modeLabel(mode))
-                            }
                         }
-                        .accessibilityLabel(modeLabel(mode))
-                        .disabled(control.isBusy)
                     }
                 }
             }
             Divider()
-            Button(L("Refresh")) { Task { @MainActor in await control.refresh() } }
-                .disabled(control.isBusy)
-            Button(L("Open display settings")) {
+            SystemToolPickerRow(title: L("Refresh"), isEnabled: !control.isBusy) {
+                Task { @MainActor in await control.refresh() }
+            }
+            SystemToolPickerRow(title: L("Open display settings")) {
+                dismiss()
                 Task { @MainActor in _ = await SystemToolActions.shared.openControlSettings(.displays) }
             }
-        } label: {
-            SystemToolStateLabel(tool: SystemToolCatalog.tool(.display), status: status,
-                                 hasError: control.errorKey != nil)
         }
-        .menuStyle(.borderlessButton).menuIndicator(.hidden)
-        .accessibilityLabel(L("Display")).accessibilityValue(status)
-        .help(L(control.errorKey ?? "Display changes last while the island is running. macOS restores the previous mode when the app quits."))
         .task { await control.refresh() }
     }
 }
@@ -273,33 +260,33 @@ struct SystemToolVPNTile: View {
     }
 
     var body: some View {
-        Menu {
-            Text(L("Controls configured VPNs listed by macOS. Some third-party clients must be operated in their own apps."))
-            if let error = control.errorKey { Text(L(error)) }
-            if control.services.isEmpty { Text(L("No controllable VPN found")) }
+        SystemToolPickerTile(tool: SystemToolCatalog.tool(.vpn), status: status,
+                             hasError: control.errorKey != nil, name: L("VPN"),
+                             help: L(control.errorKey ?? "Controls configured VPNs listed by macOS. Some third-party clients must be operated in their own apps.")) { dismiss in
+            SystemToolPickerNote(text: L("Controls configured VPNs listed by macOS. Some third-party clients must be operated in their own apps."))
+            if let error = control.errorKey { SystemToolPickerNote(text: L(error), isError: true) }
+            if control.services.isEmpty { SystemToolPickerNote(text: L("No controllable VPN found")) }
             ForEach(control.services) { service in
-                Menu(service.displayName + " · " + L(service.status.labelKey)) {
-                    Button(L(service.status == .connected ? "Disconnect VPN" : "Connect VPN")) {
+                SystemToolPickerDisclosure(title: service.displayName + " · " + L(service.status.labelKey),
+                                           startsExpanded: control.services.count == 1) {
+                    SystemToolPickerRow(title: L(service.status == .connected ? "Disconnect VPN" : "Connect VPN"),
+                                        isEnabled: !control.isBusy && service.canToggle) {
+                        dismiss()
                         Task { @MainActor in
                             await control.setConnected(id: service.id, connected: service.status != .connected)
                         }
                     }
-                    .disabled(control.isBusy || !service.canToggle)
                 }
             }
             Divider()
-            Button(L("Refresh")) { Task { @MainActor in await control.refresh() } }
-                .disabled(control.isBusy)
-            Button(L("Open VPN settings")) {
+            SystemToolPickerRow(title: L("Refresh"), isEnabled: !control.isBusy) {
+                Task { @MainActor in await control.refresh() }
+            }
+            SystemToolPickerRow(title: L("Open VPN settings")) {
+                dismiss()
                 Task { @MainActor in _ = await SystemToolActions.shared.openControlSettings(.vpn) }
             }
-        } label: {
-            SystemToolStateLabel(tool: SystemToolCatalog.tool(.vpn), status: status,
-                                 hasError: control.errorKey != nil)
         }
-        .menuStyle(.borderlessButton).menuIndicator(.hidden)
-        .accessibilityLabel(L("VPN")).accessibilityValue(status)
-        .help(L(control.errorKey ?? "Controls configured VPNs listed by macOS. Some third-party clients must be operated in their own apps."))
         .task { await control.monitorWhileVisible() }
     }
 }
@@ -318,10 +305,10 @@ struct SystemToolAccessibilityDisplayTile: View {
         if !control.supportedFeatures.contains(feature) { return L("Unsupported · Open Settings") }
         if control.errorKey != nil || enabled == nil { return L("Unavailable · Retry") }
         if lockedByContrast { return L("Required by Increase Contrast") }
-        return L(enabled == true ? "On" : "Off") + " · " + L("Experimental")
+        return L(enabled == true ? "On" : "Off")
     }
     private var explanation: String {
-        "Experimental display accessibility controls. Increase Contrast also reduces transparency; turn it off first to change transparency."
+        "Increase Contrast also reduces transparency; turn it off first to change transparency."
     }
 
     var body: some View {
@@ -355,6 +342,115 @@ struct SystemToolAccessibilityDisplayTile: View {
     }
 }
 
+/// macOS draws a `Menu` label through an `NSPopUpButton`, which flattens any custom
+/// view down to a title plus image and reports a frame smaller than the card it
+/// paints. Pickers therefore use a plain button and a popover so the tile keeps the
+/// same stacked card as every other tool, and so the reorder handle stays pinned to
+/// the real top-right corner.
+struct SystemToolPickerTile<Content: View>: View {
+    let tool: SystemToolDefinition
+    let status: String
+    let hasError: Bool
+    let name: String
+    let help: String
+    @ViewBuilder let content: (_ dismiss: @escaping () -> Void) -> Content
+
+    @State private var isPresented = false
+
+    var body: some View {
+        Button { isPresented = true } label: {
+            SystemToolStateLabel(tool: tool, status: status, hasError: hasError)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 3) {
+                    content { isPresented = false }
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(width: 280)
+            .frame(maxHeight: 340)
+        }
+        .notchHoldsOpenWhilePopoverPresented($isPresented)
+        .accessibilityLabel(name).accessibilityValue(status)
+        .accessibilityHint(L("Opens the list of options"))
+        .help(help)
+    }
+}
+
+/// A selectable line inside a picker popover.
+struct SystemToolPickerRow: View {
+    let title: String
+    var isSelected: Bool = false
+    var isEnabled: Bool = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark").opacity(isSelected ? 1 : 0).font(.caption)
+                Text(verbatim: title).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.vertical, 3).padding(.horizontal, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// Explanatory or error text inside a picker popover.
+struct SystemToolPickerNote: View {
+    let text: String
+    var isError = false
+
+    var body: some View {
+        Text(verbatim: text)
+            .font(.caption)
+            .foregroundStyle(isError ? Color.orange : Color.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// A collapsible group inside a picker popover, used where menus previously
+/// nested. One display can expose dozens of modes, so the groups fold to keep
+/// the list scannable; `startsExpanded` lets a lone group stay open so the
+/// common single-display / single-VPN case costs no extra click.
+struct SystemToolPickerDisclosure<Content: View>: View {
+    let title: String
+    var startsExpanded = true
+    @ViewBuilder let content: () -> Content
+
+    /// `nil` until the user touches the group, so the default keeps tracking the
+    /// data while an explicit choice always wins afterwards.
+    @State private var isExpanded: Bool?
+
+    var body: some View {
+        let expanded = Binding(get: { isExpanded ?? startsExpanded }, set: { isExpanded = $0 })
+        // `DisclosureGroup` only makes its chevron tappable, which is a small target in a
+        // popover this narrow. The label stretches across the row and toggles the same
+        // binding, so the title text opens the group too.
+        DisclosureGroup(isExpanded: expanded) {
+            VStack(alignment: .leading, spacing: 3) { content() }
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } label: {
+            Text(verbatim: title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { expanded.wrappedValue.toggle() }
+        }
+        .padding(.top, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 private struct SystemToolStateLabel: View {
     let tool: SystemToolDefinition
     let status: String
@@ -362,12 +458,12 @@ private struct SystemToolStateLabel: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Image(systemName: tool.symbol).font(.system(size: 18, weight: .medium)).frame(height: 22)
+            SystemToolGlyph(tool: tool).font(.system(size: 18, weight: .medium)).frame(height: 22)
             Text(L(tool.titleKey)).font(.system(size: 11, weight: .medium)).lineLimit(1)
             Text(verbatim: status).font(.system(size: 8)).lineLimit(1).minimumScaleFactor(0.8)
                 .foregroundStyle(hasError ? Color.orange : Color.white.opacity(0.6))
         }
-        .foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: 64)
+        .foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
         .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
         .contentShape(RoundedRectangle(cornerRadius: 12))
     }

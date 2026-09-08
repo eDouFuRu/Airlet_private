@@ -70,11 +70,44 @@ struct ShelfView: View {
                 content
                     .padding()
             }
+            .overlay(alignment: .bottomTrailing) {
+                if tvm.undoableRemoval != nil { undoChip }
+            }
             .transaction { transaction in
                 transaction.animation = vm.animation
             }
             .contentShape(Rectangle())
-            .onTapGesture { selection.clear() }
+            .onTapGesture { selection.clearFromBackground() }
+    }
+
+    /// A drop is reported as accepted by a whole Chromium window even when the payload is
+    /// thrown away, so a drag-out removal can be wrong. This makes being wrong cheap.
+    private var undoChip: some View {
+        Button {
+            tvm.undoLastRemoval()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.uturn.backward")
+                Text(undoChipTitle)
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(Color.black.opacity(0.55)))
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.18)))
+        }
+        .buttonStyle(.plain)
+        .padding(8)
+        .transition(.opacity)
+    }
+
+    private var undoChipTitle: LocalizedStringKey {
+        switch tvm.undoableRemoval?.kind {
+        case .cleared: return "Shelf cleared · Undo"
+        case .cut: return "Cut · Undo"
+        default: return "Moved out · Undo"
+        }
     }
 
     var content: some View {
@@ -108,8 +141,15 @@ struct ShelfView: View {
                 }
             }
         }
+        // AppKit, not `.contextMenu`: the island is never the key window, so SwiftUI's
+        // context menu never opens here. See `ShelfBackgroundMenu`.
+        .overlay(ShelfBackgroundMenu())
         .onAppear {
             ShelfStateViewModel.shared.cleanupInvalidItems()
+            ShelfRetentionSweeper.shared.sweepNow()
         }
+        // The chords exist only while the pointer is here; see `ShelfKeyboardChords`.
+        .onHover { ShelfKeyboardChords.shared.setActive($0) }
+        .onDisappear { ShelfKeyboardChords.shared.setActive(false) }
     }
 }

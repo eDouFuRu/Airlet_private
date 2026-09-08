@@ -12,8 +12,8 @@ fi
 
 python3 "$ISLAND_TEST_ROOT/Tests/ServiceHarnesses/assemble.py" "$ISLAND_TEST_BUILD"
 
-ISLAND_TEST_NAMES=(HUDStateHarness CalendarManagerHarness CalendarServiceHarness CalendarScrollHarness BatteryNotificationHarness QuickShareLifecycleHarness HardwareControlsHarness)
-ISLAND_TEST_EXPECTED=(30 11 4 7 6 7 22)
+ISLAND_TEST_NAMES=(HUDStateHarness CalendarManagerHarness CalendarServiceHarness CalendarScrollHarness BatteryNotificationHarness QuickShareLifecycleHarness HardwareControlsHarness ShelfChordHarness)
+ISLAND_TEST_EXPECTED=(30 11 4 7 8 7 22 8)
 ISLAND_TEST_TOTAL=0
 
 for ISLAND_TEST_INDEX in "${!ISLAND_TEST_NAMES[@]}"; do
@@ -31,9 +31,9 @@ for ISLAND_TEST_INDEX in "${!ISLAND_TEST_NAMES[@]}"; do
     ISLAND_TEST_TOTAL=$((ISLAND_TEST_TOTAL + ISLAND_TEST_COUNT))
 done
 
-[[ "$ISLAND_TEST_TOTAL" == 87 ]]
+[[ "$ISLAND_TEST_TOTAL" == 97 ]]
 xcrun swiftc -swift-version 5 -target "$(uname -m)-apple-macos15.0" \
     -module-cache-path "$ISLAND_TEST_BUILD/ModuleCache" -typecheck \
     "$ISLAND_TEST_BUILD/MediaKeyInterceptorTypecheck.swift"
 printf 'Production media-key event-tap adapter: typecheck passed (no tap installed)\n'
-printf 'Service regression checks: %s passed (7 groups: 30 + 11 + 4 + 7 + 6 + 7 + 22)\n' "$ISLAND_TEST_TOTAL"
+printf 'Service regression checks: %s passed (8 groups: 30 + 11 + 4 + 7 + 8 + 7 + 22 + 8)\n' "$ISLAND_TEST_TOTAL"

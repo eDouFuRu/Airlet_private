@@ -8,6 +8,16 @@ struct NotchHoverStateMachine {
         let deadline: TimeInterval
     }
 
+    /// What is allowed to collapse an expanded island.
+    enum CloseTrigger {
+        /// The pointer leaving the island starts the dwell timer, as it always has.
+        case hoverOut
+        /// Only an explicit dismissal collapses the island. The pointer may wander off
+        /// without consequence; the coordinator decides what counts as dismissal, so the
+        /// state machine stays responsible for dwell timing alone.
+        case externalClickOnly
+    }
+
     let openDelay: TimeInterval
     let closeDelay: TimeInterval
     private(set) var pending: Pending?
@@ -21,11 +31,13 @@ struct NotchHoverStateMachine {
 
     /// Repeated movement within one region does not restart its dwell timer.
     mutating func update(enabled: Bool, expanded: Bool, inTrigger: Bool,
-                         inVisibleContent: Bool, holdsOpen: Bool, now: TimeInterval) -> Action? {
+                         inVisibleContent: Bool, holdsOpen: Bool, now: TimeInterval,
+                         closeTrigger: CloseTrigger = .hoverOut) -> Action? {
         guard enabled else { cancel(); return nil }
         let desired: Action?
         if expanded {
-            desired = (inTrigger || inVisibleContent || holdsOpen) ? nil : .close
+            desired = (inTrigger || inVisibleContent || holdsOpen || closeTrigger == .externalClickOnly)
+                ? nil : .close
         } else {
             // A visible media wing or a drag entering its region cannot open the island.
             desired = inTrigger ? .open : nil

@@ -52,6 +52,11 @@ def main() -> None:
     battery = without_defaults_import((root / "boringNotch/models/BatteryStatusViewModel.swift").read_text())
     sharing_state = (root / "boringNotch/models/SharingStateManager.swift").read_text()
     quick_share = (root / "boringNotch/components/Shelf/Services/QuickShareService.swift").read_text()
+    # The real chord monitor plus the real activation rule; only the trust probe is injected.
+    chords = "\n".join((root / path).read_text() for path in [
+        "boringNotch/Interaction/Core/ShelfChordActivation.swift",
+        "boringNotch/Interaction/ShelfKeyboardChords.swift",
+    ])
     hardware = "\n".join((root / path).read_text() for path in [
         "boringNotch/Interaction/Core/BriefPresentation.swift",
         "boringNotch/Interaction/Core/SystemHUDState.swift",
@@ -67,6 +72,7 @@ def main() -> None:
         ("BatteryNotificationHarness", battery),
         ("QuickShareLifecycleHarness", sharing_state + "\n" + quick_share),
         ("HardwareControlsHarness", hardware),
+        ("ShelfChordHarness", chords),
         ("MediaKeyInterceptorTypecheck", interceptor),
     ]:
         fixture = (fixtures / f"{name}.swift").read_text()

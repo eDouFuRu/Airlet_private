@@ -222,13 +222,18 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
         private let dragThreshold: CGFloat = 3.0
         private var draggedURLs: [URL] = []
         private var draggedItems: [ShelfItem] = []
-        
+        /// Latched: the chord counts if it was held at any point between pressing the mouse
+        /// and releasing it, whether or not it is still held at the drop.
+        private var dragTriggerSeen = false
+
         override func rightMouseDown(with event: NSEvent) {
             onRightClick?(event, self)
         }
-        
+
         override func mouseDown(with event: NSEvent) {
             mouseDownEvent = event
+            // Covers holding the chord before the drag has begun.
+            dragTriggerSeen = Self.triggerIsHeldNow()
             onClick?(event, self)
         }
         
@@ -251,7 +256,15 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
             }
         }
         
+        private static func triggerIsHeldNow() -> Bool {
+            ShelfDragRemovalChord.isHeldNow()
+        }
+
         private func startDragSession(with event: NSEvent) {
+            // Latch, never clear: `mouseDown` already reset the flag for this gesture, and
+            // clearing here would drop a chord that was held only before the drag began.
+            dragTriggerSeen = dragTriggerSeen || Self.triggerIsHeldNow()
+
             // Prepare dragging items
             let selectedItems = ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items)
             let itemsToDrag: [ShelfItem]
@@ -324,28 +337,30 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
         
         // MARK: - NSDraggingSource
         
+        /// Always copy, never move. Offering `.move` lets the destination relocate — or, for
+        /// the many apps that implement move as copy-then-delete, destroy — the staged file
+        /// itself; the entry then fails its next bookmark check and gets swept away, which
+        /// looks exactly like the drag-out rule misfiring. Whether an item leaves the shelf
+        /// is this app's decision, not a side effect of the destination's file semantics.
         func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-            // When copyOnDrag is enabled, only allow copy operations
-            if Defaults[.copyOnDrag] {
-                return [.copy]
-            }
-            
-            switch context {
-            case .outsideApplication:
-                return [.copy, .move]
-            case .withinApplication:
-                return [.copy, .move, .generic]
-            @unknown default:
-                return [.copy]
-            }
+            return [.copy]
         }
         
         func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
             ShelfSelectionModel.shared.beginDrag()
         }
-        
-        
+
+        /// Fires as the pointer moves, which is what makes a chord pressed *during* the drag
+        /// count. A local `NSEvent` monitor would not work here: while dragging, key events
+        /// go to the application under the pointer, not to us.
+        func draggingSession(_ session: NSDraggingSession, movedTo screenPoint: NSPoint) {
+            dragTriggerSeen = dragTriggerSeen || Self.triggerIsHeldNow()
+        }
+
         func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+            // Final sample, so a chord still held at the drop counts even if the pointer
+            // never moved after it went down.
+            dragTriggerSeen = dragTriggerSeen || Self.triggerIsHeldNow()
             ShelfSelectionModel.shared.endDrag()
 
             // Stop accessing security-scoped resources after drag completes
@@ -355,17 +370,40 @@ private struct DraggableClickHandler<Content: View>: NSViewRepresentable {
             }
             draggedURLs.removeAll()
 
-            // Auto-remove items from shelf if enabled and drag succeeded
-            if Defaults[.autoRemoveShelfItems] && !operation.isEmpty {
-                for item in draggedItems {
-                    ShelfStateViewModel.shared.remove(item)
-                }
+            let onOwnUI = ShelfDragRemovalPolicy.dropLandedOnOwnUI(screenPoint,
+                                                                   ownWindowFrames: Self.ownWindowFrames())
+            if ShelfDragRemovalPolicy.shouldRemove(afterDropAccepted: !operation.isEmpty,
+                                                   landedOnOwnUI: onOwnUI,
+                                                   alwaysRemove: Defaults[.autoRemoveShelfItems],
+                                                   triggerSatisfied: dragTriggerSeen) {
+                ShelfStateViewModel.shared.removeAfterDragOut(draggedItems)
             }
+            dragTriggerSeen = false
             draggedItems.removeAll()
         }
-        
+
+        /// Frames of this app's own visible windows, in the same screen coordinates the
+        /// drag session reports. Checked at the source so a drop target that forgets to
+        /// refuse a self-drag cannot make "put it back" destructive.
+        ///
+        /// Deliberately the whole *window* frame, not the drawn island. The notch carrier is
+        /// 742×380 and sits at the top centre of every screen, so a genuine delivery to some
+        /// other app's window that happens to lie under that rectangle is also judged "not
+        /// delivered" and the item stays. That false negative is accepted on purpose: the
+        /// only alternative is to narrow this to the island's currently drawn frame, which
+        /// lives in a per-screen `NotchPointerCoordinator` with no global registry, and every
+        /// narrowing here trades a kept file for a chance of destroying one. Keeping an item
+        /// the user meant to move out is recoverable; deleting one is not.
+        private static func ownWindowFrames() -> [CGRect] {
+            NSApp.windows.filter(\.isVisible).map(\.frame)
+        }
+
+        /// Keeps AppKit from rewriting the drag operation based on held modifiers. With this
+        /// off, holding ⌘ forces `.move`, which a destination that only accepts `.copy` — a
+        /// chat input, say — refuses outright, so nothing is inserted and nothing is removed.
+        /// That is why the chord previously had to be released before the mouse button.
         func ignoreModifierKeys(for session: NSDraggingSession) -> Bool {
-            return false
+            return true
         }
     }
 }

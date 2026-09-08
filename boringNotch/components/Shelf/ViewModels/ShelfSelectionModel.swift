@@ -68,6 +68,25 @@ final class ShelfSelectionModel: ObservableObject {
         lastAnchorID = nil
     }
 
+    /// An item's own `mouseDown` runs before the panel's tap gesture recognises the same
+    /// click on mouse-up, so without this the panel would wipe the selection the item just
+    /// made — command-clicking a second item could never build a multi-selection, and even
+    /// a plain click never appeared to select anything.
+    private var handledByItem = false
+
+    /// Called by an item that has just acted on a click, to claim it from the background.
+    func noteItemHandledClick() { handledByItem = true }
+
+    /// Called by the panel behind the items. Clears only when the click did not land on an
+    /// item, so clicking empty space still deselects.
+    func clearFromBackground() {
+        guard !handledByItem else {
+            handledByItem = false
+            return
+        }
+        clear()
+    }
+
     // Keep anchor sane if items array changed drastically (optional helper)
     func ensureValidAnchor(in allItems: [ShelfItem]) {
         if let anchor = lastAnchorID, !allItems.contains(where: { $0.id == anchor }) {
@@ -79,6 +98,9 @@ final class ShelfSelectionModel: ObservableObject {
 
     func beginDrag() {
         isDragging = true
+        // A click that turns into a drag never reaches the panel's tap gesture, so the
+        // claim would otherwise linger and swallow the next background click.
+        handledByItem = false
     }
 
     func endDrag() {

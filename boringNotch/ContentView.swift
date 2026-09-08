@@ -22,6 +22,7 @@ struct ContentView: View {
     @ObservedObject private var systemHUD = SystemHUDPresentation.shared
     @ObservedObject private var brief = BriefPresentationCoordinator.shared
     @ObservedObject private var lyrics = LyricsStore.shared
+    @ObservedObject private var shelf = ShelfStateViewModel.shared
     private var lyricsAppearance = LyricsAppearance()
     @ObservedObject private var hi = HiNotificationManager.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -52,8 +53,10 @@ struct ContentView: View {
     @Default(.enableHaptics) private var enableHaptics
     @Default(.enableShadow) private var enableShadow
     @Default(.inlineHUD) private var inlineHUD
+    @Default(.hudReplacement) private var hudReplacement
     @Default(.playerColorTinting) private var playerColorTinting
     @Default(.showPowerStatusNotifications) private var showPowerStatusNotifications
+    @Default(.showRestTimerOnClosed) private var showRestTimerOnClosed
     @Default(.sneakPeekStyles) private var sneakPeekStyles
     @Default(.boringShelf) private var boringShelf
 
@@ -88,10 +91,6 @@ struct ContentView: View {
     }
 
     private var computedChinWidth: CGFloat {
-        if coordinator.expandingView.type == .battery && coordinator.expandingView.show
-            && vm.notchState == .closed && showPowerStatusNotifications {
-            return 640
-        }
         if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
@@ -106,14 +105,29 @@ struct ContentView: View {
     }
 
     private var resting: Bool { rest.phase == .running || rest.phase == .paused }
+    /// Whether the closed shell gives the countdown its wings. The header and the width both
+    /// read this one value rather than testing `resting` apiece: those are two hand-written
+    /// branch chains, and letting them disagree is how a shell ends up 88pt wider than the
+    /// thing it was widened for.
+    private var showsRestOnClosed: Bool { resting && showRestTimerOnClosed }
     private var isOpen: Bool { vm.notchState == .open }
     private var headerHeight: CGFloat {
         max(24, max(vm.closedNotchSize.height, vm.screenUUID.flatMap { NSScreen.screen(withUUID: $0)?.safeAreaInsets.top } ?? 0))
     }
     private var bottomRadius: CGFloat { isOpen && cornerRadiusScaling ? 24 : 14 }
     private var systemHUDVisible: Bool { visibility.isAvailable && systemHUD.activeKind != nil }
+    /// The charging notice rides the HUD chrome so it can appear while the island is open.
+    /// It used to live in `closedHeader`, which is only ever used when the island is closed —
+    /// so with a pinned page (the shelf) holding the island open, the notice silently expired
+    /// against its 3s timer without ever being drawn.
+    private var powerNoticeVisible: Bool {
+        visibility.isAvailable && showPowerStatusNotifications && hudReplacement
+            && coordinator.expandingView.show && coordinator.expandingView.type == .battery
+    }
+    /// The system HUD wins a tie: a deliberate key press outranks a passive power event.
+    private var noticeChromeActive: Bool { systemHUDVisible || powerNoticeVisible }
     private var briefSource: BriefPresentationSource {
-        brief.state.selection(now: ProcessInfo.processInfo.systemUptime, hudActive: systemHUDVisible,
+        brief.state.selection(now: ProcessInfo.processInfo.systemUptime, hudActive: noticeChromeActive,
                               hiEnabled: hi.current != nil,
                               songEnabled: coordinator.sneakPeek.show && sneakPeekStyles == .standard && (isOpen || !vm.hideOnClosed),
                               lyricAvailable: lyrics.shouldShowNotch && (isOpen || !vm.hideOnClosed))
@@ -121,22 +135,27 @@ struct ContentView: View {
     private var briefVisible: Bool { briefSource.usesBriefRow }
     private var briefHeaderHeight: CGFloat { briefVisible ? headerHeight : max(0, vm.effectiveClosedNotchHeight) }
     private var briefLayout: BriefPresentationLayout {
-        BriefPresentationLayout(active: briefVisible, standardHUD: systemHUDVisible && !inlineHUD,
+        BriefPresentationLayout(active: briefVisible, standardHUD: noticeChromeActive && !inlineHUD,
                                 expanded: isOpen,
                                 baseClosedSize: CGSize(width: baseClosedWidth, height: briefHeaderHeight),
                                 baseExpandedHeight: baseExpandedHeight, headerHeight: headerHeight)
     }
     private var baseExpandedHeight: CGFloat {
-        if coordinator.currentView == .tools { return max(280, headerHeight + 224) }
+        // Derived from the grid's own constants so the island is exactly tall enough for a
+        // whole number of rows. A hand-tuned floor here is what previously left a spare
+        // half row visible below the third one.
+        if coordinator.currentView == .tools {
+            return max(openNotchSize.height, SystemToolGridMetrics.expandedHeight(headerHeight: headerHeight))
+        }
         return coordinator.currentView == .island ? max(250, headerHeight + 214) : max(openNotchSize.height, headerHeight + 156)
     }
     private var baseClosedWidth: CGFloat {
         if vm.hideOnClosed { return vm.closedNotchSize.width }
-        if resting { return vm.closedNotchSize.width + 88 }
+        if showsRestOnClosed { return vm.closedNotchSize.width + 88 }
         return max(vm.closedNotchSize.width + 12, computedChinWidth)
     }
     private var hudLayout: SystemHUDLayout {
-        SystemHUDLayout(active: systemHUDVisible, inline: inlineHUD, expanded: isOpen,
+        SystemHUDLayout(active: noticeChromeActive, inline: inlineHUD, expanded: isOpen,
                         notchWidth: vm.closedNotchSize.width, headerHeight: headerHeight,
                         baseClosedSize: isOpen ? CGSize(width: baseClosedWidth, height: briefHeaderHeight) : briefLayout.size,
                         baseExpandedHeight: baseExpandedHeight + briefLayout.addedHeight, expandedWidth: openNotchSize.width)
@@ -147,6 +166,53 @@ struct ContentView: View {
         guard !reduceMotion else { return nil }
         return .spring(response: isOpen ? 0.42 : 0.45,
                        dampingFraction: isOpen ? 0.8 : 1.0, blendDuration: 0)
+    }
+
+    /// The shelf is pinned open, so it needs a dismiss control that does not depend on the
+    /// pointer leaving. It floats clear of the island rather than sitting on the panel,
+    /// where it would cover the rightmost item.
+    ///
+    /// Drawn here, outside the clipped black shape, and positioned from the same constants
+    /// `NotchPointerCoordinator` uses to widen the hit region — the window is otherwise
+    /// click-through out here, so the two must agree or the button renders but never
+    /// responds.
+    private var showsFloatingCollapse: Bool { isOpen && coordinator.currentView == .shelf }
+
+    @ViewBuilder
+    private var floatingAccessoryControls: some View {
+        if showsFloatingCollapse {
+            accessoryButton(slot: .collapse, symbol: "chevron.up", label: L("Collapse the island"),
+                            enabled: true) { vm.close(force: true) }
+            // Always drawn, dimmed when there is nothing to clear: hiding it would leave the
+            // collapse button alone in the upper half and break the symmetry the pair is for.
+            accessoryButton(slot: .clearShelf, symbol: "trash", label: L("Clear the shelf"),
+                            enabled: !shelf.isEmpty) { shelf.clearAll() }
+        }
+    }
+
+    private func accessoryButton(slot: NotchAccessorySlot, symbol: String, label: String,
+                                 enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white.opacity(enabled ? 0.9 : 0.35))
+                .frame(width: NotchAccessoryControl.diameter,
+                       height: NotchAccessoryControl.diameter)
+                .background(Circle().fill(Color.black.opacity(0.82)))
+                .overlay(Circle().stroke(.white.opacity(enabled ? 0.22 : 0.1), lineWidth: 1))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        // `.overlay(alignment: .top)` aligns the button's *top edge* to the window's top
+        // edge, so the y offset must be a top-edge offset; `topEdgeOffset` is the only place
+        // that arithmetic lives. Horizontally the overlay *is* centre aligned, so
+        // `centerOffsetX` is a centre offset. Two different conventions on purpose.
+        .offset(x: NotchAccessoryControl.centerOffsetX(visibleWidth: visibleWidth),
+                y: NotchAccessoryControl.topEdgeOffset(visibleHeight: visibleHeight, slot: slot))
+        .help(label)
+        .accessibilityLabel(label)
+        .transition(.opacity)
     }
 
     var body: some View {
@@ -168,10 +234,21 @@ struct ContentView: View {
             .animation(shellAnimation, value: visibleHeight)
             .animation(shellAnimation, value: systemHUD.activeKind)
             .frame(width: windowSize.width, height: windowSize.height, alignment: .top)
+            // Overlaid on the full window, not on the island: SwiftUI will not reliably hit
+            // test a child that overflows its parent's bounds, and this one sits outside
+            // the island by design. The island is centred in the window, so the offsets
+            // below are still measured from the island's centre.
+            .overlay(alignment: .top) { floatingAccessoryControls }
             .opacity(!isOpen && !systemHUDVisible && !briefVisible && vm.effectiveClosedNotchHeight == 0 ? 0 : 1)
             .preferredColorScheme(.dark)
             .modifier(IslandLocalization())
-            .onAppear { syncPresentation() }
+            .onAppear {
+                syncPresentation()
+                pointer.setAccessoryControlVisible(showsFloatingCollapse)
+            }
+            .onChange(of: showsFloatingCollapse) { _, visible in
+                pointer.setAccessoryControlVisible(visible)
+            }
             .onChange(of: vm.notchState) {
                 syncPresentation(); pointer.reevaluate()
                 if isOpen && enableHaptics { NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) }
@@ -237,17 +314,29 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(spacing: 0) {
                 if hudLayout.showsInline {
-                    InlineHUD(state: systemHUD.state, layout: hudLayout)
-                        .transition(.opacity)
+                    Group {
+                        if systemHUDVisible {
+                            InlineHUD(state: systemHUD.state, layout: hudLayout)
+                        } else {
+                            PowerNoticeRow(inline: true, layout: hudLayout)
+                        }
+                    }
+                    .transition(.opacity)
                 } else if isOpen {
                     BoringHeader().frame(height: headerHeight)
                 } else {
                     closedHeader
-                        .frame(height: systemHUDVisible ? headerHeight : briefHeaderHeight)
+                        .frame(height: noticeChromeActive ? headerHeight : briefHeaderHeight)
                 }
                 if hudLayout.showsRow {
-                    SystemHUDRow(state: systemHUD.state)
-                        .transition(.opacity)
+                    Group {
+                        if systemHUDVisible {
+                            SystemHUDRow(state: systemHUD.state)
+                        } else {
+                            PowerNoticeRow(inline: false, layout: hudLayout)
+                        }
+                    }
+                    .transition(.opacity)
                 } else if briefVisible {
                     briefRow.transition(.opacity)
                 }
@@ -276,31 +365,31 @@ struct ContentView: View {
                 .allowsHitTesting(isOpen)
             }
         }
-        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting))
+        .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], delegate: GeneralDropTargetDelegate(isTargeted: $vm.generalDropTargeting, onEnter: openShelfForDrag))
+    }
+
+    /// Landing on the media page with a file in hand leaves nowhere to drop it, so a drag
+    /// always lands on the shelf. This goes through `open(preferredPage:)`, which bypasses
+    /// the `openShelfByDefault` branch entirely — the setting keeps governing plain hovering
+    /// and needs no companion switch of its own.
+    private func openShelfForDrag() {
+        guard boringShelf else { return }
+        withAnimation(vm.animationLibrary.animation) {
+            vm.open(preferredPage: .shelf)
+        }
     }
 
     @ViewBuilder
     private var closedHeader: some View {
         if vm.hideOnClosed {
             Color.clear.frame(width: vm.closedNotchSize.width)
-        } else if resting {
+        } else if showsRestOnClosed {
             HStack(spacing: 0) {
                 Image(systemName: rest.mode == .focus ? "timer" : "flame.fill")
                     .foregroundStyle(ShuPalette.flesh).frame(maxWidth: .infinity)
                 Color.clear.frame(width: vm.closedNotchSize.width)
                 Text(rest.clockText).font(.system(size: 10, design: .rounded).monospacedDigit())
                     .foregroundStyle(.white.opacity(0.8)).frame(maxWidth: .infinity)
-            }
-        } else if coordinator.expandingView.type == .battery && coordinator.expandingView.show && showPowerStatusNotifications {
-            HStack(spacing: 0) {
-                Text(L(batteryModel.statusText)).font(.subheadline).foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Color.clear.frame(width: vm.closedNotchSize.width)
-                BoringBatteryView(batteryWidth: 30, isCharging: batteryModel.isCharging,
-                                  isInLowPowerMode: batteryModel.isInLowPowerMode,
-                                  isPluggedIn: batteryModel.isPluggedIn, levelBattery: batteryModel.levelBattery,
-                                  isForNotification: true)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
                     && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled {
@@ -417,9 +506,13 @@ struct FullScreenDropDelegate: DropDelegate {
 
 struct GeneralDropTargetDelegate: DropDelegate {
     @Binding var isTargeted: Bool
+    /// Carrying a file is an unambiguous statement of intent, so it overrides whatever page
+    /// hovering alone would have picked. Empty-handed hovering still follows the setting.
+    var onEnter: () -> Void = {}
 
     func dropEntered(info: DropInfo) {
         isTargeted = true
+        onEnter()
     }
 
     func dropExited(info: DropInfo) {

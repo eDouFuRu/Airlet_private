@@ -52,6 +52,71 @@ struct SystemHUDRow: View {
     }
 }
 
+/// The charging notice, wearing the HUD's geometry.
+///
+/// It deliberately shares `SystemHUDLayout` with volume and brightness instead of owning a
+/// width: the old battery banner hardcoded 640pt and had no horizontal inset, so plugging in
+/// produced a bar far wider than any other notice with its text jammed against both edges.
+/// Only the *layout* is shared — the notice is driven by `expandingView`, not by
+/// `HUDStateManager`, so it never depends on accessibility authorisation.
+struct PowerNoticeRow: View {
+    @ObservedObject private var battery = BatteryStatusViewModel.shared
+    let inline: Bool
+    let layout: SystemHUDLayout
+
+    var body: some View {
+        if inline {
+            HStack(spacing: 0) {
+                HStack(spacing: 6) {
+                    Image(systemName: symbolName).frame(width: 18)
+                    Text(L(battery.statusText))
+                        .font(.system(size: 12, weight: .medium))
+                        .lineLimit(1).minimumScaleFactor(0.75)
+                }
+                .padding(.horizontal, 10)
+                .frame(width: layout.wingWidth, alignment: .leading)
+
+                Color.clear.frame(width: layout.physicalGapWidth)
+                    .accessibilityHidden(true)
+
+                glyph
+                    .padding(.horizontal, 10)
+                    .frame(width: layout.wingWidth, alignment: .trailing)
+            }
+            .foregroundStyle(.white)
+            .frame(height: layout.headerHeight)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(L(battery.statusText)))
+        } else {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: symbolName)
+                    .font(.system(size: 15, weight: .medium))
+                    .frame(width: 22, height: 22)
+                Text(L(battery.statusText)).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                Spacer(minLength: 8)
+                glyph
+            }
+            .padding(.horizontal, 16)
+            .foregroundStyle(.white)
+            .frame(height: SystemHUDLayout.rowHeight)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(L(battery.statusText)))
+        }
+    }
+
+    private var symbolName: String {
+        battery.isPluggedIn ? "powerplug.fill" : "powerplug"
+    }
+
+    private var glyph: some View {
+        BoringBatteryView(batteryWidth: 30, isCharging: battery.isCharging,
+                          isInLowPowerMode: battery.isInLowPowerMode,
+                          isPluggedIn: battery.isPluggedIn,
+                          levelBattery: battery.levelBattery,
+                          isForNotification: true)
+    }
+}
+
 private struct SystemHUDValue: View {
     @EnvironmentObject private var vm: BoringViewModel
     @Default(.systemEventIndicatorUseAccent) private var useAccent

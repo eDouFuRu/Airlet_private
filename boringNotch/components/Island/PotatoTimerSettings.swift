@@ -1,3 +1,4 @@
+import Defaults
 import SwiftUI
 
 struct PotatoTimerSettings: View {
@@ -8,6 +9,13 @@ struct PotatoTimerSettings: View {
                 durationRow("Rest duration", value: Binding(get: { model.restDurationMinutes }, set: model.setRestDurationMinutes))
                 durationRow("Focus duration", value: Binding(get: { model.focusDurationMinutes }, set: model.setFocusDurationMinutes))
                 Text("Choose 1–120 minutes. Changes apply to the next session.").font(.callout).foregroundStyle(.secondary)
+            }
+            Section("Closed notch") {
+                Defaults.Toggle(key: .showRestTimerOnClosed) {
+                    Text("Show the countdown on the closed notch")
+                }
+                Text("Off hides both the icon and the remaining time, and the notch keeps its normal width. The session itself keeps running and still settles on time.")
+                    .font(.callout).foregroundStyle(.secondary)
             }
             Section("How it works") {
                 Label("30s planting + 30s roasting = 1 sweet potato", systemImage: "flame")

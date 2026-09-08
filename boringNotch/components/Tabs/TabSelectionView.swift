@@ -5,6 +5,7 @@
 //  Created by Hugo Persson on 2024-08-25.
 //
 
+import AppKit
 import SwiftUI
 import Defaults
 
@@ -31,8 +32,26 @@ struct TabSelectionView: View {
     var compact = false
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @Default(.boringShelf) private var shelfEnabled
+    @Default(.tabSwitchOnHover) private var switchOnHover
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace var animation
+    @StateObject private var hover = TabHoverSwitchController<NotchViews> { view in
+        // Same transition as `select(_:)`; without it a hover switch snapped while a click
+        // switch animated, so the same page change looked like two different features.
+        // The environment's `reduceMotion` is not reachable from this closure — it is built
+        // once, outside the view update — so the AppKit reading of the same setting is used.
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        withAnimation(reduceMotion ? nil : .smooth) {
+            BoringViewCoordinator.shared.currentView = view
+        }
+        // A hover switch has no click to confirm it, so the tap is the only signal that
+        // the tab really changed rather than the pointer merely passing through.
+        // macOS exposes no intensity control — only the pattern — so there is nothing to
+        // tune here beyond which pattern is used.
+        if Defaults[.enableHaptics] {
+            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        }
+    }
 
     private var availableTabs: [TabModel] {
         tabs.filter { $0.view != .shelf || shelfEnabled }
@@ -67,6 +86,9 @@ struct TabSelectionView: View {
                     .help(L(tab.label))
                     .accessibilityLabel(L(tab.label))
                     .accessibilityAddTraits(tab.view == coordinator.currentView ? .isSelected : [])
+                    .onHover { isHovering in
+                        hover.hover(tab.view, isHovering: isHovering, current: coordinator.currentView)
+                    }
                     .frame(height: 26)
                     .foregroundStyle(tab.view == coordinator.currentView ? .white : .gray)
                     .background {
@@ -84,6 +106,10 @@ struct TabSelectionView: View {
             }
         }
         .clipShape(Capsule())
+        // A pointer that leaves the bar between two buttons produces no per-tab leave
+        // callback, which would let a scheduled switch land after the fact.
+        .onHover { if !$0 { hover.cancel() } }
+        .onChange(of: switchOnHover) { _, enabled in if !enabled { hover.cancel() } }
     }
 
     private func select(_ tab: TabModel) {

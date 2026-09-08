@@ -53,10 +53,17 @@ struct ShelfItem: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var kind: ShelfItemKind
     var isTemporary: Bool
-    init(id: UUID = UUID(), kind: ShelfItemKind, isTemporary: Bool = false) {
+    /// When this item was staged, so retention can age each item on its own clock.
+    ///
+    /// Optional because items persisted before retention existed have no such key, and the
+    /// synthesised `Codable` would fail on a required one — which `ShelfPersistenceService`
+    /// would then quietly discard as corrupt, emptying the shelf. The store backfills it.
+    var addedAt: Date?
+    init(id: UUID = UUID(), kind: ShelfItemKind, isTemporary: Bool = false, addedAt: Date? = Date()) {
         self.id = id
         self.kind = kind
         self.isTemporary = isTemporary
+        self.addedAt = addedAt
     }
     
     var displayName: String {

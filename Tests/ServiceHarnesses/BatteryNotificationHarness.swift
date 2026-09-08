@@ -4,9 +4,17 @@ import Combine
 import Foundation
 
 enum Defaults {
-    enum Key { case showPowerStatusNotifications }
+    enum Key { case showPowerStatusNotifications, hudReplacement }
     static var enabled = true
-    static subscript(key: Key) -> Bool { enabled }
+    /// The notice is drawn with the system HUD's chrome, so turning that replacement off is
+    /// the only other thing that suppresses it.
+    static var hudReplacement = true
+    static subscript(key: Key) -> Bool {
+        switch key {
+        case .showPowerStatusNotifications: return enabled
+        case .hudReplacement: return hudReplacement
+        }
+    }
 }
 final class BoringViewCoordinator: ObservableObject {
     static let shared = BoringViewCoordinator()
@@ -81,6 +89,14 @@ extension BatteryStatusViewModel {
         model.diagnosticNotify()
         try await Task.sleep(for: .milliseconds(30))
         check(2, "new event after restore delivers once")
+        Defaults.hudReplacement = false
+        model.diagnosticNotify()
+        try await Task.sleep(for: .milliseconds(30))
+        check(2, "turning off the system HUD replacement suppresses the power notice")
+        Defaults.hudReplacement = true
+        model.diagnosticNotify()
+        try await Task.sleep(for: .milliseconds(30))
+        check(3, "restoring the HUD replacement brings the power notice back")
         print("Battery notification checks: \(checks) passed")
     }
 }

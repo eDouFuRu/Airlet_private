@@ -7828,106 +7828,6 @@
         }
       }
     },
-    "Copy items on drag": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "cs": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy items on drag"
-          }
-        },
-        "en-GB": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "hu": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Copy items on drag"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拖出时复制项目"
-          }
-        }
-      }
-    },
     "Corner radius scaling": {
       "localizations": {
         "ar": {
@@ -33565,6 +33465,941 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开显示辅助功能设置"
+          }
+        }
+      }
+    },
+    "%.2f s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%.2f s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%.2f 秒"
+          }
+        }
+      }
+    },
+    "Add copied images to the shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add copied images to the shelf"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把复制的图片加入暂存"
+          }
+        }
+      }
+    },
+    "After 1 day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 1 day"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 天后"
+          }
+        }
+      }
+    },
+    "After 1 week": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 1 week"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 周后"
+          }
+        }
+      }
+    },
+    "After 12 hours": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 12 hours"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "12 小时后"
+          }
+        }
+      }
+    },
+    "After 3 days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 3 days"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3 天后"
+          }
+        }
+      }
+    },
+    "Available only when macOS confirms support.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available only when macOS confirms support."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在 macOS 确认支持时可用。"
+          }
+        }
+      }
+    },
+    "Bluetooth Control": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bluetooth Control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "蓝牙控制"
+          }
+        }
+      }
+    },
+    "Clear search": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear search"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除搜索"
+          }
+        }
+      }
+    },
+    "Clear staged files": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear staged files"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂存文件自动清理"
+          }
+        }
+      }
+    },
+    "Closed notch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Closed notch"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起状态"
+          }
+        }
+      }
+    },
+    "Collapse delay": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collapse delay"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起延迟"
+          }
+        }
+      }
+    },
+    "Collapse the island": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collapse the island"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起小岛"
+          }
+        }
+      }
+    },
+    "Copy captures to the clipboard": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy captures to the clipboard"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截屏同时拷贝到剪贴板"
+          }
+        }
+      }
+    },
+    "Display Accessibility": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display Accessibility"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示辅助功能"
+          }
+        }
+      }
+    },
+    "Hold ⌃⌘": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold ⌃⌘"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 ⌃⌘"
+          }
+        }
+      }
+    },
+    "Hold ⌘D (may clash with other apps)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold ⌘D (may clash with other apps)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 ⌘D（可能与其它 App 冲突）"
+          }
+        }
+      }
+    },
+    "Hold ⌥⌘": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold ⌥⌘"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住 ⌥⌘"
+          }
+        }
+      }
+    },
+    "Increase Contrast also reduces transparency; turn it off first to change transparency.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Increase Contrast also reduces transparency; turn it off first to change transparency."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「增强对比度」会同时降低透明度；如需单独调整透明度，请先将其关闭。"
+          }
+        }
+      }
+    },
+    "Move out of the shelf while holding": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move out of the shelf while holding"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖出即移除的组合键"
+          }
+        }
+      }
+    },
+    "Moved out · Undo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moved out · Undo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已移出 · 撤销"
+          }
+        }
+      }
+    },
+    "Never": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不使用"
+          }
+        }
+      }
+    },
+    "Never clear automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never clear automatically"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不自动清理"
+          }
+        }
+      }
+    },
+    "Night Shift Control": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Night Shift Control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "夜览控制"
+          }
+        }
+      }
+    },
+    "No matching tools found": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching tools found"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到匹配的工具"
+          }
+        }
+      }
+    },
+    "Off hides both the icon and the remaining time, and the notch keeps its normal width. The session itself keeps running and still settles on time.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off hides both the icon and the remaining time, and the notch keeps its normal width. The session itself keeps running and still settles on time."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后计时期间不再显示图标和剩余时间，刘海保持正常宽度。计时本身照常进行，也照常按时结算。"
+          }
+        }
+      }
+    },
+    "Only when clicking outside": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only when clicking outside"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在点击外部时"
+          }
+        }
+      }
+    },
+    "Open Wi-Fi settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Wi-Fi settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Wi-Fi 设置"
+          }
+        }
+      }
+    },
+    "Opens Bluetooth settings. The card shows the current radio state.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens Bluetooth settings. The card shows the current radio state."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开蓝牙设置。卡片显示当前的蓝牙开关状态。"
+          }
+        }
+      }
+    },
+    "Opens the list of options": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the list of options"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开选项列表"
+          }
+        }
+      }
+    },
+    "Show the countdown on the closed notch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the countdown on the closed notch"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在收起的刘海上显示倒计时"
+          }
+        }
+      }
+    },
+    "Switch tabs on hover": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch tabs on hover"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "悬停切换标签页"
+          }
+        }
+      }
+    },
+    "Tab hover delay": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tab hover delay"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标签悬停延迟"
+          }
+        }
+      }
+    },
+    "Toggles Night Shift without changing its schedule or color temperature.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toggles Night Shift without changing its schedule or color temperature."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开关夜览，不改变其排程与色温设置。"
+          }
+        }
+      }
+    },
+    "True Tone Control": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "True Tone Control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原彩显示控制"
+          }
+        }
+      }
+    },
+    "When the pointer leaves": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the pointer leaves"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鼠标移出时"
+          }
+        }
+      }
+    },
+    "Wi-Fi Control": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wi-Fi Control"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wi-Fi 控制"
+          }
+        }
+      }
+    },
+    "已设为拖出后一律移除，组合键不再起作用。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set to always remove after dragging, so the chord has no effect."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已设为拖出后一律移除，组合键不再起作用。"
+          }
+        }
+      }
+    },
+    "开启后会定期检查剪贴板类型，仅在其中确有图片时才读取内容，用于接住其它截图工具的图片。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Periodically checks what type the clipboard holds and reads the contents only when it really is an image, so screenshots from other tools land here too."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后会定期检查剪贴板类型，仅在其中确有图片时才读取内容，用于接住其它截图工具的图片。"
+          }
+        }
+      }
+    },
+    "拖出前或拖动途中按住该组合键即可，放手时松没松开都算。拖回小岛不会移除；移除后 10 秒内可撤销。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold the chord before or during the drag; releasing it first is fine. Dropping back on the island never removes, and a removal can be undone for 10 seconds."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖出前或拖动途中按住该组合键即可，放手时松没松开都算。拖回小岛不会移除；移除后 10 秒内可撤销。"
+          }
+        }
+      }
+    },
+    "提高延迟可以避免鼠标划过边缘就误收起。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A longer delay stops the island collapsing when the pointer just brushes its edge."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提高延迟可以避免鼠标划过边缘就误收起。"
+          }
+        }
+      }
+    },
+    "每个文件从进入暂存区起单独计时。截图、录屏、剪贴板图片，以及去背景、转格式、合成 PDF、压缩生成的文件都会被真正删除；只有从访达拖进来、仍能定位到原文件的条目才是到期只移除条目，磁盘上的原件不动。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each file ages from the moment it was staged. Screenshots, recordings, clipboard images and anything this app generates for you — background removal, format conversion, PDF and zip output — are deleted for real; only items dragged in from Finder that still resolve to their original file just lose the shelf entry, leaving that original untouched."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个文件从进入暂存区起单独计时。截图、录屏、剪贴板图片，以及去背景、转格式、合成 PDF、压缩生成的文件都会被真正删除；只有从访达拖进来、仍能定位到原文件的条目才是到期只移除条目，磁盘上的原件不动。"
+          }
+        }
+      }
+    },
+    "Clear the shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear the shelf"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空暂存区"
+          }
+        }
+      }
+    },
+    "Shelf cleared · Undo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelf cleared · Undo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已清空 · 撤销"
+          }
+        }
+      }
+    },
+    "Album art glow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Album art glow"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "专辑封面辉光"
+          }
+        }
+      }
+    },
+    "Clear every slot, or drop a control here to remove just that one.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear every slot, or drop a control here to remove just that one."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空全部位置；把某个控件拖到这里则只移除那一个。"
+          }
+        }
+      }
+    },
+    "Cut": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cut"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪切"
+          }
+        }
+      }
+    },
+    "Paste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴"
+          }
+        }
+      }
+    },
+    "Cut · Undo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cut · Undo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已剪切 · 撤销"
+          }
+        }
+      }
+    },
+    "Save clipboard files": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save clipboard files"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂存剪贴板文件"
+          }
+        }
+      }
+    },
+    "Save whatever was copied by hi, WeChat, Finder or another app to the shelf, keeping the original file format.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save whatever was copied by hi, WeChat, Finder or another app to the shelf, keeping the original file format."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把 hi、微信、访达或其它应用复制的内容存入暂存区，保持原有文件格式。"
+          }
+        }
+      }
+    },
+    "播放时在专辑封面周围叠一层随封面取色的柔光。此前叫「封面背后模糊」，但那个效果从未被绘制，名字与实际不符。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lays a soft glow, tinted from the artwork, around the album art while playing. This was previously labelled “blur behind album art”, but that effect was never drawn — the name did not match what happened."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放时在专辑封面周围叠一层随封面取色的柔光。此前叫「封面背后模糊」，但那个效果从未被绘制，名字与实际不符。"
+          }
+        }
+      }
+    },
+    "开启后会定期检查剪贴板类型，仅在其中确有图片时才读取内容，用于接住其它截图工具的图片。复制文件时剪贴板里也会有该文件的图标位图，这种情况交给「暂存剪贴板文件」按钮按原格式复制，自动接收不会把图标当成图片存进来。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Polls the clipboard's declared types and reads the contents only when a picture is genuinely there, so screenshots from other tools land here too. Copying a file also puts that file's icon on the clipboard; those are left to the “save clipboard files” button, which copies the real bytes, so the watcher never mistakes an icon for a picture."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后会定期检查剪贴板类型，仅在其中确有图片时才读取内容，用于接住其它截图工具的图片。复制文件时剪贴板里也会有该文件的图标位图，这种情况交给「暂存剪贴板文件」按钮按原格式复制，自动接收不会把图标当成图片存进来。"
+          }
+        }
+      }
+    },
+    "指针停在暂存区上时可用 ⌘C 复制、⌘X 剪切、⌘V 粘贴；右键菜单里也有同样的命令。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While the pointer is over the shelf, ⌘C copies, ⌘X cuts and ⌘V pastes. The same commands are in the right-click menu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指针停在暂存区上时可用 ⌘C 复制、⌘X 剪切、⌘V 粘贴；右键菜单里也有同样的命令。"
+          }
+        }
+      }
+    },
+    "右键菜单可复制 / 剪切 / 粘贴。⌘C / ⌘X / ⌘V 需要辅助功能权限（小岛不抢键盘焦点，只能靠事件监听读到组合键），未授权时快捷键不生效，右键菜单不受影响。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy, cut and paste are in the right-click menu. ⌘C / ⌘X / ⌘V additionally need accessibility access — the island never takes keyboard focus, so a key chord can only be seen through an event monitor. Without that access the shortcuts do nothing; the menu is unaffected."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右键菜单可复制 / 剪切 / 粘贴。⌘C / ⌘X / ⌘V 需要辅助功能权限（小岛不抢键盘焦点，只能靠事件监听读到组合键），未授权时快捷键不生效，右键菜单不受影响。"
           }
         }
       }

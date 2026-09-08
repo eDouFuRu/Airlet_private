@@ -99,6 +99,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = LyricsStore.shared
         HiNotificationManager.shared.start()
         _ = UtilityClockStore.shared
+        ClipboardShelfBridge.shared.importImage = { image in
+            CaptureTools.shared.saveToShelf(image: image)
+        }
+        ClipboardShelfBridge.shared.start()
+        ShelfRetentionSweeper.shared.start()
         CaptureTools.shared.prepareForCapture = { [weak self] in
             self?.visibility.captureInProgress = true
             self?.applyVisibility()
@@ -370,6 +375,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        ShelfStateViewModel.shared.finaliseUndoWindowBeforeTermination()
         HUDStateManager.shared.stop()
         IslandRestModel.shared.setApplicationAvailable(false)
         cleanupWindows()

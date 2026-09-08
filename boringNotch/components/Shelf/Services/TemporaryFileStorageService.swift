@@ -31,8 +31,8 @@ class TemporaryFileStorageService {
     func removeTemporaryFileIfNeeded(at url: URL) {
         let tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
 
-        guard url.path.hasPrefix(tempDirectory.path) else {
-            print("Attempted to remove temporary file outside temp directory: \(url.path)")
+        guard TemporaryFilePathGuard.isInsideTemporaryDirectory(url, temporaryRoot: tempDirectory) else {
+            NSLog("Attempted to remove temporary file outside temp directory: \(url.path)")
             return
         }
 

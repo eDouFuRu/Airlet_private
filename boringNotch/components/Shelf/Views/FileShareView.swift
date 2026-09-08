@@ -27,6 +27,10 @@ struct FileShareView: View {
         dropArea
             .background(NSViewHost(view: $hostView))
             .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data, .image], isTargeted: $vm.dropZoneTargeting) { providers in
+                // This tile sits immediately beside the shelf items, so a drag the user is
+                // abandoning lands here easily. Accepting it would both fire an unwanted
+                // share and tell the drag source the file was delivered, which removes it.
+                guard !ShelfSelectionModel.shared.isDragging else { return false }
                 interactionNonce = .init()
                 vm.dropEvent = true
                 Task { await handleDrop(providers) }

@@ -189,10 +189,28 @@ class BoringViewModel: NSObject, ObservableObject {
         return false
     }
 
+    /// Whether the pointer is currently carrying files from a drag.
+    ///
+    /// The button check is what makes this safe: the drag pasteboard keeps its contents after
+    /// the drag ends, so reading it alone would report a file drag long after one finished.
+    static var isFileDragInFlight: Bool {
+        guard NSEvent.pressedMouseButtons & 0x1 != 0 else { return false }
+        return NSPasteboard(name: .drag).canReadObject(
+            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+    }
+
     func open(preferredPage: NotchViews? = nil) {
         guard IslandVisibility.shared.isAvailable else { return }
         if let preferredPage {
             coordinator.currentView = preferredPage
+        } else if Defaults[.boringShelf] && Self.isFileDragInFlight {
+            // Carrying a file is unambiguous, so it outranks every page preference — landing
+            // on the media page with a file in hand leaves nowhere to drop it. This is decided
+            // here rather than in the drop delegate because a collapsed island sets
+            // `ignoresMouseEvents`, so it is not a drag destination at the moment the pointer
+            // arrives and `dropEntered` never fires. Applies whether or not the island was
+            // already open, since a drag can arrive over an island opened moments earlier.
+            coordinator.currentView = .shelf
         } else if notchState == .closed {
             if Defaults[.boringShelf] && Defaults[.openShelfByDefault] && !ShelfStateViewModel.shared.isEmpty {
                 coordinator.currentView = .shelf

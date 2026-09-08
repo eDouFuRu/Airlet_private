@@ -95,6 +95,27 @@ final class SystemHUDTests: XCTestCase {
         }
     }
 
+    /// The tools page is the tallest expanded view, and a HUD or brief row stacks on top
+    /// of it. The carrier window cannot grow at runtime, so the page height plus that row
+    /// plus the shadow margin has to fit inside it or the bottom card row is clipped away.
+    func testTallestPagePlusHUDRowStillFitsInsideCarrierWindow() {
+        for header: CGFloat in [24, 32, 45, 60] {
+            let toolsHeight = SystemToolGridMetrics.expandedHeight(headerHeight: header)
+            let layout = makeLayout(active: true, inline: false, expanded: true,
+                                    header: header, baseHeight: toolsHeight)
+            XCTAssertEqual(layout.size.height, toolsHeight + SystemHUDLayout.rowHeight)
+            XCTAssertGreaterThanOrEqual(SystemHUDLayout.carrierHeight, layout.size.height + 20)
+        }
+    }
+
+    /// The viewport must hold a whole number of cards, or the bottom row is sliced.
+    func testGridViewportIsAWholeNumberOfRows() {
+        let pitch = SystemToolGridMetrics.cardHeight + SystemToolGridMetrics.spacing
+        XCTAssertEqual(SystemToolGridMetrics.gridViewportHeight,
+                       CGFloat(SystemToolGridMetrics.visibleRows) * pitch - SystemToolGridMetrics.spacing)
+        XCTAssertEqual(SystemToolGridMetrics.gridViewportHeight, 208)
+    }
+
     func testFullscreenZeroHeightCanShowBothStylesAndReturnsToHiddenAfterExpiry() {
         for inline in [false, true] {
             let hidden = CGSize(width: 120, height: 0)

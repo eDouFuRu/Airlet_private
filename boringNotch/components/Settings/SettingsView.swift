@@ -153,7 +153,11 @@ struct GeneralSettings: View {
     @Default(.showOnAllDisplays) var showOnAllDisplays
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
     @Default(.openNotchOnHover) var openNotchOnHover
-    
+    @Default(.notchCloseTriggerMode) var closeTriggerMode
+    @Default(.notchCloseDelay) var closeDelay
+    @Default(.tabSwitchOnHover) var switchOnHover
+    @Default(.tabHoverSwitchDelay) var tabHoverDelay
+
 
     var body: some View {
         Form {
@@ -287,6 +291,40 @@ struct GeneralSettings: View {
                 Text("鼠标在摄像头所占用的刘海区域停留 150 毫秒后展开，两侧的状态展示不触发展开。无刘海屏幕使用顶部模拟胶囊。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            Picker(selection: $closeTriggerMode) {
+                ForEach(NotchCloseTriggerMode.allCases, id: \.self) { mode in
+                    Text(L(mode.labelKey)).tag(mode)
+                }
+            } label: {
+                Text("Collapse the island")
+            }
+            if closeTriggerMode == .hoverOut {
+                LabeledContent {
+                    HStack {
+                        Slider(value: $closeDelay, in: 0.15...0.6, step: 0.01)
+                        Text(verbatim: String(format: L("%.2f s"), closeDelay))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                    }
+                } label: {
+                    Text("Collapse delay")
+                }
+                Text("提高延迟可以避免鼠标划过边缘就误收起。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Defaults.Toggle(key: .tabSwitchOnHover) {
+                Text("Switch tabs on hover")
+            }
+            if switchOnHover {
+                LabeledContent {
+                    HStack {
+                        Slider(value: $tabHoverDelay, in: 0.05...0.4, step: 0.01)
+                        Text(verbatim: String(format: L("%.2f s"), tabHoverDelay))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                    }
+                } label: {
+                    Text("Tab hover delay")
+                }
             }
         } header: {
             Text("Notch behavior")
@@ -875,10 +913,21 @@ struct Shelf: View {
     
     @Default(.shelfTapToOpen) var shelfTapToOpen: Bool
     @Default(.quickShareProvider) var quickShareProvider
+    @Default(.shelfDragRemovalTrigger) var dragRemovalTrigger
+    @Default(.autoRemoveShelfItems) var autoRemoveShelfItems
+    @Default(.shelfRetention) var shelfRetention
     @StateObject private var quickShareService = QuickShareService.shared
 
     private var selectedProvider: QuickShareProvider? {
         quickShareService.availableProviders.first(where: { $0.id == quickShareProvider })
+    }
+
+    /// Read once per settings render rather than observed: accessibility trust changes
+    /// require the user to leave and come back anyway.
+    private var shelfChordHint: LocalizedStringKey {
+        ShelfKeyboardChords.shared.isAvailable
+            ? "指针停在暂存区上时可用 ⌘C 复制、⌘X 剪切、⌘V 粘贴；右键菜单里也有同样的命令。"
+            : "右键菜单可复制 / 剪切 / 粘贴。⌘C / ⌘X / ⌘V 需要辅助功能权限（小岛不抢键盘焦点，只能靠事件监听读到组合键），未授权时快捷键不生效，右键菜单不受影响。"
     }
     
     init() {
@@ -894,13 +943,43 @@ struct Shelf: View {
                 Defaults.Toggle(key: .openShelfByDefault) {
                     Text("Open shelf by default if items are present")
                 }
-                Defaults.Toggle(key: .copyOnDrag) {
-                    Text("Copy items on drag")
-                }
                 Defaults.Toggle(key: .autoRemoveShelfItems) {
                     Text("Remove from shelf after dragging")
                 }
-
+                Picker(selection: $dragRemovalTrigger) {
+                    ForEach(ShelfDragRemovalTriggerMode.allCases, id: \.self) { mode in
+                        Text(L(mode.labelKey)).tag(mode)
+                    }
+                } label: {
+                    Text("Move out of the shelf while holding")
+                }
+                .disabled(autoRemoveShelfItems)
+                if autoRemoveShelfItems {
+                    Text("已设为拖出后一律移除，组合键不再起作用。")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("拖出前或拖动途中按住该组合键即可，放手时松没松开都算。拖回小岛不会移除；移除后 10 秒内可撤销。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Picker(selection: $shelfRetention) {
+                    ForEach(ShelfRetentionMode.allCases, id: \.self) { mode in
+                        Text(L(mode.labelKey)).tag(mode)
+                    }
+                } label: {
+                    Text("Clear staged files")
+                }
+                Text("每个文件从进入暂存区起单独计时。截图、录屏、剪贴板图片，以及去背景、转格式、合成 PDF、压缩生成的文件都会被真正删除；只有从访达拖进来、仍能定位到原文件的条目才是到期只移除条目，磁盘上的原件不动。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Defaults.Toggle(key: .copyCaptureToClipboard) {
+                    Text("Copy captures to the clipboard")
+                }
+                Defaults.Toggle(key: .importClipboardImagesToShelf) {
+                    Text("Add copied images to the shelf")
+                }
+                Text("开启后会定期检查剪贴板类型，仅在其中确有图片时才读取内容，用于接住其它截图工具的图片。复制文件时剪贴板里也会有该文件的图标位图，这种情况交给「暂存剪贴板文件」按钮按原格式复制，自动接收不会把图标当成图片存进来。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(shelfChordHint)
+                    .font(.caption).foregroundStyle(.secondary)
             } header: {
                 HStack {
                     Text("General")
@@ -1133,8 +1212,10 @@ struct Appearance: View {
                     Text("Player tinting")
                 }
                 Defaults.Toggle(key: .lightingEffect) {
-                    Text("Enable blur effect behind album art")
+                    Text("Album art glow")
                 }
+                Text("播放时在专辑封面周围叠一层随封面取色的柔光。此前叫「封面背后模糊」，但那个效果从未被绘制，名字与实际不符。")
+                    .font(.caption).foregroundStyle(.secondary)
                 Picker("Slider color", selection: $sliderColor) {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
                         Text(L(option.rawValue))

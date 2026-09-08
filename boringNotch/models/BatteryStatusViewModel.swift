@@ -122,7 +122,7 @@ class BatteryStatusViewModel: ObservableObject {
     /// - Parameter delay: The delay before notifying the change, default is 0.0
     private func notifyImportanChangeStatus(delay: Double = 0.0) {
         Task { @MainActor in
-            guard Defaults[.showPowerStatusNotifications], IslandVisibility.shared.isAvailable else { return }
+            guard Self.mayNotify else { return }
             do {
                 try await Task.sleep(for: .seconds(delay))
             } catch {
@@ -130,9 +130,17 @@ class BatteryStatusViewModel: ObservableObject {
             }
             // A disabled notification must not occupy the shared media presentation state.
             // Recheck after the suspension in case settings or visibility changed meanwhile.
-            guard Defaults[.showPowerStatusNotifications], IslandVisibility.shared.isAvailable else { return }
+            guard Self.mayNotify else { return }
             self.coordinator.toggleExpandingView(status: true, type: .battery)
         }
+    }
+
+    /// The notice is drawn with the system HUD's chrome, so turning that replacement off is
+    /// the one thing that suppresses it. Nothing else does — in particular, what page the
+    /// island happens to be showing is irrelevant.
+    @MainActor private static var mayNotify: Bool {
+        Defaults[.showPowerStatusNotifications] && Defaults[.hudReplacement]
+            && IslandVisibility.shared.isAvailable
     }
 
     deinit {

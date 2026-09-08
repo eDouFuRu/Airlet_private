@@ -79,6 +79,20 @@ extension Defaults.Keys {
     static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.15)
     static let enableHaptics = Key<Bool>("enableHaptics", default: true)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
+    /// How long the pointer must stay outside the island before it collapses. The old
+    /// 0.1s made brushing past an edge enough to lose the page being worked in.
+    static let notchCloseDelay = Key<TimeInterval>("notchCloseDelay", default: 0.28)
+    static let notchCloseTriggerMode = Key<NotchCloseTriggerMode>("notchCloseTriggerMode", default: .hoverOut)
+    /// Puts a capture on the clipboard as well as on the shelf, matching what the system's
+    /// own "copy picture to clipboard" shortcuts do. Off means the clipboard is left alone.
+    static let copyCaptureToClipboard = Key<Bool>("copyCaptureToClipboard", default: true)
+    /// Pulls images copied by any app onto the shelf, so third-party capture tools land
+    /// there too. Requires polling the pasteboard, so it is switchable.
+    static let importClipboardImagesToShelf = Key<Bool>("importClipboardImagesToShelf", default: true)
+    static let tabSwitchOnHover = Key<Bool>("tabSwitchOnHover", default: true)
+    /// Deliberately shorter than the open delay: switching tabs is cheap and reversible,
+    /// so it should feel immediate while still absorbing a pointer sweeping across.
+    static let tabHoverSwitchDelay = Key<TimeInterval>("tabHoverSwitchDelay", default: 0.12)
     static let extendHoverArea = Key<Bool>("extendHoverArea", default: false)
     static let notchHeightMode = Key<WindowHeightMode>(
         "notchHeightMode",
@@ -93,7 +107,13 @@ extension Defaults.Keys {
     //static let openLastTabByDefault = Key<Bool>("openLastTabByDefault", default: false)
     static let showOnLockScreen = Key<Bool>("showOnLockScreen", default: false)
     static let hideFromScreenRecording = Key<Bool>("hideFromScreenRecording", default: false)
-    
+
+    // MARK: Sweet Potato Timer
+    /// The countdown beside the camera is a glanceable extra, not part of the timer. Turning
+    /// it off only stops it being drawn — the session keeps running and settles as it would
+    /// have, and the focus-finished reminder still opens the island.
+    static let showRestTimerOnClosed = Key<Bool>("showRestTimerOnClosed", default: true)
+
     // MARK: Appearance
     static let showEmojis = Key<Bool>("showEmojis", default: false)
     //static let alwaysShowTabs = Key<Bool>("alwaysShowTabs", default: true)
@@ -130,7 +150,7 @@ extension Defaults.Keys {
     static let showShuffleAndRepeat = Key<Bool>("showShuffleAndRepeat", default: false)
     static let enableLyrics = Key<Bool>("enableLyrics", default: false) // retained for one-time migration
     static let lyricsDisplayLocation = Key<LyricsDisplayLocation>("lyricsDisplayLocation", default: .off)
-    static let lyricsColorMode = Key<LyricsColorMode>("lyricsColorMode", default: .white)
+    static let lyricsColorMode = Key<LyricsColorMode>("lyricsColorMode", default: .albumArt)
     static let customLyricsColor = Key<Color>("customLyricsColor", default: .white)
     static let enableHiNotifications = Key<Bool>("enableHiNotifications", default: false)
     static let hiNotificationDetail = Key<Bool>("hiNotificationDetail", default: false)
@@ -167,11 +187,18 @@ extension Defaults.Keys {
     
     // MARK: Shelf
     static let boringShelf = Key<Bool>("boringShelf", default: true)
-    static let openShelfByDefault = Key<Bool>("openShelfByDefault", default: false)
+    /// Having something staged is itself the signal that the shelf is what the user came for,
+    /// so it opens there. The gate is "not empty", so an untouched shelf never changes the
+    /// landing page and the switch only matters once there is something to land on.
+    static let openShelfByDefault = Key<Bool>("openShelfByDefault", default: true)
     static let shelfTapToOpen = Key<Bool>("shelfTapToOpen", default: true)
     static let quickShareProvider = Key<String>("quickShareProvider", default: QuickShareProvider.defaultProvider.id)
-    static let copyOnDrag = Key<Bool>("copyOnDrag", default: false)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: false)
+    static let shelfDragRemovalTrigger = Key<ShelfDragRemovalTriggerMode>("shelfDragRemovalTrigger", default: .optionCommand)
+    /// The shelf is a staging area, so items clear themselves out by default rather than
+    /// silently accumulating. Only files this app created are deleted; anything dragged in
+    /// from Finder merely loses its entry.
+    static let shelfRetention = Key<ShelfRetentionMode>("shelfRetention", default: .day1)
     static let expandedDragDetection = Key<Bool>("expandedDragDetection", default: false)
     
     // MARK: Calendar

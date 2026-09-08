@@ -1,6 +1,7 @@
 // Custom changes for 工位充电岛: physical-notch-only opening and transparent-window input.
 import AppKit
 import Combine
+import Defaults
 
 @MainActor
 final class NotchPointerCoordinator: ObservableObject {
@@ -10,7 +11,9 @@ final class NotchPointerCoordinator: ObservableObject {
     private let keepsOpen: () -> Bool
     private let open: () -> Void
     private let close: () -> Void
-    private var machine = NotchHoverStateMachine()
+    private var machine = NotchHoverStateMachine(closeDelay: Defaults[.notchCloseDelay])
+    private var closeTrigger = Defaults[.notchCloseTriggerMode].machineTrigger
+    private var observations: Set<AnyCancellable> = []
     private var localMonitor: Any?
     private var globalMonitor: Any?
     private var observers: [NSObjectProtocol] = []
@@ -44,9 +47,23 @@ final class NotchPointerCoordinator: ObservableObject {
     }
 
     private func captures(_ point: CGPoint, region: NotchHitRegion, active: Bool) -> Bool {
-        guard active && region.containsVisible(point) else { return false }
+        guard active else { return false }
+        // The floating control sits outside the painted shape, so it is checked separately
+        // or the window would stay click-through exactly where it is drawn.
+        if region.containsAccessory(point) { return isExpanded() }
+        guard region.containsVisible(point) else { return false }
         if isInBriefRow(point, region: region) { return briefRowInteractive }
         return isExpanded()
+    }
+
+    /// Whether a control is currently floating beside the island. Set by the view that
+    /// draws it, so the hit region only grows while it is actually on screen.
+    private var accessoryVisible = false
+
+    func setAccessoryControlVisible(_ visible: Bool) {
+        guard accessoryVisible != visible else { return }
+        accessoryVisible = visible
+        reevaluate()
     }
     private var presentationSize: CGSize = .zero
     private var topRadius: CGFloat = 6
@@ -156,9 +173,13 @@ final class NotchPointerCoordinator: ObservableObject {
         #endif
         let action = machine.update(
             enabled: automaticHoverEnabled, expanded: expanded, inTrigger: region.containsTrigger(point),
-            inVisibleContent: region.containsVisible(point),
-            holdsOpen: !trackedMenus.isEmpty || keepsOpen() || now < commandGraceUntil,
-            now: now
+            // Reaching for the floating control means leaving the painted shape. Counting it
+            // as content keeps the island up long enough to actually press it, while staying
+            // out of `inTrigger` so it can never open the island by itself.
+            inVisibleContent: region.containsInteractiveContent(point),
+            holdsOpen: currentHoldsOpen(now: now),
+            now: now,
+            closeTrigger: closeTrigger
         )
         updatePendingTask()
         switch action {
@@ -173,6 +194,37 @@ final class NotchPointerCoordinator: ObservableObject {
         if action != nil {
             refreshInputRouting(point: point, region: currentRegion, active: enabled && window.isVisible)
         }
+    }
+
+    /// Every reason the island must stay expanded while the pointer is away, in one place:
+    /// a tracked `NSMenu`, the owner's own keep-open state, a recent explicit command, and
+    /// the popover/pinned-page registry.
+    private func currentHoldsOpen(now: TimeInterval) -> Bool {
+        !trackedMenus.isEmpty || keepsOpen() || now < commandGraceUntil
+            || NotchOpenHoldCenter.shared.isHoldingAgainstPointerExit
+    }
+
+    /// A click that lands away from the island collapses it, which is the only way out
+    /// when the pointer alone cannot close it — either because the user chose
+    /// `externalClickOnly`, or because a page is pinned open.
+    ///
+    /// Deliberately narrower than `currentHoldsOpen`: a pinned page must not survive an
+    /// explicit dismissal, or the island would be stuck. A popover still wins, since its
+    /// own frame sits outside the island and clicking it is not a dismissal.
+    private func handlePotentialOutsideClick() {
+        guard enabled, isExpanded(), let window, window.isVisible else { return }
+        guard !NotchOpenHoldCenter.shared.isHoldingAgainstExplicitDismissal else { return }
+        guard trackedMenus.isEmpty else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now >= commandGraceUntil, !keepsOpen() else { return }
+        // The same region used for input routing, so a click the window actually swallowed
+        // can never be judged to be outside it. `containsExpandedHover` rather than
+        // `containsVisible` keeps the physical notch strip counted as inside.
+        guard !currentRegion.containsExpandedHover(NSEvent.mouseLocation) else { return }
+        // Never activates the window: closing must not steal key or main status.
+        close()
+        refreshInputRouting(point: NSEvent.mouseLocation, region: currentRegion,
+                            active: enabled && window.isVisible)
     }
 
     private func refreshInputRouting(point: CGPoint, region: NotchHitRegion, active: Bool) {
@@ -192,7 +244,11 @@ final class NotchPointerCoordinator: ObservableObject {
                                   y: frame.maxY - presentationSize.height,
                                   width: presentationSize.width, height: presentationSize.height)
         return NotchHitRegion(triggerRect: Self.triggerRect(for: screen), visibleFrame: visibleFrame,
-                              topRadius: topRadius, bottomRadius: bottomRadius)
+                              topRadius: topRadius, bottomRadius: bottomRadius,
+                              accessoryRects: accessoryVisible
+                                  ? NotchAccessorySlot.allCases.map {
+                                      NotchAccessoryControl.rect(visibleFrame: visibleFrame, slot: $0)
+                                  } : [])
     }
 
     private static func triggerRect(for screen: NSScreen) -> CGRect {
@@ -224,13 +280,25 @@ final class NotchPointerCoordinator: ObservableObject {
         let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged,
                                            .otherMouseDragged, .leftMouseDown, .rightMouseDown,
                                            .otherMouseDown, .scrollWheel]
+        func isMouseDown(_ type: NSEvent.EventType) -> Bool {
+            type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown
+        }
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
             self?.reevaluate()
+            if isMouseDown(event.type) { self?.handlePotentialOutsideClick() }
             return event
         }
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] _ in
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
             self?.reevaluate()
+            if isMouseDown(event.type) { self?.handlePotentialOutsideClick() }
         }
+        // No mouse event follows a hold being taken or released, so the state machine has
+        // to be re-run explicitly or a released hold would leave the island open until the
+        // pointer happens to move again. Each island subscribes for itself.
+        NotchOpenHoldCenter.shared.changes
+            .sink { [weak self] in MainActor.assumeIsolated { self?.reevaluate() } }
+            .store(in: &observations)
+        observeSettings()
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil,
                                             queue: .main) { [weak self] notification in
@@ -259,7 +327,35 @@ final class NotchPointerCoordinator: ObservableObject {
         })
     }
 
+    /// Debounced because dragging the delay slider republishes on every intermediate
+    /// value, and each rebuild discards the dwell timer that is currently running.
+    ///
+    /// Shares `observations` with the hold subscription, so it must not clear the set;
+    /// `stopObservers` owns tearing every subscription down together.
+    private func observeSettings() {
+        Defaults.publisher(keys: .notchCloseDelay, .notchCloseTriggerMode)
+            .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                MainActor.assumeIsolated { self?.applySettings() }
+            }
+            .store(in: &observations)
+    }
+
+    private func applySettings() {
+        let delay = Defaults[.notchCloseDelay]
+        let trigger = Defaults[.notchCloseTriggerMode].machineTrigger
+        closeTrigger = trigger
+        if machine.closeDelay != delay {
+            machine = NotchHoverStateMachine(openDelay: machine.openDelay, closeDelay: delay)
+            scheduledDeadline = nil
+            pendingTask?.cancel()
+            pendingTask = nil
+        }
+        reevaluate()
+    }
+
     private func stopObservers() {
+        observations.removeAll()
         pendingTask?.cancel()
         pendingTask = nil
         commandGraceTask?.cancel()

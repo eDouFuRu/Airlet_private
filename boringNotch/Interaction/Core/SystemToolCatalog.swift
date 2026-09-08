@@ -66,15 +66,15 @@ enum SystemToolBehavior: Equatable, Sendable {
         case .capture: "Capture"
         case .utility: "Open Tool"
         case .slider: "Adjust Here"
-        case .wifiPower: "Toggle Wi-Fi"
-        case .bluetoothPower: "Bluetooth Control · Experimental"
-        case .nightShiftToggle: "Night Shift Control · Experimental"
-        case .trueToneToggle: "True Tone Control · Experimental"
+        case .wifiPower: "Wi-Fi Control"
+        case .bluetoothPower: "Bluetooth Control"
+        case .nightShiftToggle: "Night Shift Control"
+        case .trueToneToggle: "True Tone Control"
         case .inputSourcePicker: "Choose Input Source"
         case .audioOutputPicker: "Choose Audio Output"
         case .displayModePicker: "Choose Display Mode"
         case .vpnConnectionPicker: "VPN Connections"
-        case .accessibilityDisplayToggle: "Display Accessibility · Experimental"
+        case .accessibilityDisplayToggle: "Display Accessibility"
         case .appearanceToggle: "Toggle Dark Mode"
         case .timeMachineBackup: "Backup Controls"
         case .nativeApp: "Open App"
@@ -137,12 +137,20 @@ enum SystemToolSettingsPane: String, Sendable {
     }
 }
 
+/// Tools whose glyph has no SF Symbol equivalent and is drawn by the app instead.
+enum SystemToolCustomIcon: Equatable, Sendable {
+    case bluetoothRune
+}
+
 struct SystemToolDefinition: Identifiable, Equatable, Sendable {
     let id: SystemToolID
     let titleKey: String
     let symbol: String
     let category: SystemToolCategory
     let behavior: SystemToolBehavior
+    /// `symbol` stays populated even when this is set: the AppKit drag preview can
+    /// only render an `NSImage(systemSymbolName:)` and falls back to it.
+    var customIcon: SystemToolCustomIcon?
 }
 
 enum SystemToolCatalog {
@@ -181,7 +189,8 @@ enum SystemToolCatalog {
         item(.trueTone, "True Tone", "sun.max.circle", .displayAndSound, .trueToneToggle),
         item(.sound, "Sound & Audio Output", "hifispeaker", .displayAndSound, .audioOutputPicker),
         item(.wifi, "Wi-Fi", "wifi", .connectivity, .wifiPower),
-        item(.bluetooth, "Bluetooth", "antenna.radiowaves.left.and.right", .connectivity, .bluetoothPower),
+        .init(id: .bluetooth, titleKey: "Bluetooth", symbol: "antenna.radiowaves.left.and.right",
+              category: .connectivity, behavior: .bluetoothPower, customIcon: .bluetoothRune),
         settings(.airDrop, "AirDrop", "airplayaudio", .connectivity, .airDrop),
         settings(.focus, "Focus", "moon.zzz", .system, .focus),
         settings(.screenMirroring, "Screen Mirroring", "rectangle.on.rectangle", .connectivity, .displays),

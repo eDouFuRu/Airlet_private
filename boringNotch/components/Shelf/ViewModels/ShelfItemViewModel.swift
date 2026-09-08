@@ -22,7 +22,6 @@ final class ShelfItemViewModel: ObservableObject {
     private var sharingLifecycle: SharingLifecycleDelegate?
     private var quickShareLifecycle: SharingLifecycleDelegate?
     private var sharingAccessingURLs: [URL] = []
-    private static var copiedURLs: [URL] = []
 
     private let selection = ShelfSelectionModel.shared
 
@@ -98,7 +97,15 @@ final class ShelfItemViewModel: ObservableObject {
 
     // MARK: - Actions
     func handleClick(event: NSEvent, view: NSView) {
+        // Claim the click before the panel behind us recognises it on mouse-up, or it
+        // would clear whatever selection this call is about to make.
+        selection.noteItemHandledClick()
         let flags = event.modifierFlags
+        // The removal chord contains ⌘, but here it means "I am about to drag this out", not
+        // "add this to the selection". Letting it fall through to `toggle` would quietly widen
+        // the set the drag is about to remove, so the press must leave the selection alone and
+        // let the drag decide on its own.
+        guard !ShelfDragRemovalChord.isSatisfied(by: flags) else { return }
         if flags.contains(.shift) {
             selection.shiftSelect(to: item, in: ShelfStateViewModel.shared.items)
         } else if flags.contains(.command) {
@@ -359,6 +366,8 @@ final class ShelfItemViewModel: ObservableObject {
 
         // Always show "Copy" for all item types
         addMenuItem(title: "Copy")
+        addMenuItem(title: "Cut")
+        if ShelfClipboardActions.clipboardHasStageableContent { addMenuItem(title: "Paste") }
         // If there are file URLs, add "Copy Path" as an alternate menu item (Option key)
         if !selectedFileURLs.isEmpty {
             let copyPathItem = NSMenuItem(title: "Copy Path", action: nil, keyEquivalent: "")
@@ -513,37 +522,15 @@ final class ShelfItemViewModel: ObservableObject {
                 }
 
             case "Copy":
-                let selected = ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items)
-                let pb = NSPasteboard.general
-                
-                // Stop accessing previously copied URLs
-                for url in ShelfItemViewModel.copiedURLs {
-                    url.stopAccessingSecurityScopedResource()
-                }
-                ShelfItemViewModel.copiedURLs.removeAll()
-                
-                pb.clearContents()
-                Task {
-                    let fileURLs = await selected.asyncCompactMap { item -> URL? in
-                        if case .file = item.kind {
-                            return ShelfStateViewModel.shared.resolveAndUpdateBookmark(for: item)
-                        }
-                        return nil
-                    }
-                    if !fileURLs.isEmpty {
-                        // Start security-scoped access for all URLs and keep them active
-                        ShelfItemViewModel.copiedURLs = fileURLs.filter { $0.startAccessingSecurityScopedResource() }
-                        NSLog("🔐 Started security-scoped access for \(ShelfItemViewModel.copiedURLs.count) copied files")
-                        
-                        // Write to pasteboard
-                        pb.writeObjects(fileURLs as [NSURL])
-                    } else {
-                        let strings = selected.map { $0.displayName }
-                        if !strings.isEmpty {
-                            pb.setString(strings.joined(separator: "\n"), forType: .string)
-                        }
-                    }
-                }
+                ShelfClipboardActions.copy(
+                    ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items))
+
+            case "Cut":
+                ShelfClipboardActions.cut(
+                    ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items))
+
+            case "Paste":
+                ShelfClipboardActions.paste()
 
             case "Remove":
                 let selected = ShelfSelectionModel.shared.selectedItems(in: ShelfStateViewModel.shared.items)

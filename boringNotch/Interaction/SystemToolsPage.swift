@@ -2,6 +2,13 @@ import AppKit
 import Combine
 import SwiftUI
 
+/// Shared geometry for the quick-tool grid.
+///
+/// Every tile paints at `cardHeight`, and the grid pins each cell's measured
+/// frame to the same value so the reorder handle lands on the real card corner
+/// even for tiles whose control reports a smaller intrinsic size. Painted and
+/// measured heights must stay equal, so they read from here rather than from
+/// literals scattered across the tile views.
 @MainActor final class SystemToolConfigurationStore: ObservableObject {
     static let shared = SystemToolConfigurationStore()
     private static let key = "island.quickTools.v1"
@@ -42,19 +49,20 @@ struct SystemToolsPage: View {
     @ObservedObject private var configuration = SystemToolConfigurationStore.shared
     @ObservedObject private var capture = CaptureTools.shared
     @State private var message = ""
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: SystemToolGridMetrics.spacing), count: 4)
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SystemToolGridMetrics.spacing) {
             HStack {
                 Label(L("Quick tools"), systemImage: "square.grid.2x2.fill").font(.system(size: 12, weight: .semibold))
                 Label(L("Drag handles to reorder"), systemImage: "line.3.horizontal")
                     .font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.62))
                     .help(L("Hold a handle and drag to reorder. Changes are saved immediately."))
                 Spacer()
-                Button { capture.importClipboardImage() } label: { Label(L("Save clipboard image"), systemImage: "photo.on.rectangle") }
-                    .help(L("Save an image copied by hi, WeChat, or another app to the shelf."))
+                Button { capture.importClipboardFiles() } label: { Label(L("Save clipboard files"), systemImage: "doc.on.clipboard") }
+                    .help(L("Save whatever was copied by hi, WeChat, Finder or another app to the shelf, keeping the original file format."))
                 Button { SettingsWindowController.shared.showToolsSettings() } label: { Label(L("Customize"), systemImage: "slider.horizontal.3") }
             }.font(.system(size: 11)).buttonStyle(.plain).foregroundStyle(.white.opacity(0.8))
+                .frame(height: SystemToolGridMetrics.pageHeaderHeight)
             ScrollView {
                 if configuration.selectedTools.isEmpty {
                     VStack(spacing: 8) {
@@ -81,6 +89,11 @@ struct SystemToolsPage: View {
                                 else if tool.behavior == .timeMachineBackup { SystemToolTimeMachineTile() }
                                 else { toolButton(tool) }
                             }
+                            // Some tiles report a smaller layout frame than the card they paint,
+                            // which would centre the handle overlay inside the grid row. Pinning
+                            // the measured size to the painted size keeps the handle and the drop
+                            // highlight on the real card edges for every tile kind.
+                            .frame(maxWidth: .infinity, minHeight: SystemToolGridMetrics.cardHeight)
                             .overlay(alignment: .topTrailing) {
                                 ToolReorderHandle(tool: tool).padding(3)
                             }
@@ -89,12 +102,16 @@ struct SystemToolsPage: View {
                     }
                 }
             }.scrollIndicators(.visible)
+                // Pinned to a whole number of rows so a partially clipped card can never
+                // appear at the bottom edge, whatever the tool count.
+                .frame(height: SystemToolGridMetrics.gridViewportHeight)
             HStack(spacing: 6) {
                 Image(systemName: "tray.and.arrow.down").foregroundStyle(.secondary)
                 Text(message.isEmpty ? capture.statusText : L(message)).lineLimit(1).help(message.isEmpty ? capture.statusText : L(message))
                 Spacer(minLength: 0)
                 Button(L("Open shelf")) { BoringViewCoordinator.shared.currentView = .shelf }
             }.font(.system(size: 10)).foregroundStyle(.secondary).buttonStyle(.plain)
+                .frame(height: SystemToolGridMetrics.pageFooterHeight)
         }.padding(.horizontal, 1)
     }
     private func toolButton(_ tool: SystemToolDefinition) -> some View {
@@ -103,10 +120,10 @@ struct SystemToolsPage: View {
         let helpLabel = tool.id == .recordCustom ? "Choose a screen or window. Video only; no system audio or microphone." : tool.behavior.labelKey
         return Button { activate(tool) } label: {
             VStack(spacing: 4) {
-                Image(systemName: tool.symbol).font(.system(size: 18, weight: .medium)).frame(height: 22)
+                SystemToolGlyph(tool: tool).font(.system(size: 18, weight: .medium)).frame(height: 22)
                 Text(L(tool.titleKey)).font(.system(size: 11, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
                 Text(L(installed ? actionLabel : "Not installed")).font(.system(size: 8)).foregroundStyle(.white.opacity(0.5))
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: 64)
+            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
                 .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain).help(L(tool.titleKey) + " · " + L(helpLabel))
@@ -165,7 +182,7 @@ private struct SystemToolTimeMachineTile: View {
                 Text(L("Time Machine")).font(.system(size: 11, weight: .medium))
                 Text(status).font(.system(size: 8))
                     .foregroundStyle(backup.errorKey == nil ? Color.white.opacity(0.5) : .orange)
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: 64)
+            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
                 .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain).disabled(backup.isBusy)
@@ -189,7 +206,7 @@ private struct SystemToolAppearanceTile: View {
                 Image(systemName: "moon").font(.system(size: 18, weight: .medium)).frame(height: 22)
                 Text(L("Dark Mode")).font(.system(size: 11, weight: .medium))
                 Text(status).font(.system(size: 8)).foregroundStyle(appearance.errorKey == nil ? Color.white.opacity(0.5) : .orange)
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: 64)
+            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
                 .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain).disabled(appearance.isBusy)
@@ -207,25 +224,34 @@ private struct SystemToolWifiTile: View {
         guard let enabled = wifi.enabled else { return L("Reading hardware…") }
         return L(enabled ? "Wi-Fi is on" : "Wi-Fi is off")
     }
+    /// Clicking opens the macOS pane rather than toggling the radio: turning Wi-Fi off
+    /// from a card that sits under the pointer is easy to trigger by accident and drops
+    /// every network connection. The card keeps reporting the real radio state, and the
+    /// context menu still offers a refresh.
     var body: some View {
         Button {
-            Task { @MainActor in
-                if wifi.errorKey != nil || wifi.enabled == nil { await wifi.refresh() }
-                else { await wifi.toggle() }
-            }
+            Task { @MainActor in _ = await SystemToolActions.shared.openControlSettings(.wifi) }
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: wifi.enabled == false ? "wifi.slash" : "wifi")
                     .font(.system(size: 18, weight: .medium)).frame(height: 22)
                 Text(L("Wi-Fi")).font(.system(size: 11, weight: .medium))
                 Text(status).font(.system(size: 8)).foregroundStyle(wifi.errorKey == nil ? Color.white.opacity(0.5) : .orange)
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: 64)
+            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
                 .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
-        }.buttonStyle(.plain).disabled(wifi.isBusy)
-            .help(L(wifi.errorKey ?? "Toggle Wi-Fi"))
+        }.buttonStyle(.plain)
+            .help(L(wifi.errorKey ?? "Open Wi-Fi settings"))
             .accessibilityLabel(L("Wi-Fi")).accessibilityValue(status)
-            .accessibilityHint(L(wifi.errorKey ?? "Toggle Wi-Fi"))
+            .accessibilityHint(L("Open Wi-Fi settings"))
+            .contextMenu {
+                if let error = wifi.errorKey { Text(L(error)) }
+                Button(L("Refresh")) { Task { @MainActor in await wifi.refresh() } }
+                    .disabled(wifi.isBusy)
+                Button(L("Open Wi-Fi settings")) {
+                    Task { @MainActor in _ = await SystemToolActions.shared.openControlSettings(.wifi) }
+                }
+            }
             .task { await wifi.refresh() }
     }
 }
@@ -251,7 +277,7 @@ private struct SystemToolSliderTile: View {
     var body: some View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
-                Image(systemName: tool.symbol)
+                SystemToolGlyph(tool: tool, lineWidth: 1.1, glyphHeight: 10)
                 Text(L(tool.titleKey)).lineLimit(1).minimumScaleFactor(0.75)
             }.font(.system(size: 10, weight: .medium)).padding(.trailing, 10)
             Slider(value: Binding(get: { draft ?? actual }, set: { draft = $0; set($0) }), in: 0...1,
@@ -266,7 +292,7 @@ private struct SystemToolSliderTile: View {
             } else {
                 Text("\(Int((actual * 100).rounded()))%").monospacedDigit().font(.system(size: 9)).foregroundStyle(.secondary)
             }
-        }.padding(.horizontal, 9).frame(maxWidth: .infinity).frame(height: 64)
+        }.padding(.horizontal, 9).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
             .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
             .onAppear { refresh() }
     }
@@ -290,6 +316,8 @@ struct SystemToolsSettings: View {
     @ObservedObject private var store = SystemToolConfigurationStore.shared
     @ObservedObject private var capture = CaptureTools.shared
     @State private var search = ""
+    @FocusState private var searchFocused: Bool
+    @State private var expandedCategories: Set<SystemToolCategory> = []
     @ObservedObject private var reorderDiagnostics = ToolReorderDiagnostics.shared
     var body: some View {
         Form {
@@ -299,7 +327,7 @@ struct SystemToolsSettings: View {
                 ForEach(Array(store.selectedTools.enumerated()), id: \.element.id) { index, tool in
                     HStack {
                         ToolReorderHandle(tool: tool)
-                        Label(L(tool.titleKey), systemImage: tool.symbol)
+                        Label { Text(L(tool.titleKey)) } icon: { SystemToolGlyph(tool: tool, lineWidth: 1.3, glyphHeight: 14) }
                         Spacer()
                         Button { store.move(tool.id, by: -1) } label: { Image(systemName: "arrow.up") }
                             .disabled(index == 0).help(L("Move up"))
@@ -320,22 +348,27 @@ struct SystemToolsSettings: View {
                 }
             } header: { Text(L("Shown tools & order")) }
             Section {
-                TextField(L("Find a system tool"), text: $search)
+                toolSearchField
+                if !search.isEmpty && !SystemToolCatalog.all.contains(where: matchesSearch) {
+                    Text(L("No matching tools found")).foregroundStyle(.secondary)
+                }
                 ForEach(SystemToolCategory.allCases, id: \.self) { category in
-                    let matching = SystemToolCatalog.all.filter {
-                        $0.category == category && (search.isEmpty || L($0.titleKey).localizedCaseInsensitiveContains(search) || $0.titleKey.localizedCaseInsensitiveContains(search))
-                    }
+                    let matching = SystemToolCatalog.all.filter { $0.category == category && matchesSearch($0) }
                     if !matching.isEmpty {
-                        DisclosureGroup(L(category.titleKey)) {
+                        DisclosureGroup(isExpanded: expansion(of: category)) {
                             ForEach(matching) { tool in
                                 Toggle(isOn: Binding(get: { store.configuration.visibleIDs.contains(tool.id.rawValue) },
                                     set: { store.setVisible($0, id: tool.id) })) {
-                                    HStack { Label(L(tool.titleKey), systemImage: tool.symbol); Spacer(); Text(L(tool.behavior.labelKey)).font(.caption).foregroundStyle(.secondary) }
+                                    HStack {
+                                        Label { Text(L(tool.titleKey)) } icon: { SystemToolGlyph(tool: tool, lineWidth: 1.3, glyphHeight: 14) }
+                                        Spacer()
+                                        Text(L(tool.behavior.labelKey)).font(.caption).foregroundStyle(.secondary)
+                                    }
                                 }
                                 .accessibilityLabel(L(tool.titleKey))
                                 .accessibilityHint(L(tool.behavior.labelKey))
                             }
-                        }
+                        } label: { Text(L(category.titleKey)) }
                     }
                 }
             } header: { Text(L("Tool library")) }
@@ -346,7 +379,7 @@ struct SystemToolsSettings: View {
                 if !capture.externalImportAvailable {
                     Text(L("The screenshot folder is not readable. Grant access or use capture buttons in the island.")).foregroundStyle(.orange)
                 }
-                Button(L("Save clipboard image")) { capture.importClipboardImage() }
+                Button(L("Save clipboard files")) { capture.importClipboardFiles() }
                 Text(capture.statusText).font(.caption).foregroundStyle(.secondary)
                 if capture.status == .permissionRequired {
                     Button(L("Open screen recording permission")) { capture.openScreenRecordingSettings() }
@@ -364,6 +397,54 @@ struct SystemToolsSettings: View {
                     .font(.callout).foregroundStyle(.secondary)
             } header: { Text(L("System compatibility")) }
         }.navigationTitle(Text(verbatim: L("Quick tools")))
+    }
+
+    /// A `Form` row draws a `TextField`'s title as a leading label rather than as
+    /// placeholder text, which would leave the hint permanently visible and shrink the
+    /// editable area to whatever space is left at the trailing edge. `prompt` puts the
+    /// hint inside the field so typing replaces it, and `labelsHidden` reclaims the
+    /// label column the empty title would otherwise reserve.
+    ///
+    /// The rounded border is painted around the whole row, so the tap target is widened
+    /// to match: taking `contentShape` after the padding lets a click anywhere in the
+    /// box — including the magnifier and the surrounding inset — put the caret in the
+    /// field, instead of only the text control's own narrow frame.
+    private var toolSearchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField("", text: $search, prompt: Text(L("Find a system tool")))
+                .textFieldStyle(.plain)
+                .labelsHidden()
+                .focused($searchFocused)
+            if !search.isEmpty {
+                Button { search = "" } label: { Image(systemName: "xmark.circle.fill") }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                    .help(L("Clear search")).accessibilityLabel(L("Clear search"))
+            }
+        }
+        .padding(.vertical, 4).padding(.horizontal, 8)
+        .background(RoundedRectangle(cornerRadius: 7).fill(Color(nsColor: .textBackgroundColor)))
+        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color(nsColor: .separatorColor)))
+        .contentShape(RoundedRectangle(cornerRadius: 7))
+        .onTapGesture { searchFocused = true }
+    }
+
+    private func matchesSearch(_ tool: SystemToolDefinition) -> Bool {
+        search.isEmpty
+            || L(tool.titleKey).localizedCaseInsensitiveContains(search)
+            || tool.titleKey.localizedCaseInsensitiveContains(search)
+    }
+
+    /// While a query is active every rendered category opens, so a match is never
+    /// hidden behind another click. Manual expansion is left untouched meanwhile and
+    /// comes back exactly as it was once the field is cleared.
+    private func expansion(of category: SystemToolCategory) -> Binding<Bool> {
+        Binding(
+            get: { !search.isEmpty || expandedCategories.contains(category) },
+            set: { isExpanded in
+                guard search.isEmpty else { return }
+                if isExpanded { expandedCategories.insert(category) } else { expandedCategories.remove(category) }
+            })
     }
 }
 

@@ -14,7 +14,11 @@ let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
 let openNotchSize: CGSize = .init(width: 640, height: 190)
-let windowSize: CGSize = .init(width: openNotchSize.width + 40, height: SystemHUDLayout.carrierHeight)
+/// Wide enough for the island, its shadow bleed, and a control floating clear of either
+/// edge. The window never resizes, so anything drawn past this is simply clipped away.
+let windowSize: CGSize = .init(
+    width: openNotchSize.width + 2 * (shadowPadding + NotchAccessoryControl.requiredSideMargin),
+    height: SystemHUDLayout.carrierHeight)
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 19, bottom: 24), closed: (top: 6, bottom: 14))
 
 enum MusicPlayerImageSizes {

@@ -169,24 +169,82 @@ final class CaptureTools: ObservableObject {
         NSWorkspace.shared.open(url)
     }
 
-    /// An explicit bridge for hi/WeChat and other capture apps. It reads images
-    /// only on a user click; it does not monitor clipboard or private app files.
-    func importClipboardImage() {
-        guard let image = NSImage(pasteboard: .general),
-              let tiff = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiff),
-              let data = bitmap.representation(using: .png, properties: [:]) else {
+    /// An explicit bridge for hi/WeChat and other capture apps, driven by a user click.
+    ///
+    /// Declared files are handled first and copied byte for byte. Copying a document in
+    /// Finder also leaves an icon bitmap on the pasteboard, so reading an image first turned
+    /// every `.md` and `.swift` into a PNG of its own icon.
+    @discardableResult
+    func importClipboardFiles() -> Int {
+        let staged = stageClipboardFileURLs()
+        if staged > 0 { return staged }
+        guard let image = NSImage(pasteboard: .general) else {
             status = .clipboardEmpty
-            return
+            return 0
         }
+        guard saveToShelf(image: image) else {
+            status = .failed
+            return 0
+        }
+        return 1
+    }
+
+    /// Copies the clipboard's files into the shelf's temporary store, each keeping its own
+    /// name and extension. Every file gets its own directory, so names never collide.
+    private func stageClipboardFileURLs() -> Int {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        let hasFileURLs = NSPasteboard.general.canReadObject(forClasses: [NSURL.self], options: options)
+        guard ClipboardStagingDecision.decide(hasFileURLs: hasFileURLs, hasBitmap: false) == .files,
+              let urls = NSPasteboard.general.readObjects(forClasses: [NSURL.self],
+                                                          options: options) as? [URL],
+              !urls.isEmpty else { return 0 }
+        let staged = urls.reduce(0) { $0 + (copyFileToShelf($1) ? 1 : 0) }
+        if staged > 0 {
+            lastImportedCount = staged
+            if !isBusy { status = .saved(staged) }
+        } else {
+            status = .failed
+        }
+        return staged
+    }
+
+    private func copyFileToShelf(_ source: URL) -> Bool {
+        do {
+            let folder = try Self.makeCaptureDirectory()
+            let name = ClipboardStagingDecision.stagedFileName(
+                source: source.lastPathComponent,
+                fallback: "Clipboard-\(Self.filenameDate())")
+            let file = folder.appendingPathComponent(name)
+            try FileManager.default.copyItem(at: source, to: file)
+            guard addTemporaryFile(file) else {
+                try? FileManager.default.removeItem(at: folder)
+                return false
+            }
+            return true
+        } catch { return false }
+    }
+
+    /// Shared by the toolbar button and the clipboard watcher. Reports status only when the
+    /// app is otherwise idle, so a background import cannot overwrite the message a capture
+    /// in progress is showing.
+    @discardableResult
+    func saveToShelf(image: NSImage) -> Bool {
+        guard let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let data = bitmap.representation(using: .png, properties: [:]) else { return false }
         do {
             let folder = try Self.makeCaptureDirectory()
             let file = folder.appendingPathComponent("Clipboard-\(Self.filenameDate()).png")
             try data.write(to: file, options: .atomic)
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
-            if addTemporaryFile(file) { status = .saved(1); lastImportedCount = 1 }
-            else { try? FileManager.default.removeItem(at: folder); status = .failed }
-        } catch { status = .failed }
+            guard addTemporaryFile(file) else {
+                try? FileManager.default.removeItem(at: folder)
+                return false
+            }
+            lastImportedCount = 1
+            if !isBusy { status = .saved(1) }
+            return true
+        } catch { return false }
     }
 
     private func startNativeRecording(operation: UUID) {
@@ -393,7 +451,10 @@ final class CaptureTools: ObservableObject {
         if valid, exitCode == 0 || (kind.recordsVideo && wasStopped) {
             try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: output.path)
             imported = addTemporaryFile(output)
-            if imported { processDiagnostic.importMethod = "direct output" }
+            if imported {
+                processDiagnostic.importMethod = "direct output"
+                copyStillToClipboardIfEnabled(output, kind: kind)
+            }
         }
         if !exists, exitCode == 0, !wasStopped, kind.usesSystemToolbar {
             imported = await recoverToolbarScreenshot(operation: operation, finishedAt: processFinishedAt)
@@ -436,6 +497,14 @@ final class CaptureTools: ObservableObject {
         guard let bookmark = try? Bookmark(url: url) else { return false }
         ShelfStateViewModel.shared.add([ShelfItem(kind: .file(bookmark: bookmark.data), isTemporary: true)])
         return true
+    }
+
+    /// Every capture reaches the shelf through `addTemporaryFile`, but only stills belong on
+    /// the clipboard — a recording would put a single poster frame there and read as the
+    /// wrong thing when pasted.
+    private func copyStillToClipboardIfEnabled(_ url: URL, kind: CaptureToolKind) {
+        guard !kind.recordsVideo else { return }
+        ClipboardShelfBridge.shared.copyCaptureToClipboard(contentsOf: url)
     }
 
     private func recoverToolbarScreenshot(operation: UUID, finishedAt: Date) async -> Bool {
@@ -635,6 +704,7 @@ final class CaptureTools: ObservableObject {
                 return false
             }
             importLedger.recordSuccessfulImport(candidate)
+            ClipboardShelfBridge.shared.copyCaptureToClipboard(contentsOf: destination)
             lastImportedCount = 1
             if !isBusy { status = .saved(1) }
             return true

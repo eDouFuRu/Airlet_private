@@ -48,7 +48,11 @@ struct SystemHUDLayout: Equatable {
     static let rowHeight: CGFloat = BriefPresentationLayout.rowHeight
     static let closedInset: CGFloat = 6
     static let openInset: CGFloat = 31
-    static let carrierHeight: CGFloat = 360
+    /// Sized for the tallest page (tools, three card rows) on the deepest header, plus one
+    /// brief or HUD row and the shadow margin. Brief and standard HUD never stack, so a
+    /// single row is the worst case. `testTallestPagePlusHUDRowStillFitsInsideCarrierWindow`
+    /// pins this down: the window cannot grow at runtime, so anything taller gets clipped.
+    static let carrierHeight: CGFloat = 380
     static let preferredWingWidth: CGFloat = 104
 
     let physicalGapWidth: CGFloat

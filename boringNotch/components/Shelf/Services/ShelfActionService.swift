@@ -42,7 +42,7 @@ enum ShelfActionService {
     }
 
     static func remove(_ item: ShelfItem) {
-        ShelfStateViewModel.shared.remove(item)
+        ShelfStateViewModel.shared.remove(item, reason: .user)
     }
 
     private static func handleBookmarkedFile(_ bookmarkData: Data, action: @escaping @Sendable (URL) -> Void) {
