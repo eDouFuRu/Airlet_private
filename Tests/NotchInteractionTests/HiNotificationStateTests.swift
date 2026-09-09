@@ -150,34 +150,47 @@ final class HiNotificationStateTests: XCTestCase {
 
     func testOnlyExactAttributedHiNamesOrBundleCanMatch() {
         let names: Set<String> = ["hi"]
-        XCTAssertTrue(HiNotificationSourceEvidence(appNames: [" Hi "]).isUnambiguouslyHi(knownDisplayNames: names))
+        XCTAssertTrue(HiNotificationSourceEvidence(bannerDescriptions: [" Hi "]).isUnambiguouslyHi(knownDisplayNames: names))
+        XCTAssertTrue(HiNotificationSourceEvidence(bannerDescriptions: ["hi 张三, 你好"]).isUnambiguouslyHi(knownDisplayNames: names))
         XCTAssertTrue(HiNotificationSourceEvidence(sourceBundleIDs: ["com.electron.redcity"]).isUnambiguouslyHi(knownDisplayNames: names))
-        for name in ["Mail", "hi helper", "a message mentioning hi", ""] {
-            XCTAssertFalse(HiNotificationSourceEvidence(appNames: [name]).isUnambiguouslyHi(knownDisplayNames: names))
+        for description in ["Mail, hi, a message", "high 张三, 你好", "a message mentioning hi", ""] {
+            XCTAssertFalse(HiNotificationSourceEvidence(bannerDescriptions: [description]).isUnambiguouslyHi(knownDisplayNames: names))
         }
         XCTAssertFalse(HiNotificationSourceEvidence().isUnambiguouslyHi(knownDisplayNames: names))
-        XCTAssertFalse(HiNotificationSourceEvidence(appNames: ["hi"]).isUnambiguouslyHi(knownDisplayNames: []))
+        XCTAssertFalse(HiNotificationSourceEvidence(bannerDescriptions: ["hi"]).isUnambiguouslyHi(knownDisplayNames: []))
     }
 
     func testMixedAttributionAndStacksAreRejectedEvenWithHiPresent() {
         let names: Set<String> = ["hi"]
         for evidence in [
             HiNotificationSourceEvidence(sourceBundleIDs: ["com.electron.redcity", "com.apple.mail"]),
-            HiNotificationSourceEvidence(sourceBundleIDs: ["com.electron.redcity"], appNames: ["Mail"]),
-            HiNotificationSourceEvidence(appNames: ["hi", "Mail"]),
-            HiNotificationSourceEvidence(appNames: ["hi"], hasGroupedContent: true),
-            HiNotificationSourceEvidence(appNames: ["hi"], hasMultipleCards: true)
+            HiNotificationSourceEvidence(sourceBundleIDs: ["com.electron.redcity"], bannerDescriptions: ["Mail 提醒, 正文"]),
+            HiNotificationSourceEvidence(bannerDescriptions: ["hi 张三, 你好", "Mail 提醒, 正文"]),
+            HiNotificationSourceEvidence(bannerDescriptions: ["hi"], hasGroupedContent: true),
+            HiNotificationSourceEvidence(bannerDescriptions: ["hi"], hasMultipleCards: true)
         ] {
             XCTAssertFalse(evidence.isUnambiguouslyHi(knownDisplayNames: names))
         }
     }
 
-    func testAttributionParserUsesOnlySystemMetadataPrefix() {
-        XCTAssertEqual(HiNotificationSourceEvidence.attributedAppName("hi, Sender, Body"), "hi")
-        XCTAssertEqual(HiNotificationSourceEvidence.attributedAppName("Hi，发件人，正文"), "Hi")
-        XCTAssertEqual(HiNotificationSourceEvidence.attributedAppName("Mail, hi, a message"), "Mail")
-        XCTAssertNil(HiNotificationSourceEvidence.attributedAppName("hi mentioned in a body"))
-        XCTAssertNil(HiNotificationSourceEvidence.attributedAppName(", body"))
+    /// Strings measured from real macOS 15 banners: the application name is separated from the
+    /// title by a plain space (U+0020), and only the remaining fields are separated by ", ".
+    func testAttributionMatchesRealBannerDescriptionPrefix() {
+        let match = HiNotificationSourceEvidence.matchedDisplayName
+        XCTAssertEqual(match("脚本编辑器 标题B, 副B, 正文B", ["Script Editor", "脚本编辑器"]), "脚本编辑器")
+        XCTAssertEqual(match("微信 张三, 你好啊", ["WeChat", "微信"]), "微信")
+        XCTAssertEqual(match("微信 你好啊", ["WeChat", "微信"]), "微信")
+        XCTAssertEqual(match("微信, 你好啊", ["WeChat", "微信"]), "微信")
+        XCTAssertEqual(match("WeChat  Zhang San, hello", ["WeChat", "微信"]), "wechat")
+        XCTAssertEqual(match(" hi ", ["hi"]), "hi")
+        // A longer installed name wins over one of its own shorter prefixes.
+        XCTAssertEqual(match("微信读书 每日一读, 正文", ["微信读书", "微信"]), "微信读书")
+        XCTAssertNil(match("微信读书 每日一读, 正文", ["微信"]))
+        XCTAssertNil(match("Codex task finished, details", ["ChatGPT"]))
+        XCTAssertNil(match("a message mentioning 微信", ["微信"]))
+        XCTAssertNil(match("", ["微信"]))
+        XCTAssertNil(match("微信 你好", []))
+        XCTAssertNil(match("微信 你好", [" ", ""]))
     }
 
     func testNewAppSourcesRequireTheirOwnOptInAndDoNotInheritHiPrivacy() {
@@ -249,12 +262,14 @@ final class HiNotificationStateTests: XCTestCase {
     }
 
     func testSourceAttributionNeedsExactInstalledNamesAndRejectsMixedMetadata() {
-        for (id, name) in [("com.xingin.valos", "ValOS"), ("com.coral.desktop", "Lobi"), ("com.openai.codex", "ChatGPT")] {
-            XCTAssertTrue(HiNotificationSourceEvidence(appNames: [name]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
-            XCTAssertFalse(HiNotificationSourceEvidence(appNames: [name]).isUnambiguouslySource(bundleID: id, knownDisplayNames: []))
-            XCTAssertFalse(HiNotificationSourceEvidence(appNames: ["\(name) task finished"]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
-            XCTAssertFalse(HiNotificationSourceEvidence(sourceBundleIDs: ["com.apple.mail"], appNames: [name]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
-            XCTAssertFalse(HiNotificationSourceEvidence(appNames: [name], hasGroupedContent: true).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+        for (id, name) in [("com.xingin.valos", "ValOS"), ("com.coral.desktop", "Lobi"),
+                           ("com.openai.codex", "ChatGPT"), ("com.tencent.xinWeChat", "微信")] {
+            let banner = "\(name) 标题, 正文"
+            XCTAssertTrue(HiNotificationSourceEvidence(bannerDescriptions: [banner]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+            XCTAssertFalse(HiNotificationSourceEvidence(bannerDescriptions: [banner]).isUnambiguouslySource(bundleID: id, knownDisplayNames: []))
+            XCTAssertFalse(HiNotificationSourceEvidence(bannerDescriptions: ["Other \(name), 正文"]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+            XCTAssertFalse(HiNotificationSourceEvidence(sourceBundleIDs: ["com.apple.mail"], bannerDescriptions: [banner]).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
+            XCTAssertFalse(HiNotificationSourceEvidence(bannerDescriptions: [banner], hasGroupedContent: true).isUnambiguouslySource(bundleID: id, knownDisplayNames: [name]))
         }
     }
 }

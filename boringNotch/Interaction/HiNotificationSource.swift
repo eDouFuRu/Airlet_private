@@ -544,11 +544,11 @@ final class HiNotificationManager: ObservableObject {
                   let frame = frame(of: card), frame.width >= 140, frame.width <= 700,
                   frame.height >= 35, frame.height <= 350, isOnScreen(frame),
                   let description = attributedDescription(card),
-                  let appName = HiNotificationSourceEvidence.attributedAppName(description) else {
+                  !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 if allCards.count == 1 && !grouped { diagnosticStructure.recordSource(.unparsed) }
                 return nil
             }
-            let evidence = HiNotificationSourceEvidence(appNames: [appName])
+            let evidence = HiNotificationSourceEvidence(bannerDescriptions: [description])
             let matching = sources.filter { source in
                 source.isInstalled && evidence.isUnambiguouslySource(bundleID: source.id, knownDisplayNames: source.attributedNames)
             }
@@ -726,7 +726,13 @@ final class HiNotificationManager: ObservableObject {
         }
     }
 
+    /// Real banner cards expose a per-notification UUID in AXIdentifier. Every banner shares one
+    /// full-screen Notification Center window, so CFHash(window)/CFHash(card) get reused and can
+    /// alias a new notification onto a retired card. Prefer the system's own identity when present.
     private func cardIdentity(window: AXUIElement, card: AXUIElement) -> String {
+        if let identifier = string(card, kAXIdentifierAttribute as String), UUID(uuidString: identifier) != nil {
+            return identifier
+        }
         var hasher = Hasher()
         hasher.combine(hostPID); hasher.combine(CFHash(window)); hasher.combine(CFHash(card))
         return String(hasher.finalize(), radix: 16)

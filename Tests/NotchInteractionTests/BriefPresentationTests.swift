@@ -196,6 +196,27 @@ final class BriefPresentationTests: XCTestCase {
         XCTAssertEqual(bounded.size.width, 640)
     }
 
+    func testNoticeWidensTheClosedShellWithoutTouchingTheExpandedOrInactiveOne() {
+        let base = CGSize(width: 197, height: 32)
+        let minimum = BriefPresentationLayout.noticeMinimumWidth
+        XCTAssertGreaterThan(minimum, base.width, "a notice needs more than the physical notch")
+        let notice = BriefPresentationLayout(active: true, standardHUD: false, expanded: false,
+            baseClosedSize: base, headerHeight: 32, minimumBriefWidth: minimum)
+        XCTAssertEqual(notice.size.width, minimum)
+        XCTAssertEqual(notice.size.height, base.height + BriefPresentationLayout.rowHeight)
+        // A wider closed shell must never shrink below what the other closed sources already use.
+        let wide = BriefPresentationLayout(active: true, standardHUD: false, expanded: false,
+            baseClosedSize: CGSize(width: 520, height: 32), headerHeight: 32, minimumBriefWidth: minimum)
+        XCTAssertEqual(wide.size.width, 520)
+        // The HUD replaces the row, so it must not inherit the notice width.
+        let hudReplaced = BriefPresentationLayout(active: true, standardHUD: true, expanded: false,
+            baseClosedSize: base, headerHeight: 32, minimumBriefWidth: 0)
+        XCTAssertEqual(hudReplaced.size, base)
+        let expanded = BriefPresentationLayout(active: true, standardHUD: false, expanded: true,
+            baseClosedSize: base, baseExpandedHeight: 250, headerHeight: 32, minimumBriefWidth: minimum)
+        XCTAssertEqual(expanded.size.width, 640)
+    }
+
     func testBriefHitRegionUsesTheActualScreenRectAndExcludesHeaderAndBody() {
         for origin in [CGPoint(x: 100, y: 700), CGPoint(x: -1_700, y: -400)] {
             let shell = CGRect(origin: origin, size: CGSize(width: 640, height: 290))

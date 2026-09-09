@@ -21,9 +21,17 @@ struct AppNotificationSourceInfo: Identifiable, Equatable {
             (HiNotificationSourceEvidence.hiBundleID, "hi", ["hi"]),
             ("com.xingin.valos", "ValOS", ["ValOS"]),
             ("com.coral.desktop", "Lobi", ["Lobi"]),
-            ("com.openai.codex", "ChatGPT / Codex", ["ChatGPT", "Codex"])
+            ("com.openai.codex", "ChatGPT / Codex", ["ChatGPT", "Codex"]),
+            ("com.tencent.xinWeChat", "WeChat", ["WeChat", "微信"]),
+            // Kept on purpose: `osascript -e 'display notification …'` posts a real banner as this
+            // app, which is the only way to self-test the whole capture path without a second person.
+            ("com.apple.ScriptEditor2", "Script Editor", ["Script Editor", "脚本编辑器"])
         ]
-        let running = NSWorkspace.shared.runningApplications
+        let running = NSWorkspace.shared.runningApplications.map {
+            AppNotificationNameFilter.RunningApplication(bundleID: $0.bundleIdentifier,
+                                                         bundlePath: $0.bundleURL?.path,
+                                                         localizedName: $0.localizedName)
+        }
         return specifications.map { id, name, aliases in
             guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id),
                   let bundle = Bundle(url: url), bundle.bundleIdentifier == id else {
@@ -33,13 +41,8 @@ struct AppNotificationSourceInfo: Identifiable, Equatable {
             for key in ["CFBundleDisplayName", "CFBundleName"] {
                 if let value = bundle.object(forInfoDictionaryKey: key) as? String { names.insert(value) }
             }
-            // Reject a currently ambiguous app name rather than borrowing another app's banner.
-            names = names.filter { candidate in
-                !running.contains {
-                    $0.bundleIdentifier != id && $0.bundleIdentifier != "com.apple.notificationcenterui"
-                    && $0.localizedName?.caseInsensitiveCompare(candidate) == .orderedSame
-                }
-            }
+            names = AppNotificationNameFilter.attributableNames(candidates: names, sourceBundleID: id,
+                                                                sourceBundlePath: url.path, running: running)
             return Self(id: id, name: name, applicationURL: url, attributedNames: names)
         }
     }

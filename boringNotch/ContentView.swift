@@ -138,7 +138,8 @@ struct ContentView: View {
         BriefPresentationLayout(active: briefVisible, standardHUD: noticeChromeActive && !inlineHUD,
                                 expanded: isOpen,
                                 baseClosedSize: CGSize(width: baseClosedWidth, height: briefHeaderHeight),
-                                baseExpandedHeight: baseExpandedHeight, headerHeight: headerHeight)
+                                baseExpandedHeight: baseExpandedHeight, headerHeight: headerHeight,
+                                minimumBriefWidth: briefSource == .hi ? BriefPresentationLayout.noticeMinimumWidth : 0)
     }
     private var baseExpandedHeight: CGFloat {
         // Derived from the grid's own constants so the island is exactly tall enough for a
@@ -297,7 +298,7 @@ struct ContentView: View {
         switch briefSource {
         case .hi:
             if let notice = hi.current {
-                BriefPromptRow(text: hi.displayText(for: notice), applicationIcon: hi.icon(for: notice), scrolls: false,
+                BriefPromptRow(text: hi.displayText(for: notice), applicationIcon: hi.icon(for: notice),
                                action: { hi.clickLatest() })
             }
         case .songChange:

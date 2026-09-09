@@ -115,6 +115,9 @@ struct BriefPresentationState: Equatable, Sendable {
 /// The standard HUD uses this same compact height; never add both rows.
 struct BriefPresentationLayout: Equatable {
     static let rowHeight: CGFloat = 28
+    /// An application notice carries a sender and a message, so the closed shell has to be
+    /// wider than the physical notch or the row degrades into an ellipsis after a few glyphs.
+    static let noticeMinimumWidth: CGFloat = 420
 
     let size: CGSize
     let rowTopInset: CGFloat

@@ -30,14 +30,15 @@ public struct HiNotificationCandidate: Equatable, Sendable {
 public struct HiNotificationSourceEvidence: Equatable, Sendable {
     public static let hiBundleID = "com.electron.redcity"
     public var sourceBundleIDs: Set<String>
-    public var appNames: Set<String>
+    /// The banner's whole AXAttributedDescription, not a pre-sliced application name.
+    public var bannerDescriptions: Set<String>
     public var hasGroupedContent: Bool
     public var hasMultipleCards: Bool
 
-    public init(sourceBundleIDs: Set<String> = [], appNames: Set<String> = [],
+    public init(sourceBundleIDs: Set<String> = [], bannerDescriptions: Set<String> = [],
                 hasGroupedContent: Bool = false, hasMultipleCards: Bool = false) {
         self.sourceBundleIDs = sourceBundleIDs
-        self.appNames = appNames
+        self.bannerDescriptions = bannerDescriptions
         self.hasGroupedContent = hasGroupedContent
         self.hasMultipleCards = hasMultipleCards
     }
@@ -48,20 +49,32 @@ public struct HiNotificationSourceEvidence: Equatable, Sendable {
 
     public func isUnambiguouslySource(bundleID: String, knownDisplayNames: Set<String>) -> Bool {
         guard !bundleID.isEmpty, !hasGroupedContent, !hasMultipleCards else { return false }
-        let names = Set(appNames.map(Self.normalized))
-        let allowed = Set(knownDisplayNames.map(Self.normalized)).subtracting([""])
-        guard sourceBundleIDs.isSubset(of: [bundleID]),
-              !names.contains(""), names.isSubset(of: allowed) else { return false }
-        return sourceBundleIDs == [bundleID] || (!names.isEmpty && !allowed.isEmpty)
+        guard sourceBundleIDs.isSubset(of: [bundleID]) else { return false }
+        guard !bannerDescriptions.isEmpty else { return sourceBundleIDs == [bundleID] }
+        return bannerDescriptions.allSatisfy { Self.matchedDisplayName(in: $0, candidates: knownDisplayNames) != nil }
     }
 
-    /// This parser is used only for AXAttributedDescription on a recognized banner card.
-    public static func attributedAppName(_ description: String) -> String? {
-        guard let separator = description.firstIndex(where: { $0 == "," || $0 == "，" }) else { return nil }
-        let prefix = description[..<separator].trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prefix.isEmpty, prefix.count <= 80 else { return nil }
-        return prefix
+    /// macOS renders a banner description as "<Application> <title>, <subtitle>, <body>":
+    /// the application name is separated from the title by a plain space, so it cannot be
+    /// recovered by slicing at the first comma. Match a known name against the prefix instead.
+    public static func matchedDisplayName(in description: String, candidates: Set<String>) -> String? {
+        let text = normalized(description)
+        guard !text.isEmpty else { return nil }
+        var best: String?
+        var ambiguous = false
+        for candidate in candidates {
+            let name = normalized(candidate)
+            guard !name.isEmpty, name.count <= 80, text.hasPrefix(name) else { continue }
+            let boundary = text.index(text.startIndex, offsetBy: name.count)
+            guard boundary == text.endIndex || Self.separators.contains(text[boundary]) else { continue }
+            guard let current = best else { best = name; continue }
+            if name.count > current.count { best = name; ambiguous = false }
+            else if name.count == current.count, name != current { ambiguous = true }
+        }
+        return ambiguous ? nil : best
     }
+
+    private static let separators: Set<Character> = [" ", ",", "，", "\u{00A0}", "\u{3000}", "\n"]
 
     private static func normalized(_ name: String) -> String {
         name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
