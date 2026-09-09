@@ -54,7 +54,7 @@ UUID 只在内存里做去重键，不落盘、不写日志。
 | **点击打开** | 真机：小岛提示行坐标 (752,45) 合成点击后，`System Events` 报告 frontmost = `Script Editor`，小岛提示行随即收起（截图 `/tmp/island-click-after.png`） | **已验证**「点击 → 打开来源 App」。边界：**未能区分**走的是原横幅 `AXPress` 还是 `NSWorkspace` 回退 —— 独立 `pressat` 实测 AXPress 同样不会让 osascript 横幅消失，所以「横幅是否还在」无法作为判据 |
 | 连发聚合 | 连发甲/乙/丙三条，加宽后截图 `/tmp/island-burst2.png` 显示「Script Editor · 丙 · 第三条消息 **(3)**」 | **已验证**显示最新一条并带条数计数 |
 | 加宽 + 滚动 | 截图 `/tmp/island-wide-1.png` / `-2.png`：22 字长消息先显示前半段，约 3s 后滚动到「…你那边方便吗？」完整可读 | **已验证**闭合外壳加宽到 420 且长文本滚动 |
-| **微信真实消息转显** | 好友真实微信消息，AX 探针抓到 `desc=[微信 真别豆腐乳🌰, 点击测试] id=5D634906-892F-4D52-A547-95E62696019F fields=["title=真别豆腐乳🌰","body=点击测试"] actions=AXPress/回复/关闭`；用户确认小岛上弹出了该提示 | **已验证**。真实第三方 IM 消息转显成功。同轮还顺带抓到 ValOS 的真实横幅 `desc=[ValOS ValOS, Agent 有问题需要您回答]` |
+| **微信真实消息转显** | 好友真实微信消息，AX 探针抓到 `desc=[微信 真别豆腐乳🌰, 点击测试] id=5D634906-892F-4D52-A547-95E62696019F fields=["title=真别豆腐乳🌰","body=点击测试"] actions=AXPress/回复/关闭`；用户确认小岛上弹出了该提示 | **已验证**。真实第三方 IM 消息转显成功。同轮还顺带抓到 ValOS 的真实横幅 `desc=[ValOS ValOS, Agent 有问题需要您回答]`，用户后续也确认 ValOS 提醒在小岛上正常弹出 |
 | **点击打开到具体会话** | 用户亲手点击小岛提示行，实测**直接跳到该好友的聊天窗口**，不是只打开微信主窗口 | **已验证**走的是原横幅的 `AXPress` 动作而非 `NSWorkspace` 回退。边界：单条微信消息样本，未覆盖群消息/公众号 |
 | 微信名字被误剔除（拦路石） | `discover()` 探针实测 `com.tencent.xinWeChat attributableNames=["WeChat"]`，`微信` 被丢弃；肇事者是 WeChat.app 包内的 `com.tencent.flue.WeChatAppEx`（pid 67068，`localizedName=微信`） | **已修复并验证**：改用 `AppNotificationNameFilter` 按 bundle 路径包含关系判定「同一个 App 的内部 helper」，修复后 `attributableNames=["WeChat","微信"]` |
 | macOS 侧微信通知权限 | System Settings AX 读出：允许通知=1、桌面=1、通知中心=1、锁定屏幕=1、提醒样式=临时、角标=1、声音=1 | **已验证**系统侧配置正确，横幅未见不是权限问题 |

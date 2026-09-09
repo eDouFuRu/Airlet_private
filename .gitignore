@@ -71,3 +71,6 @@ __pycache__/
 
 # AI agent tooling scratch state (browser/device sessions, e2e run state)
 .valos/
+
+# AI agent handoff bundle (local working notes, not part of the product)
+NotchIslandNext_AGENT_HANDOFF_FINAL/
