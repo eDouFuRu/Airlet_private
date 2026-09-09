@@ -5,12 +5,14 @@ import SwiftUI
 /// Source-specific switches share the same observer and the existing brief-prompt queue.
 struct HiNotificationSettings: View {
     @Default(.hideOriginalHiBanner) private var hideOriginal
+    @Default(.appNotificationAllowsNewSources) private var allowsNewSources
+    @Default(.appNotificationDetailsNewSources) private var detailsNewSources
     @ObservedObject private var source = HiNotificationManager.shared
 
     var body: some View {
         Form {
             Section {
-                Text(L("Mirror desktop notifications from the apps you choose. Task completion is shown only when the source app actually posts a notification; task state is never guessed."))
+                Text(L("Mirror desktop notifications from any app. Task completion is shown only when the source app actually posts a notification; task state is never guessed."))
                     .foregroundStyle(.secondary)
                 Label(L(source.status.labelKey), systemImage: "info.circle")
                     .font(.callout).foregroundStyle(.secondary)
@@ -20,27 +22,34 @@ struct HiNotificationSettings: View {
                 Button(L("Refresh notification observer")) { source.refreshDiagnostics() }
             } header: { Text(L("App notifications")) }
 
-            ForEach(source.sources) { app in
+            Section {
+                Text(L("An app must be allowed to post notifications in System Settings first. If that master switch is off, neither the island nor the top-right corner shows anything, and no setting here can change that."))
+                    .foregroundStyle(.secondary)
+                Text(L("macOS does not let this app read those permissions, so the state shown here cannot reflect them."))
+                    .font(.caption).foregroundStyle(.secondary)
+                Button(L("Open system notification settings")) {
+                    guard let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") else { return }
+                    NSWorkspace.shared.open(url)
+                }
+            } header: { Text(L("macOS notification permission")) }
+
+            Section {
+                Toggle(L("Mirror notifications from apps you have not configured"), isOn: $allowsNewSources)
+                Toggle(L("Show previews for apps you have not configured"), isOn: $detailsNewSources)
+                    .disabled(!allowsNewSources)
+                Text(L("Apps appear below after they post their first notification. Turning one off here always overrides the defaults above."))
+                    .font(.callout).foregroundStyle(.secondary)
+            } header: { Text(L("Default for new apps")) }
+
+            if source.sources.isEmpty {
                 Section {
-                    Toggle(isOn: Binding(get: { source.isEnabled(app.id) },
-                                         set: { source.setEnabled($0, for: app.id) })) {
-                        HStack(spacing: 8) {
-                            if let icon = source.icon(for: app.id) {
-                                Image(nsImage: icon).resizable().scaledToFit().frame(width: 24, height: 24)
-                            }
-                            Text(verbatim: app.name)
-                        }
-                    }
-                    .accessibilityLabel(app.name)
-                    .disabled(!app.isInstalled)
-                    Picker(L("Notification preview"), selection: Binding(get: { source.isDetailed(app.id) },
-                                                                           set: { source.setDetailed($0, for: app.id) })) {
-                        Text(L("Only indicate a new notification")).tag(false)
-                        Text(L("Show title and notification preview")).tag(true)
-                    }.disabled(!app.isInstalled || !source.isEnabled(app.id))
-                    Label(L(source.status(for: app).labelKey), systemImage: "info.circle")
-                        .font(.caption).foregroundStyle(.secondary)
-                } header: { Text(verbatim: app.name) }
+                    Text(L("No app has posted a notification yet. The first one to arrive shows up here."))
+                        .foregroundStyle(.secondary)
+                } header: { Text(L("Apps seen so far")) }
+            }
+
+            ForEach(source.sources) { app in
+                AppNotificationRow(app: app, source: source)
             }
 
             Section {
@@ -82,5 +91,32 @@ struct HiNotificationSettings: View {
             } header: { Text(L("Privacy and interaction")) }
         }
         .navigationTitle(Text(verbatim: L("App notifications")))
+    }
+}
+
+private struct AppNotificationRow: View {
+    let app: AppNotificationSourceInfo
+    @ObservedObject var source: HiNotificationManager
+
+    var body: some View {
+        Section {
+            Toggle(isOn: Binding(get: { source.isEnabled(app.id) },
+                                 set: { source.setEnabled($0, for: app.id) })) {
+                HStack(spacing: 8) {
+                    if let icon = source.icon(for: app.id) {
+                        Image(nsImage: icon).resizable().scaledToFit().frame(width: 24, height: 24)
+                    }
+                    Text(verbatim: app.name)
+                }
+            }
+            .accessibilityLabel(app.name)
+            Picker(L("Notification preview"), selection: Binding(get: { source.isDetailed(app.id) },
+                                                                 set: { source.setDetailed($0, for: app.id) })) {
+                Text(L("Only indicate a new notification")).tag(false)
+                Text(L("Show title and notification preview")).tag(true)
+            }.disabled(!source.isEnabled(app.id))
+            Label(L(source.status(for: app).labelKey), systemImage: "info.circle")
+                .font(.caption).foregroundStyle(.secondary)
+        } header: { Text(verbatim: app.name) }
     }
 }

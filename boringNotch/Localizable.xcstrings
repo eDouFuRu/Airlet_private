@@ -17425,23 +17425,6 @@
         }
       }
     },
-    "Mirror desktop notifications from the apps you choose. Task completion is shown only when the source app actually posts a notification; task state is never guessed.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mirror desktop notifications from the apps you choose. Task completion is shown only when the source app actually posts a notification; task state is never guessed."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "将所选应用的桌面通知显示到刘海下方。应用实际发出任务完成通知后才会转显，不会推测任务状态。"
-          }
-        }
-      }
-    },
     "Mirror only: original banners are not taken over on this Mac. Notification Center records remain untouched. Hiding will become available only after safe repositioning is verified.": {
       "extractionState": "manual",
       "localizations": {
@@ -34400,6 +34383,210 @@
           "stringUnit": {
             "state": "translated",
             "value": "右键菜单可复制 / 剪切 / 粘贴。⌘C / ⌘X / ⌘V 需要辅助功能权限（小岛不抢键盘焦点，只能靠事件监听读到组合键），未授权时快捷键不生效，右键菜单不受影响。"
+          }
+        }
+      }
+    },
+    "Mirror desktop notifications from any app. Task completion is shown only when the source app actually posts a notification; task state is never guessed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirror desktop notifications from any app. Task completion is shown only when the source app actually posts a notification; task state is never guessed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转显任意 App 的桌面通知。只有来源 App 真的发出通知时才会显示任务完成，绝不猜测任务状态。"
+          }
+        }
+      }
+    },
+    "macOS notification permission": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS notification permission"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 通知权限"
+          }
+        }
+      }
+    },
+    "An app must be allowed to post notifications in System Settings first. If that master switch is off, neither the island nor the top-right corner shows anything, and no setting here can change that.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An app must be allowed to post notifications in System Settings first. If that master switch is off, neither the island nor the top-right corner shows anything, and no setting here can change that."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App 必须先在「系统设置 → 通知」里被允许发送通知。那个总开关不开，小岛和屏幕右上角都不会有任何提醒，这里的任何设置都无法改变。"
+          }
+        }
+      }
+    },
+    "macOS does not let this app read those permissions, so the state shown here cannot reflect them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS does not let this app read those permissions, so the state shown here cannot reflect them."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 不允许本 App 读取那份权限设置，所以这里显示的状态无法反映它。"
+          }
+        }
+      }
+    },
+    "Open system notification settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open system notification settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开系统通知设置"
+          }
+        }
+      }
+    },
+    "Default for new apps": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default for new apps"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新 App 的默认行为"
+          }
+        }
+      }
+    },
+    "Mirror notifications from apps you have not configured": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirror notifications from apps you have not configured"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转显尚未配置过的 App 的通知"
+          }
+        }
+      }
+    },
+    "Show previews for apps you have not configured": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show previews for apps you have not configured"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为尚未配置过的 App 显示内容预览"
+          }
+        }
+      }
+    },
+    "Apps appear below after they post their first notification. Turning one off here always overrides the defaults above.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apps appear below after they post their first notification. Turning one off here always overrides the defaults above."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App 会在发出第一条通知后自动出现在下方。在下面单独关闭某个 App，总是优先于上面的默认行为。"
+          }
+        }
+      }
+    },
+    "Apps seen so far": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apps seen so far"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已出现过的 App"
+          }
+        }
+      }
+    },
+    "No app has posted a notification yet. The first one to arrive shows up here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No app has posted a notification yet. The first one to arrive shows up here."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有任何 App 发过通知。第一条通知到达后，对应的 App 就会出现在这里。"
+          }
+        }
+      }
+    },
+    "App": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App"
           }
         }
       }

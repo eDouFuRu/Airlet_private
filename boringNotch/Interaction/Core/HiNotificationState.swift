@@ -8,6 +8,9 @@ public struct HiNotificationNotice: Equatable, Identifiable, Sendable {
     public let count: Int
     public let receivedAt: TimeInterval
     public let sourceBundleID: String
+    /// The name the system itself signed the banner with. Kept on the notice because a banner
+    /// whose application could not be identified still has to render something sensible.
+    public var sourceName: String = ""
 }
 
 public struct HiNotificationCandidate: Equatable, Sendable {
@@ -16,13 +19,16 @@ public struct HiNotificationCandidate: Equatable, Sendable {
     public let sender: String?
     public let body: String?
     public let sourceBundleID: String
+    public let sourceName: String
 
     public init(identity: String, sender: String?, body: String?,
-                sourceBundleID: String = HiNotificationSourceEvidence.hiBundleID) {
+                sourceBundleID: String = HiNotificationSourceEvidence.hiBundleID,
+                sourceName: String = "") {
         self.identity = identity
         self.sender = sender
         self.body = body
         self.sourceBundleID = sourceBundleID
+        self.sourceName = sourceName
     }
 }
 
@@ -54,27 +60,21 @@ public struct HiNotificationSourceEvidence: Equatable, Sendable {
         return bannerDescriptions.allSatisfy { Self.matchedDisplayName(in: $0, candidates: knownDisplayNames) != nil }
     }
 
-    /// macOS renders a banner description as "<Application> <title>, <subtitle>, <body>":
-    /// the application name is separated from the title by a plain space, so it cannot be
-    /// recovered by slicing at the first comma. Match a known name against the prefix instead.
+    /// Matches a known application name against the banner description prefix.
+    /// The boundary rules live in `BannerNamePrefix` and are shared with `ApplicationNameIndex`.
     public static func matchedDisplayName(in description: String, candidates: Set<String>) -> String? {
-        let text = normalized(description)
-        guard !text.isEmpty else { return nil }
         var best: String?
+        var bestLength = 0
         var ambiguous = false
         for candidate in candidates {
+            guard let length = BannerNamePrefix.matchLength(of: candidate, in: description) else { continue }
             let name = normalized(candidate)
-            guard !name.isEmpty, name.count <= 80, text.hasPrefix(name) else { continue }
-            let boundary = text.index(text.startIndex, offsetBy: name.count)
-            guard boundary == text.endIndex || Self.separators.contains(text[boundary]) else { continue }
-            guard let current = best else { best = name; continue }
-            if name.count > current.count { best = name; ambiguous = false }
-            else if name.count == current.count, name != current { ambiguous = true }
+            guard let current = best else { best = name; bestLength = length; continue }
+            if length > bestLength { best = name; bestLength = length; ambiguous = false }
+            else if length == bestLength, name != current { ambiguous = true }
         }
         return ambiguous ? nil : best
     }
-
-    private static let separators: Set<Character> = [" ", ",", "，", "\u{00A0}", "\u{3000}", "\n"]
 
     private static func normalized(_ name: String) -> String {
         name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -87,18 +87,24 @@ public struct HiNotificationState: Equatable, Sendable {
     public static let dedupLifetime: TimeInterval = 30
     public static let maxRecentIdentities = 64
     public private(set) var current: HiNotificationNotice?
-    public private(set) var enabledSources: Set<String> = []
-    public private(set) var detailedSources: Set<String> = []
-    public var isEnabled: Bool { !enabledSources.isEmpty }
+    /// Sources are no longer an enumerable allow list: any application may post a banner, so the
+    /// decision has to be a policy evaluated per bundle identifier instead of a set membership test.
+    public private(set) var enabledPolicy = AppNotificationPolicy(allowsUnconfiguredSources: false)
+    public private(set) var detailPolicy = AppNotificationPolicy(allowsUnconfiguredSources: false)
+    public var isEnabled: Bool { enabledPolicy.allowsAnySource }
     public private(set) var applicationAvailable = false
-    public var isDetailed: Bool { detailedSources.contains(HiNotificationSourceEvidence.hiBundleID) }
+    public var isDetailed: Bool { detailPolicy.allows(HiNotificationSourceEvidence.hiBundleID) }
     private var recentIdentities: [String: TimeInterval] = [:]
     public var recentIdentityCount: Int { recentIdentities.count }
 
     public init() {}
 
+    private var explicitlyEnabledSources: Set<String> { Set(enabledPolicy.overrides.filter(\.value).keys) }
+    private var explicitlyDetailedSources: Set<String> { Set(detailPolicy.overrides.filter(\.value).keys) }
+
     public mutating func setEnabled(_ enabled: Bool) {
-        configure(enabled: enabled ? [HiNotificationSourceEvidence.hiBundleID] : [], detailed: detailedSources)
+        configure(enabled: enabled ? [HiNotificationSourceEvidence.hiBundleID] : [],
+                  detailed: explicitlyDetailedSources)
     }
 
     public mutating func setApplicationAvailable(_ available: Bool) {
@@ -107,29 +113,38 @@ public struct HiNotificationState: Equatable, Sendable {
     }
 
     public mutating func setDetailed(_ detailed: Bool) {
-        var sources = detailedSources
+        var sources = explicitlyDetailedSources
         if detailed { sources.insert(HiNotificationSourceEvidence.hiBundleID) }
         else { sources.remove(HiNotificationSourceEvidence.hiBundleID) }
-        configure(enabled: enabledSources, detailed: sources)
+        configure(enabled: explicitlyEnabledSources, detailed: sources)
     }
 
-    /// Per-application opt-in. Existing hi setters remain compatible with v1 preferences.
+    /// Convenience for an explicit, closed set of sources; nothing outside it is allowed.
     public mutating func configure(enabled: Set<String>, detailed: Set<String>) {
-        enabledSources = enabled
-        detailedSources = detailed
-        if enabled.isEmpty { clear(); return }
+        configure(enabled: Self.closedPolicy(allowing: enabled), detailed: Self.closedPolicy(allowing: detailed))
+    }
+
+    public mutating func configure(enabled: AppNotificationPolicy, detailed: AppNotificationPolicy) {
+        enabledPolicy = enabled
+        detailPolicy = detailed
+        if !enabled.allowsAnySource { clear(); return }
         guard let old = current else { return }
-        if !enabled.contains(old.sourceBundleID) { dismiss(); return }
-        if !detailed.contains(old.sourceBundleID) {
+        if !enabled.allows(old.sourceBundleID) { dismiss(); return }
+        if !detailed.allows(old.sourceBundleID) {
             current = HiNotificationNotice(id: old.id, sender: nil, body: nil,
                                            count: old.count, receivedAt: old.receivedAt,
-                                           sourceBundleID: old.sourceBundleID)
+                                           sourceBundleID: old.sourceBundleID, sourceName: old.sourceName)
         }
+    }
+
+    private static func closedPolicy(allowing sources: Set<String>) -> AppNotificationPolicy {
+        AppNotificationPolicy(overrides: Dictionary(uniqueKeysWithValues: sources.map { ($0, true) }),
+                              allowsUnconfiguredSources: false)
     }
 
     @discardableResult
     public mutating func receive(_ candidate: HiNotificationCandidate, now: TimeInterval) -> Bool {
-        guard enabledSources.contains(candidate.sourceBundleID), applicationAvailable, now.isFinite, !candidate.identity.isEmpty else { return false }
+        guard enabledPolicy.allows(candidate.sourceBundleID), applicationAvailable, now.isFinite, !candidate.identity.isEmpty else { return false }
         recentIdentities = recentIdentities.filter { now >= $0.value && now - $0.value <= Self.dedupLifetime }
         let dedupIdentity = candidate.sourceBundleID + "\u{0}" + candidate.identity
         guard recentIdentities[dedupIdentity] == nil else { return false }
@@ -144,22 +159,25 @@ public struct HiNotificationState: Equatable, Sendable {
         } else {
             count = 1
         }
+        let detailed = detailPolicy.allows(candidate.sourceBundleID)
         current = HiNotificationNotice(id: candidate.identity,
-                                       sender: detailedSources.contains(candidate.sourceBundleID) ? Self.displayText(candidate.sender, limit: 80) : nil,
-                                       body: detailedSources.contains(candidate.sourceBundleID) ? Self.displayText(candidate.body, limit: 240) : nil,
-                                       count: count, receivedAt: now, sourceBundleID: candidate.sourceBundleID)
+                                       sender: detailed ? Self.displayText(candidate.sender, limit: 80) : nil,
+                                       body: detailed ? Self.displayText(candidate.body, limit: 240) : nil,
+                                       count: count, receivedAt: now,
+                                       sourceBundleID: candidate.sourceBundleID, sourceName: candidate.sourceName)
         return true
     }
 
     /// A system card can populate title/body after its AX-created event. Refreshing that
     /// same card must not count another message, extend its lifetime, or restore private text.
     public mutating func refreshCurrentContent(_ candidate: HiNotificationCandidate) {
-        guard enabledSources.contains(candidate.sourceBundleID), applicationAvailable, detailedSources.contains(candidate.sourceBundleID),
+        guard enabledPolicy.allows(candidate.sourceBundleID), applicationAvailable, detailPolicy.allows(candidate.sourceBundleID),
               let old = current, old.id == candidate.identity, old.sourceBundleID == candidate.sourceBundleID else { return }
         current = HiNotificationNotice(id: old.id,
                                        sender: Self.displayText(candidate.sender, limit: 80),
                                        body: Self.displayText(candidate.body, limit: 240),
-                                       count: old.count, receivedAt: old.receivedAt, sourceBundleID: old.sourceBundleID)
+                                       count: old.count, receivedAt: old.receivedAt,
+                                       sourceBundleID: old.sourceBundleID, sourceName: old.sourceName)
     }
 
     /// Keep opaque recent identities so a delayed AX callback cannot replay a dismissed card.

@@ -14,7 +14,7 @@
 - **设置**：中英文切换、图标选择，以及媒体、日历、文件暂存等工具。
 - **系统工具**：新增第四个标签，可选工具及摆放顺序；提供截屏、录屏、秒表、计时器、闹钟、音量／亮度滑块和系统应用入口。标注“打开设置”的功能是设置快捷入口，不等于直接切换系统状态。
 - **截图暂存**：应用截屏和录屏进入文件暂存；系统快捷键保存的新截图自动复制，保留原图。hi／微信截图可通过“暂存剪贴板图片”手动添加。
-- **应用通知实验**：hi、ValOS、Lobi、ChatGPT/Codex 四个来源和独立隐私设置，仅转显实际系统横幅。真实任务通知验收尚未完成，原系统横幅隐藏未开放。
+- **应用通知**：任意 App 的桌面横幅都可转显到小岛，App 发出第一条通知后自动出现在设置页，可逐个开关并单独控制是否显示内容预览。已在真实微信、hi、ValOS 横幅上验证转显与点击打开。原系统横幅隐藏、横幅跟随小岛所在屏幕尚未开放。
 
 ## 打开与构建
 
@@ -39,6 +39,8 @@ ISLAND_SIGN_IDENTITY=- bash scripts/build.sh Debug
 - [275 版紧凑系统提示栏](COMPACT-HUD-275-VALIDATION.md)
 - [276 版系统工具与应用通知](TOOLS-NOTIFICATIONS-276-VALIDATION.md)
 - [280 版音频输出、显示模式与原彩显示验证](TOOLS-NOTIFICATIONS-280-VALIDATION.md)
+- [293 版系统通知真实消息转显与点击打开](NOTIFICATIONS-293-VALIDATION.md)
+- [294 版应用通知通用化](NOTIFICATIONS-294-VALIDATION.md)
 
 - [使用和工程说明](README-Island.md)
 - [歌词与 hi 验收记录](BRIEF-NOTIFICATIONS-VALIDATION.md)

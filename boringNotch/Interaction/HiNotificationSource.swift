@@ -35,29 +35,22 @@ final class HiNotificationManager: ObservableObject {
     @Published private(set) var structureSamplesSummary = ""
     /// Deliberately false until a separate native verification establishes safe move/restore.
     let originalBannerHidingSupported = false
-    @Published private(set) var sources = AppNotificationSourceInfo.discover()
+    @Published private(set) var sources: [AppNotificationSourceInfo] = []
     private var deliveredSources = Set<String>()
-    private var configuredSources = Set<String>()
-    var enabled: Bool { sources.contains { $0.isInstalled && isEnabled($0.id) } }
-    private var enabledSources: Set<String> { Set(sources.filter { $0.isInstalled && isEnabled($0.id) }.map(\.id)) }
-    private var detailedSources: Set<String> { Set(sources.filter { isDetailed($0.id) }.map(\.id)) }
+    private var configuredPolicy = AppNotificationPolicy(allowsUnconfiguredSources: false)
+    private let catalog = InstalledApplicationCatalog.shared
+    var enabled: Bool { AppNotificationSourcePreferences.enabledPolicy().allowsAnySource }
 
-    func isEnabled(_ bundleID: String) -> Bool {
-        bundleID == Self.bundleID ? Defaults[.enableHiNotifications] : Defaults[.enabledAppNotificationSources][bundleID] == true
-    }
-    func isDetailed(_ bundleID: String) -> Bool {
-        bundleID == Self.bundleID ? Defaults[.hiNotificationDetail] : Defaults[.detailedAppNotificationSources][bundleID] == true
-    }
+    func isEnabled(_ bundleID: String) -> Bool { AppNotificationSourcePreferences.enabledPolicy().allows(bundleID) }
+    func isDetailed(_ bundleID: String) -> Bool { AppNotificationSourcePreferences.detailPolicy().allows(bundleID) }
     func setEnabled(_ enabled: Bool, for bundleID: String) {
-        guard sources.contains(where: { $0.id == bundleID }) else { return }
-        if bundleID == Self.bundleID { Defaults[.enableHiNotifications] = enabled }
-        else { Defaults[.enabledAppNotificationSources][bundleID] = enabled }
+        guard !bundleID.isEmpty else { return }
+        Defaults[.enabledAppNotificationSources][bundleID] = enabled
         refresh()
     }
     func setDetailed(_ detailed: Bool, for bundleID: String) {
-        guard sources.contains(where: { $0.id == bundleID }) else { return }
-        if bundleID == Self.bundleID { Defaults[.hiNotificationDetail] = detailed }
-        else { Defaults[.detailedAppNotificationSources][bundleID] = detailed }
+        guard !bundleID.isEmpty else { return }
+        Defaults[.detailedAppNotificationSources][bundleID] = detailed
         refresh()
     }
     func status(for source: AppNotificationSourceInfo) -> HiNotificationSourceStatus {
@@ -70,11 +63,13 @@ final class HiNotificationManager: ObservableObject {
     }
     func icon(for notice: HiNotificationNotice) -> NSImage? { icon(for: notice.sourceBundleID) }
     func icon(for bundleID: String) -> NSImage? {
-        guard let url = sources.first(where: { $0.id == bundleID })?.applicationURL else { return nil }
-        return NSWorkspace.shared.icon(forFile: url.path)
+        guard !bundleID.isEmpty else { return nil }
+        return catalog.icon(for: bundleID)
     }
     func displayText(for notice: HiNotificationNotice) -> String {
-        let name = sources.first(where: { $0.id == notice.sourceBundleID })?.name ?? "App"
+        let name = notice.sourceName.isEmpty
+            ? (Defaults[.seenAppNotificationSources][notice.sourceBundleID] ?? L("App"))
+            : notice.sourceName
         let details = [notice.sender, notice.body].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
         // Never infer completion from an app being an AI tool. The actual notification may
         // instead ask for input, report an error, or carry an unrelated update.
@@ -146,20 +141,22 @@ final class HiNotificationManager: ObservableObject {
     func start() {
         guard !started else { refresh(); return }
         started = true
-        Defaults.publisher(.enableHiNotifications).sink { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
-        }.store(in: &subscriptions)
-        Defaults.publisher(.hiNotificationDetail).sink { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
-        }.store(in: &subscriptions)
+        AppNotificationSourcePreferences.migrateLegacyHiKeysIfNeeded()
+        catalog.start()
         Defaults.publisher(.enabledAppNotificationSources).sink { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }.store(in: &subscriptions)
         Defaults.publisher(.detailedAppNotificationSources).sink { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }.store(in: &subscriptions)
-        Defaults.publisher(.hideOriginalHiBanner).sink { [weak self] _ in
+        Defaults.publisher(.appNotificationAllowsNewSources).sink { [weak self] _ in
             Task { @MainActor in self?.refresh() }
+        }.store(in: &subscriptions)
+        Defaults.publisher(.appNotificationDetailsNewSources).sink { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }.store(in: &subscriptions)
+        Defaults.publisher(.seenAppNotificationSources).sink { [weak self] _ in
+            Task { @MainActor in self?.rebuildSources() }
         }.store(in: &subscriptions)
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification,
                      NSWorkspace.didActivateApplicationNotification] {
@@ -168,6 +165,15 @@ final class HiNotificationManager: ObservableObject {
             }.store(in: &subscriptions)
         }
         refresh()
+    }
+
+    /// The settings list is whatever has actually notified this Mac, newest names included.
+    private func rebuildSources() {
+        let seen = Defaults[.seenAppNotificationSources]
+        let rebuilt = seen.map { id, name in
+            AppNotificationSourceInfo(id: id, name: name, applicationURL: catalog.bundleURL(for: id))
+        }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        if sources != rebuilt { sources = rebuilt }
     }
 
     func setApplicationAvailable(_ available: Bool) {
@@ -181,18 +187,17 @@ final class HiNotificationManager: ObservableObject {
     func refresh() {
         defer { updateDiagnostics() }
         objectWillChange.send()
-        let discovered = AppNotificationSourceInfo.discover()
-        if sources != discovered { sources = discovered }
-        let enabled = enabledSources
-        state.configure(enabled: enabled, detailed: detailedSources)
-        if configuredSources != enabled {
+        rebuildSources()
+        let enabled = AppNotificationSourcePreferences.enabledPolicy()
+        state.configure(enabled: enabled, detailed: AppNotificationSourcePreferences.detailPolicy())
+        if configuredPolicy != enabled {
             // Enabling another source must not replay its already-visible notification.
-            configuredSources = enabled
+            configuredPolicy = enabled
             stopObserverOnly()
         }
         if state.current == nil { latestAction = nil }
         publish()
-        guard !enabled.isEmpty else { stopObserving(); status = .disabled; lastResult = "disabled"; return }
+        guard enabled.allowsAnySource else { stopObserving(); status = .disabled; lastResult = "disabled"; return }
         guard state.applicationAvailable else { stopObserving(); status = .paused; lastResult = "unavailable"; return }
         ensureHealthCheck()
         guard AXIsProcessTrusted() else {
@@ -435,7 +440,7 @@ final class HiNotificationManager: ObservableObject {
             openedOriginal = AXUIElementPerformAction(live.card, kAXPressAction as CFString) == .success
         }
         dismiss()
-        if !openedOriginal, let url = sources.first(where: { $0.id == notice.sourceBundleID })?.applicationURL {
+        if !openedOriginal, let url = catalog.bundleURL(for: notice.sourceBundleID) {
             NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
         }
     }
@@ -537,26 +542,29 @@ final class HiNotificationManager: ObservableObject {
             let allCards = nodes.filter { Self.bannerSubroles.contains(string($0, kAXSubroleAttribute) ?? "") }
             let grouped = nodes.contains { Self.stackSubroles.contains(string($0, kAXSubroleAttribute) ?? "") }
             lastCardCount += allCards.count
-            if grouped || allCards.count > 1 { lastResult = "grouped_or_multiple_cards_rejected" }
             if allCards.isEmpty { lastResult = "no_supported_banner_subrole" }
-            if allCards.count != 1 || grouped { diagnosticStructure.recordSource(.unparsed) }
-            guard allCards.count == 1, !grouped, let card = allCards.first,
+            if allCards.isEmpty { diagnosticStructure.recordSource(.unparsed) }
+            // Several cards or a stack used to discard the whole window. Take the topmost card
+            // instead: losing the ones underneath is far better than losing the newest message.
+            if grouped || allCards.count > 1 { lastResult = "multiple_cards_took_topmost" }
+            guard let card = Self.topmostCard(among: allCards, position: { frame(of: $0)?.origin }),
                   let frame = frame(of: card), frame.width >= 140, frame.width <= 700,
                   frame.height >= 35, frame.height <= 350, isOnScreen(frame),
                   let description = attributedDescription(card),
                   !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                if allCards.count == 1 && !grouped { diagnosticStructure.recordSource(.unparsed) }
+                if !allCards.isEmpty { diagnosticStructure.recordSource(.unparsed) }
                 return nil
             }
-            let evidence = HiNotificationSourceEvidence(bannerDescriptions: [description])
-            let matching = sources.filter { source in
-                source.isInstalled && evidence.isUnambiguouslySource(bundleID: source.id, knownDisplayNames: source.attributedNames)
-            }
-            guard matching.count == 1, let source = matching.first, isEnabled(source.id) else {
+            let resolved = catalog.index.resolve(bannerDescription: description)
+            if resolved == nil { catalog.refreshIfStale() }
+            let bundleID = resolved?.bundleID ?? ""
+            let sourceName = resolved?.displayName ?? description
+            guard isEnabled(bundleID) else {
                 diagnosticStructure.recordSource(.other)
                 return nil
             }
-            diagnosticStructure.recordSource(source.id == Self.bundleID ? .hi : .other)
+            if let resolved { AppNotificationSourcePreferences.remember(bundleID: resolved.bundleID, displayName: resolved.displayName) }
+            diagnosticStructure.recordSource(bundleID == Self.bundleID ? .hi : .other)
             lastMatchedCount += 1
             lastResult = "recognized_app_card"
             var settable = DarwinBoolean(false)
@@ -568,7 +576,7 @@ final class HiNotificationManager: ObservableObject {
             // Hasher is randomized per process. Neither this token nor raw text is logged/saved.
             let identity = cardIdentity(window: window, card: card)
             var digest = Hasher()
-            digest.combine(identity); digest.combine(source.id)
+            digest.combine(identity); digest.combine(bundleID)
             var sender: String?
             var bodyParts: [String] = []
             var hasPayload = false
@@ -580,14 +588,15 @@ final class HiNotificationManager: ObservableObject {
                 lastKnownFields.insert(field)
                 digest.combine(field); digest.combine(value)
                 if field == "body", !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { hasPayload = true }
-                guard includeDetails, isDetailed(source.id), seenFields.insert(field + "\u{0}" + value).inserted else { continue }
+                guard includeDetails, isDetailed(bundleID), seenFields.insert(field + "\u{0}" + value).inserted else { continue }
                 // No heuristic slicing of arbitrary localized accessibility descriptions.
                 // Unknown layouts retain a useful private notice instead of inventing a sender.
                 if field == "title" { sender = value }
                 else if field == "body" || field == "subtitle" { bodyParts.append(value) }
             }
             return Capture(candidate: HiNotificationCandidate(identity: identity, sender: sender,
-                           body: bodyParts.isEmpty ? nil : bodyParts.joined(separator: " "), sourceBundleID: source.id),
+                           body: bodyParts.isEmpty ? nil : bodyParts.joined(separator: " "),
+                           sourceBundleID: bundleID, sourceName: sourceName),
                            fingerprint: String(digest.finalize(), radix: 16),
                            hasPayload: hasPayload,
                            card: card, window: window)
@@ -595,6 +604,12 @@ final class HiNotificationManager: ObservableObject {
         let complete = !readHadFailure && withinReadBudget
         // Partial AX payloads cannot drive fingerprint changes or original-action validation.
         return CaptureSnapshot(cards: complete ? captured : [], visibleCardIDs: visibleIDs, complete: complete)
+    }
+
+    private static func topmostCard(among cards: [AXUIElement],
+                                    position: (AXUIElement) -> CGPoint?) -> AXUIElement? {
+        guard let index = BannerCardSelection.topmostIndex(positions: cards.map(position)) else { return nil }
+        return cards[index]
     }
 
     private static let bannerSubroles: Set<String> = ["AXNotificationCenterBanner", "AXNotificationCenterAlert"]

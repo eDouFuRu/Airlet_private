@@ -2,48 +2,62 @@ import AppKit
 import Defaults
 
 extension Defaults.Keys {
-    // hi keeps its existing independent keys; new applications are opt-in and private.
+    /// Explicit per-application choices. Absence means "follow the default policy", which is why
+    /// this stays a sparse dictionary instead of a materialised list of every installed app.
     static let enabledAppNotificationSources = Key<[String: Bool]>("enabledAppNotificationSources", default: [:])
     static let detailedAppNotificationSources = Key<[String: Bool]>("detailedAppNotificationSources", default: [:])
+    static let appNotificationAllowsNewSources = Key<Bool>("appNotificationAllowsNewSources", default: true)
+    static let appNotificationDetailsNewSources = Key<Bool>("appNotificationDetailsNewSources", default: true)
+    /// bundleID -> display name for every application that has actually posted a banner here.
+    /// Only these two fields; never any message content.
+    static let seenAppNotificationSources = Key<[String: String]>("seenAppNotificationSources", default: [:])
+    static let appNotificationLegacyHiMigrated = Key<Bool>("appNotificationLegacyHiMigrated", default: false)
 }
 
+/// A row in the settings list. Sources are discovered from what has actually notified this Mac,
+/// not from a hard-coded allow list.
 struct AppNotificationSourceInfo: Identifiable, Equatable {
     let id: String
     let name: String
     let applicationURL: URL?
-    let attributedNames: Set<String>
     var isInstalled: Bool { applicationURL != nil }
+}
 
-    /// IDs and names are confirmed against the installed app bundle before observation.
-    /// This Mac's ChatGPT app also hosts Codex, under com.openai.codex.
-    @MainActor static func discover() -> [Self] {
-        let specifications: [(String, String, Set<String>)] = [
-            (HiNotificationSourceEvidence.hiBundleID, "hi", ["hi"]),
-            ("com.xingin.valos", "ValOS", ["ValOS"]),
-            ("com.coral.desktop", "Lobi", ["Lobi"]),
-            ("com.openai.codex", "ChatGPT / Codex", ["ChatGPT", "Codex"]),
-            ("com.tencent.xinWeChat", "WeChat", ["WeChat", "微信"]),
-            // Kept on purpose: `osascript -e 'display notification …'` posts a real banner as this
-            // app, which is the only way to self-test the whole capture path without a second person.
-            ("com.apple.ScriptEditor2", "Script Editor", ["Script Editor", "脚本编辑器"])
-        ]
-        let running = NSWorkspace.shared.runningApplications.map {
-            AppNotificationNameFilter.RunningApplication(bundleID: $0.bundleIdentifier,
-                                                         bundlePath: $0.bundleURL?.path,
-                                                         localizedName: $0.localizedName)
-        }
-        return specifications.map { id, name, aliases in
-            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id),
-                  let bundle = Bundle(url: url), bundle.bundleIdentifier == id else {
-                return Self(id: id, name: name, applicationURL: nil, attributedNames: [])
-            }
-            var names = aliases
-            for key in ["CFBundleDisplayName", "CFBundleName"] {
-                if let value = bundle.object(forInfoDictionaryKey: key) as? String { names.insert(value) }
-            }
-            names = AppNotificationNameFilter.attributableNames(candidates: names, sourceBundleID: id,
-                                                                sourceBundlePath: url.path, running: running)
-            return Self(id: id, name: name, applicationURL: url, attributedNames: names)
-        }
+enum AppNotificationSourcePreferences {
+    /// hi predates the shared dictionaries and owns three keys of its own. Move its values across
+    /// exactly once; the old keys are deliberately left untouched so they remain a rollback record.
+    @MainActor static func migrateLegacyHiKeysIfNeeded() {
+        guard !Defaults[.appNotificationLegacyHiMigrated] else { return }
+        let id = HiNotificationSourceEvidence.hiBundleID
+        let outcome = AppNotificationMigration.migratingLegacyHi(
+            bundleID: id,
+            legacyEnabled: Defaults[.enableHiNotifications],
+            legacyDetailed: Defaults[.hiNotificationDetail],
+            enabled: Defaults[.enabledAppNotificationSources],
+            detailed: Defaults[.detailedAppNotificationSources])
+        Defaults[.enabledAppNotificationSources] = outcome.enabled
+        Defaults[.detailedAppNotificationSources] = outcome.detailed
+        Defaults[.appNotificationLegacyHiMigrated] = true
+    }
+
+    @MainActor static func enabledPolicy() -> AppNotificationPolicy {
+        AppNotificationPolicy(overrides: Defaults[.enabledAppNotificationSources],
+                              allowsUnconfiguredSources: Defaults[.appNotificationAllowsNewSources],
+                              builtInExclusions: builtInExclusions)
+    }
+
+    @MainActor static func detailPolicy() -> AppNotificationPolicy {
+        AppNotificationPolicy(overrides: Defaults[.detailedAppNotificationSources],
+                              allowsUnconfiguredSources: Defaults[.appNotificationDetailsNewSources])
+    }
+
+    /// Only the notch app itself, so its own notifications are not mirrored back onto the notch.
+    /// It still appears in the settings list and can be switched on deliberately.
+    static let builtInExclusions: Set<String> = Set([Bundle.main.bundleIdentifier].compactMap { $0 })
+
+    @MainActor static func remember(bundleID: String, displayName: String) {
+        guard !bundleID.isEmpty, !displayName.isEmpty else { return }
+        guard Defaults[.seenAppNotificationSources][bundleID] != displayName else { return }
+        Defaults[.seenAppNotificationSources][bundleID] = displayName
     }
 }

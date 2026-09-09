@@ -39,12 +39,12 @@ public enum AppNotificationNameFilter {
         guard let bundleID = application.bundleID,
               bundleID != sourceBundleID, bundleID != notificationCenterBundleID else { return false }
         guard let path = application.bundlePath else { return true }
-        return !isContained(path, in: sourceBundlePath)
+        return !isBundlePath(path, containedIn: sourceBundlePath)
     }
 
     /// Path containment only; no symlink resolution, because a helper's bundle may be replaced
     /// during an update and `resolvingSymlinksInPath()` is undefined for a vanished path.
-    private static func isContained(_ path: String, in container: String) -> Bool {
+    public static func isBundlePath(_ path: String, containedIn container: String) -> Bool {
         let normalized = normalize(path)
         let root = normalize(container)
         guard !root.isEmpty else { return false }
