@@ -59,7 +59,16 @@ enum OriginalLyricsProviderHarness {
         let otherPlayer = OriginalProviderProbe(netease: .document(original), library: .document(romanized))
         let otherPlayerResult = try await provider(otherPlayer).lookup(otherChineseTrack)
         let otherPlayerCalls = await otherPlayer.calls
-        check(otherPlayerResult == original && otherPlayerCalls == ["library", "netease"], "Other-player romanized Chinese can recover from the original NetEase source")
+        check(otherPlayerResult == original && otherPlayerCalls == ["library", "netease"],
+              "Other-player romanized Chinese can recover from the original NetEase source")
+
+        // Source order follows the player: only NetEase playback puts NetEase
+        // first, so QQ/Kugou/Spotify/Apple Music keep LRCLIB as their primary.
+        let otherPlayerOrder = OriginalProviderProbe(netease: .document(original), library: .document(original))
+        _ = try await provider(otherPlayerOrder).lookup(otherChineseTrack)
+        let otherPlayerOrderCalls = await otherPlayerOrder.calls
+        check(otherPlayerOrderCalls == ["library"],
+              "A non-NetEase player never reaches NetEase while LRCLIB answers")
 
         let bothRomanized = OriginalProviderProbe(netease: .document(romanized), library: .document(romanized))
         let noOriginal = try await provider(bothRomanized).lookup(neteaseTrack)

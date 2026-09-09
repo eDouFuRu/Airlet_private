@@ -67,13 +67,35 @@ extension LyricsTrack {
     static func normalizedAlbum(_ text: String) -> String {
         normalized(text).replacingOccurrences(of: "(?<=[\\p{Han}]) +| +(?=[\\p{Han}])", with: "", options: .regularExpression)
     }
+    /// A catalog credits every performer ("林俊杰 / MC HotDog 热狗") while
+    /// MediaRemote usually publishes only the lead ("林俊杰"), so equality
+    /// rejects every collaboration. Agreeing on the lead performer is enough
+    /// here because title, album and duration are matched exactly elsewhere;
+    /// artist alone never decides which recording's clock is borrowed.
+    static func creditTokens(_ value: String) -> [String] {
+        normalized(value)
+            // Featured credits are separators, not part of a performer's name.
+            .replacingOccurrences(of: "(?i)(?<![a-z])(?:feat|ft|featuring|with|vs)\\.?(?![a-z])",
+                                  with: "/", options: .regularExpression)
+            // Round brackets carry credits ("(Feat. MC Hotdog)"); square ones
+            // carry release tags ("[PT80]") and must keep the name unsplit.
+            .components(separatedBy: CharacterSet(charactersIn: "/&,;()×、，＆；（）"))
+            .map { token in
+                // "David Tao 陶喆" and "陶喆" are the same performer.
+                token.trimmingCharacters(in: .whitespaces)
+                    .replacingOccurrences(of: "^[a-z][a-z .]*[ ]+(?=[\\p{Han}])", with: "", options: .regularExpression)
+            }
+            .filter { !$0.isEmpty }
+    }
+
     static func artistMatches(_ lhs: String, _ rhs: String) -> Bool {
         let a = normalized(lhs), b = normalized(rhs)
-        if a == b { return true }
-        func chineseCredit(_ value: String) -> String {
-            value.replacingOccurrences(of: "^[a-z][a-z .]*[ ]+(?=[\\p{Han}])", with: "", options: .regularExpression)
-        }
-        return !a.isEmpty && chineseCredit(a) == chineseCredit(b)
+        if !a.isEmpty && a == b { return true }
+        let left = creditTokens(lhs), right = creditTokens(rhs)
+        guard let leadLeft = left.first, let leadRight = right.first else { return false }
+        // Either side may be the abbreviated credit, so accept when one side's
+        // lead performer appears anywhere in the other's credit list.
+        return right.contains(leadLeft) || left.contains(leadRight)
     }
 }
 

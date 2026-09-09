@@ -59,6 +59,39 @@ final class OriginalLyricsTests: XCTestCase {
         XCTAssertEqual(LyricsTextPresentation.render(line: "君の願い", simplifiedChinese: true), "君の願い")
         XCTAssertTrue(LyricsDocument(cues: [LyricCue(time: 0, text: "願你快樂"), LyricCue(time: 2, text: "Hello")]).permitsChineseSimplification)
     }
+    /// MediaRemote publishes only the lead performer while catalogs credit
+    /// everyone, so equality rejected every collaboration and left those songs
+    /// with no lyrics at all. Real strings observed on the two reported songs.
+    func testCollaborationCreditMatchesTheLeadPerformerInEitherDirection() {
+        let accepted: [(String, String)] = [
+            ("林俊杰 / MC HotDog 热狗", "林俊杰"), ("林俊杰/MC Hotdog", "林俊杰"),
+            ("林俊杰 (Feat. MC Hotdog)", "林俊杰"), ("陶喆 / 关诗敏", "陶喆"),
+            ("David Tao 陶喆 feat. Sharon Kwan", "陶喆"), ("林憶蓮", "林忆莲"),
+            // Apple Music publishes the full credit where LRCLIB abbreviates it.
+            ("林俊杰", "林俊杰 / MC HotDog 热狗")]
+        for (catalog, player) in accepted {
+            XCTAssertTrue(LyricsTrack.artistMatches(catalog, player), "\(catalog) vs \(player)")
+        }
+    }
+    func testAnotherPerformerIsStillRejectedAfterLooseningTheCredit() {
+        for (catalog, player) in [("周杰伦", "林俊杰"), ("David Tao", "陶喆"),
+                                  ("Various Artists", "陶喆"), ("", "陶喆"), ("陶喆", "")] {
+            XCTAssertFalse(LyricsTrack.artistMatches(catalog, player), "\(catalog) vs \(player)")
+        }
+    }
+    func testACollaborationRecordIsAcceptedOnlyWithTheExactReleaseAndDuration() {
+        let solo = LyricsTrack(source: "com.netease.163music", title: "加油！", artist: "林俊杰", album: "100天", duration: 227.64)
+        let credited = [NetEaseSongRecord.Artist(name: "林俊杰"), .init(name: "MC HotDog 热狗")]
+        XCTAssertEqual(NetEaseSongRecord.bestMatch([
+            .init(id: 108406, name: "加油！", artists: credited, album: .init(name: "100天"), duration: 227640)], track: solo)?.id, 108406)
+        // Loosening the credit must not loosen the clock: another release of the
+        // same collaboration still fails on album and on duration.
+        for record: NetEaseSongRecord in [
+            .init(id: 26305549, name: "加油！", artists: credited, album: .init(name: "他是…JJ林俊杰"), duration: 227640),
+            .init(id: 108406, name: "加油！", artists: credited, album: .init(name: "100天"), duration: 231000)] {
+            XCTAssertFalse(record.matches(solo))
+        }
+    }
     func testDuplicatePhoneticLineIsRemovedInEitherOrder() {
         for lrc in ["[00:01]你好世界\n[00:01]ni hao shi jie", "[00:01]ni hao shi jie\n[00:01]你好世界"] {
             XCTAssertEqual(LRCParser.parse(lrc), [LyricCue(time: 1, text: "你好世界")])
