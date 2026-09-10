@@ -11,8 +11,10 @@ import ApplicationServices
 /// Two consequences, both deliberate:
 ///
 /// * **Without that trust the shortcuts simply do not exist.** No prompt, no error message.
-///   The right-click menu carries every one of these commands and needs no permission, so it
-///   stays the complete path and this is pure enhancement.
+///   An item's right-click menu carries every one of these commands and needs no permission,
+///   so for copy and cut this is pure enhancement. Paste is the one exception: the shelf's
+///   empty-space menu was removed in 302, so with an empty shelf there is no item to
+///   right-click and ⌘V is the only way in — that path does need the trust.
 /// * **The monitor is installed only while the pointer is over the shelf**, and removed the
 ///   moment it leaves. A global key monitor sees keystrokes in every application, so leaving
 ///   one running would mean a ⌘C aimed at another app silently overwrote the clipboard with

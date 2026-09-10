@@ -141,9 +141,6 @@ struct ShelfView: View {
                 }
             }
         }
-        // AppKit, not `.contextMenu`: the island is never the key window, so SwiftUI's
-        // context menu never opens here. See `ShelfBackgroundMenu`.
-        .overlay(ShelfBackgroundMenu())
         .onAppear {
             ShelfStateViewModel.shared.cleanupInvalidItems()
             ShelfRetentionSweeper.shared.sweepNow()

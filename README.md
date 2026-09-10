@@ -1,6 +1,6 @@
 # 工位充电岛 · NotchIslandNext
 
-基于 **boring.notch v2.7.3** 的原生 macOS 刘海应用，当前版本为 **280 版**。使用 SwiftUI + AppKit，保留物理刘海悬停、弹簧伸缩、反向圆角及上游常用工具。
+基于 **boring.notch v2.7.3** 的原生 macOS 刘海应用，当前版本为 **302 版**。使用 SwiftUI + AppKit，保留物理刘海悬停、弹簧伸缩、反向圆角及上游常用工具。
 
 <p align="center"><img src="boringNotch/Assets.xcassets/ShuIcon-captain.imageset/icon.png" width="160" alt="薯队长"></p>
 
