@@ -74,3 +74,6 @@ __pycache__/
 
 # AI agent handoff bundle (local working notes, not part of the product)
 NotchIslandNext_AGENT_HANDOFF_FINAL/
+
+# Release artifacts (disk images, notes)
+dist/

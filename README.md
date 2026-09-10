@@ -1,6 +1,6 @@
 # 工位充电岛 · NotchIslandNext
 
-基于 **boring.notch v2.7.3** 的原生 macOS 刘海应用，当前版本为 **302 版**。使用 SwiftUI + AppKit，保留物理刘海悬停、弹簧伸缩、反向圆角及上游常用工具。
+基于 **boring.notch v2.7.3** 的原生 macOS 刘海应用，对外发布版本 **v1.0.0（build 303）**。使用 SwiftUI + AppKit，保留物理刘海悬停、弹簧伸缩、反向圆角及上游常用工具。
 
 <p align="center"><img src="boringNotch/Assets.xcassets/ShuIcon-captain.imageset/icon.png" width="160" alt="薯队长"></p>
 
@@ -29,6 +29,20 @@ ISLAND_SIGN_IDENTITY=- bash scripts/build.sh Debug
 ```
 
 临时签名产物不能通过本项目的固定路径安装器，也不能据此验证跨构建辅助功能授权保留。
+
+## 对外发布
+
+对外发布走 `eDouFuRu/notch-island`（公开仓库），本仓库保持私有。三步：
+
+```sh
+bash scripts/package-release.sh          # Release 构建 + 素材基线校验 + 出 dist/ 里的 DMG 与发布说明
+bash scripts/make-public-snapshot.sh     # 从 HEAD 生成公开源码快照（单个提交 + 版本 tag），含泄露词扫描
+bash scripts/publish-release.sh --yes    # 建仓/推快照/建 release 上传 DMG；不带 --yes 只打印将公开的内容
+```
+
+- 素材基线 `scripts/release-artwork-baseline.txt` 锁住 13 个曾带公司字样的图标／贴图的 sha256，比对不上就中止打包。字样是用 `scripts/scrub-brand-mark.swift` 逐像素抹掉的（检测种子 → 区域生长 → 按行插值重绘），派生图标由 `scripts/export-shu25d-icons.sh` 重导。
+- 快照从 **HEAD** 取，未提交的改动不会进去，所以脚本要求工作树干净。
+- 公开版没有 Apple 公证（无付费开发者账号），用户首次打开必须在「系统设置 → 隐私与安全性」点「仍要打开」；`spctl` 实测结论是 `rejected`（origin 为本机自签证书）。
 
 ## 文档与验证
 

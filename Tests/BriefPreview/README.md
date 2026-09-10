@@ -8,7 +8,7 @@ notifications, or change an accessibility preference.
 
 ```sh
 python3 Tests/BriefPreview/render.py
-/Users/dongfengrui/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 Tests/BriefPreview/audit.py
+python3 Tests/BriefPreview/audit.py   # use an interpreter that has Pillow
 ```
 
 Run from the repository root. The audit requires Pillow. `render.py --output PATH`
