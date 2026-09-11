@@ -61,7 +61,9 @@ else
 fi
 
 /usr/bin/git -C "$ISLAND_SNAPSHOT" remote remove origin 2>/dev/null || true
-/usr/bin/git -C "$ISLAND_SNAPSHOT" remote add origin "https://github.com/$ISLAND_REPOSITORY.git"
+# SSH, because that is what gh authenticated with; the HTTPS remote would ask for
+# a password that no credential helper can supply.
+/usr/bin/git -C "$ISLAND_SNAPSHOT" remote add origin "git@github.com:$ISLAND_REPOSITORY.git"
 # Each release replaces the published snapshot: the public history is one commit
 # per release by design, so this push is expected to be non-fast-forward.
 /usr/bin/git -C "$ISLAND_SNAPSHOT" push --force origin main
