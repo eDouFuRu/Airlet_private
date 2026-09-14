@@ -65,6 +65,8 @@ done
 /bin/rm -rf "$ISLAND_OUTPUT/.scripts-full"
 
 /bin/cp "$ISLAND_PROJECT_ROOT/packaging/public-README.md" "$ISLAND_OUTPUT/README.md"
+# The Chinese README links to the English one, so it has to travel with it.
+/bin/cp "$ISLAND_PROJECT_ROOT/packaging/public-README.en.md" "$ISLAND_OUTPUT/README.en.md"
 /bin/cp "$ISLAND_PROJECT_ROOT/packaging/public-CHANGELOG.md" "$ISLAND_OUTPUT/CHANGELOG.md"
 
 # Nobody outside this machine has the local certificate, so the published project
