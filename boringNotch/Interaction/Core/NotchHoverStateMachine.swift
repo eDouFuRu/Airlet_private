@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛. Uses monotonic time supplied by the caller.
+// Custom changes for Airlet. Uses monotonic time supplied by the caller.
 import Foundation
 
 struct NotchHoverStateMachine {

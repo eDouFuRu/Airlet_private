@@ -7,13 +7,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛"
+            "value": "Airlet"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛"
+            "value": "Airlet"
           }
         }
       }
@@ -24,13 +24,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛"
+            "value": "Airlet"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛"
+            "value": "Airlet"
           }
         }
       }
@@ -41,13 +41,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 controls your selected media app to play, pause, and skip tracks. Only when you click Toggle Dark Mode, it uses System Events to change the system appearance."
+            "value": "Airlet controls your selected media app to play, pause, and skip tracks. Only when you click Toggle Dark Mode, it uses System Events to change the system appearance."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛控制你选择的媒体应用以播放、暂停和切歌；仅在你点击切换深色模式时，通过 System Events 更改系统外观。"
+            "value": "Airlet控制你选择的媒体应用以播放、暂停和切歌；仅在你点击切换深色模式时，通过 System Events 更改系统外观。"
           }
         }
       }
@@ -58,13 +58,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 reads Bluetooth power status when you use its Bluetooth tool, and turns Bluetooth on or off only when you choose to toggle it."
+            "value": "Airlet reads Bluetooth power status when you use its Bluetooth tool, and turns Bluetooth on or off only when you choose to toggle it."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用蓝牙工具时，工位充电岛需要读取蓝牙开关状态，并在你点击切换时开启或关闭蓝牙。"
+            "value": "使用蓝牙工具时，Airlet需要读取蓝牙开关状态，并在你点击切换时开启或关闭蓝牙。"
           }
         }
       }
@@ -75,13 +75,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 reads calendars you enable to show your upcoming events."
+            "value": "Airlet reads calendars you enable to show your upcoming events."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛读取你启用的日历，以展示即将开始的日程。"
+            "value": "Airlet读取你启用的日历，以展示即将开始的日程。"
           }
         }
       }
@@ -92,13 +92,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 reads calendars you enable to show your upcoming events."
+            "value": "Airlet reads calendars you enable to show your upcoming events."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛读取你启用的日历，以展示即将开始的日程。"
+            "value": "Airlet读取你启用的日历，以展示即将开始的日程。"
           }
         }
       }
@@ -109,13 +109,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 uses the camera only when you open the mirror, to show a live preview."
+            "value": "Airlet uses the camera only when you open the mirror, to show a live preview."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛仅在你打开镜子时使用摄像头，以显示实时预览。"
+            "value": "Airlet仅在你打开镜子时使用摄像头，以显示实时预览。"
           }
         }
       }
@@ -126,13 +126,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 reads the reminder lists you enable and lets you mark reminders as complete."
+            "value": "Airlet reads the reminder lists you enable and lets you mark reminders as complete."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛读取你启用的提醒列表，并允许你标记提醒事项是否完成。"
+            "value": "Airlet读取你启用的提醒列表，并允许你标记提醒事项是否完成。"
           }
         }
       }
@@ -143,13 +143,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 reads the reminder lists you enable and lets you mark reminders as complete."
+            "value": "Airlet reads the reminder lists you enable and lets you mark reminders as complete."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛读取你启用的提醒列表，并允许你标记提醒事项是否完成。"
+            "value": "Airlet读取你启用的提醒列表，并允许你标记提醒事项是否完成。"
           }
         }
       }

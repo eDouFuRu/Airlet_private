@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: report SwiftUI's interpolated contour to AppKit.
+// Custom changes for Airlet: report SwiftUI's interpolated contour to AppKit.
 import SwiftUI
 
 struct NotchPresentationReporter: AnimatableModifier {

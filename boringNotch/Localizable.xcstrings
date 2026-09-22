@@ -1086,40 +1086,6 @@
         }
       }
     },
-    "1 second to 24 hours. Closing this window keeps the timer running.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 second to 24 hours. Closing this window keeps the timer running."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "支持 1 秒至 24 小时，关闭窗口后仍会继续计时。"
-          }
-        }
-      }
-    },
-    "30s planting + 30s roasting = 1 sweet potato": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "30s planting + 30s roasting = 1 sweet potato"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "种薯 30 秒＋烤薯 30 秒＝1 颗红薯"
-          }
-        }
-      }
-    },
     "A Bluetooth request is already in progress.": {
       "extractionState": "manual",
       "localizations": {
@@ -1170,23 +1136,6 @@
         }
       }
     },
-    "A little rest, a warm sweet potato.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A little rest, a warm sweet potato."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "歇一会儿，烤一颗暖暖的红薯。"
-          }
-        }
-      }
-    },
     "A little water for the little field…": {
       "extractionState": "manual",
       "localizations": {
@@ -1217,23 +1166,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "本次运行已收到实际桌面通知，系统原横幅仍会显示。"
-          }
-        }
-      }
-    },
-    "A tasting potato — no stock needed": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A tasting potato — no stock needed"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尝鲜红薯，不消耗库存"
           }
         }
       }
@@ -1646,7 +1578,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accessibility access is required to replace system notifications with the 工位充电岛 HUD. This allows the app to intercept media and brightness events to display custom HUD overlays."
+            "value": "Accessibility access is required to replace system notifications with the Airlet HUD. This allows the app to intercept media and brightness events to display custom HUD overlays."
           }
         },
         "zh-Hans": {
@@ -3182,23 +3114,6 @@
         }
       }
     },
-    "Applies inside the app and to the running Dock icon. Finder uses Captain Shu.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Applies inside the app and to the running Dock icon. Finder uses Captain Shu."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "应用内和运行中的程序坞图标会同步改变；访达图标使用薯队长。"
-          }
-        }
-      }
-    },
     "Applies to lyrics in the player and below the notch. Match album art follows the current song's cover.": {
       "extractionState": "manual",
       "localizations": {
@@ -4580,13 +4495,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 can show all your upcoming events in one place. Access to your calendar is needed to display your schedule."
+            "value": "Airlet can show all your upcoming events in one place. Access to your calendar is needed to display your schedule."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛可以集中展示即将开始的日程。显示日程需要访问你的日历。"
+            "value": "Airlet可以集中展示即将开始的日程。显示日程需要访问你的日历。"
           }
         }
       }
@@ -4597,13 +4512,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 can show your scheduled reminders alongside your calendar events. Access to Reminders is needed to display your reminders."
+            "value": "Airlet can show your scheduled reminders alongside your calendar events. Access to Reminders is needed to display your reminders."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛可以在日历旁显示已安排的提醒事项。显示提醒需要访问你的提醒事项。"
+            "value": "Airlet可以在日历旁显示已安排的提醒事项。显示提醒需要访问你的提醒事项。"
           }
         }
       }
@@ -4614,13 +4529,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 includes a mirror feature that lets you quickly check your appearance using your camera, right from the notch. Camera access is required only to show this live preview. You can turn the mirror feature on or off at any time in the app."
+            "value": "Airlet includes a mirror feature that lets you quickly check your appearance using your camera, right from the notch. Camera access is required only to show this live preview. You can turn the mirror feature on or off at any time in the app."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛的镜子功能可通过摄像头在刘海下方显示实时预览。摄像头仅用于此预览，你可以随时关闭镜子。"
+            "value": "Airlet的镜子功能可通过摄像头在刘海下方显示实时预览。摄像头仅用于此预览，你可以随时关闭镜子。"
           }
         }
       }
@@ -4655,23 +4570,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法获取亮度。"
-          }
-        }
-      }
-    },
-    "Bringing a warm potato home…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bringing a warm potato home…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "送一颗热乎乎的红薯回家…"
           }
         }
       }
@@ -5242,91 +5140,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法添加摄像头输入"
-          }
-        }
-      }
-    },
-    "Captain Shu": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Captain Shu"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "薯队长"
-          }
-        }
-      }
-    },
-    "Captain Shu is planting": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Captain Shu is planting"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "薯队长正在种红薯"
-          }
-        }
-      }
-    },
-    "Captain Shu is resting": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Captain Shu is resting"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "薯队长正在休息"
-          }
-        }
-      }
-    },
-    "Captain Shu is roasting": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Captain Shu is roasting"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "薯队长正在烤红薯"
-          }
-        }
-      }
-    },
-    "Captain Shu is saving you a warm seat.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Captain Shu is saving you a warm seat."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "薯队长给你留了个暖和的位置。"
           }
         }
       }
@@ -9201,23 +9014,6 @@
         }
       }
     },
-    "Ding! Your focus potato is finished. Roast the next one with Captain Shu?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ding! Your focus potato is finished. Roast the next one with Captain Shu?"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "叮！这颗专注红薯吃完啦，要和薯队长一起烤下一颗吗？"
-          }
-        }
-      }
-    },
     "Direct Bluetooth control is not supported on this Mac. Use System Settings.": {
       "extractionState": "manual",
       "localizations": {
@@ -12284,23 +12080,6 @@
         }
       }
     },
-    "Finish a focus session to eat one. Canceling never uses stock.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Finish a focus session to eat one. Canceling never uses stock."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完成一轮专注吃掉一颗红薯；提前结束不消耗库存。"
-          }
-        }
-      }
-    },
     "Finish system recording before quitting?": {
       "localizations": {
         "en": {
@@ -12364,23 +12143,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "专注时长"
-          }
-        }
-      }
-    },
-    "Focus finishes with a quiet island reminder. Start your next rest when you are ready.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Focus finishes with a quiet island reminder. Start your next rest when you are ready."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "专注结束时，小岛会轻声提醒。准备好后再开始下一次休息。"
           }
         }
       }
@@ -13471,23 +13233,6 @@
         }
       }
     },
-    "Harvest +%lld": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Harvest +%lld"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "出炉 +%lld"
-          }
-        }
-      }
-    },
     "Head Pointer": {
       "extractionState": "manual",
       "localizations": {
@@ -14223,23 +13968,6 @@
         }
       }
     },
-    "Hot sweet potatoes are ready. Take a little sweetness back to work!": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hot sweet potatoes are ready. Take a little sweetness back to work!"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "热乎乎的红薯烤好了，带一点甜继续工作吧！"
-          }
-        }
-      }
-    },
     "Hover Text": {
       "extractionState": "manual",
       "localizations": {
@@ -14555,23 +14283,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "进行中"
-          }
-        }
-      }
-    },
-    "In stock": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In stock"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "库存"
           }
         }
       }
@@ -15298,23 +15009,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "布局预览"
-          }
-        }
-      }
-    },
-    "Let's roast": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Let's roast"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "去烤一颗"
           }
         }
       }
@@ -19640,23 +19334,6 @@
         }
       }
     },
-    "One more sweet potato for your stock…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "One more sweet potato for your stock…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "给库存添一颗甜…"
-          }
-        }
-      }
-    },
     "One-time alarm. macOS notifications require permission and follow Focus settings; a sleeping Mac may deliver after waking.": {
       "extractionState": "manual",
       "localizations": {
@@ -20817,57 +20494,6 @@
         }
       }
     },
-    "Plant. Roast. Bring home one sweet potato.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plant. Roast. Bring home one sweet potato."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "种下、烤熟、送回：每分钟一颗甜"
-          }
-        }
-      }
-    },
-    "Planting a little sweetness…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Planting a little sweetness…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "种下一点甜…"
-          }
-        }
-      }
-    },
-    "Planting sweet potatoes": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Planting sweet potatoes"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "种红薯"
-          }
-        }
-      }
-    },
     "Play": {
       "extractionState": "manual",
       "localizations": {
@@ -21338,23 +20964,6 @@
         }
       }
     },
-    "Pulling up a sweet potato…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pulling up a sweet potato…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拔出一颗小红薯…"
-          }
-        }
-      }
-    },
     "Quick Look": {
       "extractionState": "manual",
       "localizations": {
@@ -21695,13 +21304,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quit 工位充电岛"
+            "value": "Quit Airlet"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "退出工位充电岛"
+            "value": "退出Airlet"
           }
         }
       }
@@ -21930,13 +21539,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 Settings"
+            "value": "Airlet Settings"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛设置"
+            "value": "Airlet设置"
           }
         }
       }
@@ -23131,23 +22740,6 @@
         }
       }
     },
-    "Rest duration": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rest duration"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "休息时长"
-          }
-        }
-      }
-    },
     "Restart": {
       "extractionState": "stale",
       "localizations": {
@@ -23395,57 +22987,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "返回录屏"
-          }
-        }
-      }
-    },
-    "Roast & recharge": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Roast & recharge"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "烤薯充电"
-          }
-        }
-      }
-    },
-    "Roast for %lld min": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Roast for %lld min"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "烤薯 %lld 分钟"
-          }
-        }
-      }
-    },
-    "Roasting sweet potatoes": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Roasting sweet potatoes"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "烤红薯"
           }
         }
       }
@@ -26662,23 +26203,6 @@
         }
       }
     },
-    "Start timer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start timer"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开始计时"
-          }
-        }
-      }
-    },
     "Starting recording of the selected content…": {
       "localizations": {
         "en": {
@@ -26724,23 +26248,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "粘滞键"
-          }
-        }
-      }
-    },
-    "Stock: %lld": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stock: %lld"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "库存：%lld"
           }
         }
       }
@@ -27060,23 +26567,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "支持我们"
-          }
-        }
-      }
-    },
-    "Sweet Potato Timer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sweet Potato Timer"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "红薯钟"
           }
         }
       }
@@ -27500,23 +26990,6 @@
         }
       }
     },
-    "Taking the potato to the fire…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Taking the potato to the fire…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "抱着红薯去火边…"
-          }
-        }
-      }
-    },
     "The Bluetooth change timed out. Refresh to check its current state.": {
       "extractionState": "manual",
       "localizations": {
@@ -27785,23 +27258,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "此文件不是有效的图片"
-          }
-        }
-      }
-    },
-    "The garden displays up to 12 potatoes. The counter keeps your entire stock.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The garden displays up to 12 potatoes. The counter keeps your entire stock."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "小菜园最多展示 12 颗红薯，库存数字会记录全部红薯。"
           }
         }
       }
@@ -28790,40 +28246,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "尝试隐藏原 hi 横幅（实验）"
-          }
-        }
-      }
-    },
-    "Tucking a sweet potato into the soil…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tucking a sweet potato into the soil…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "把小红薯轻轻种下…"
-          }
-        }
-      }
-    },
-    "Turning the potato. Almost ready…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Turning the potato. Almost ready…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "给红薯翻个面，快烤好啦…"
           }
         }
       }
@@ -31041,23 +30463,6 @@
         }
       }
     },
-    "You can focus with zero stock, too.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You can focus with zero stock, too."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "没有库存也可以开始专注。"
-          }
-        }
-      }
-    },
     "You can now enjoy the app. If you want to tweak things further, you can always visit the settings.": {
       "localizations": {
         "ar": {
@@ -31539,23 +30944,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "提醒事项数据仅用于展示提醒，不会对外分享。"
-          }
-        }
-      }
-    },
-    "Your sweet potatoes": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your sweet potatoes"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的红薯"
           }
         }
       }
@@ -32734,19 +32122,19 @@
         }
       }
     },
-    "关于工位充电岛": {
+    "关于Airlet": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "About 工位充电岛"
+            "value": "About Airlet"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关于工位充电岛"
+            "value": "关于Airlet"
           }
         }
       }
@@ -32887,36 +32275,36 @@
         }
       }
     },
-    "工位充电岛": {
+    "Airlet": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛"
+            "value": "Airlet"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛"
+            "value": "Airlet"
           }
         }
       }
     },
-    "工位充电岛设置": {
+    "Airlet设置": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛 Settings"
+            "value": "Airlet Settings"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "工位充电岛设置"
+            "value": "Airlet设置"
           }
         }
       }
@@ -33142,19 +32530,19 @@
         }
       }
     },
-    "退出工位充电岛": {
+    "退出Airlet": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quit 工位充电岛"
+            "value": "Quit Airlet"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "退出工位充电岛"
+            "value": "退出Airlet"
           }
         }
       }
@@ -33206,23 +32594,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "鼠标停留在物理刘海区域，展开小岛与日常工具。短休息的计时和小树成长保存在本机。"
-          }
-        }
-      }
-    },
-    "鼠标停留在物理刘海区域，展开薯队长与日常工具。红薯钟、休息进度和红薯库存保存在本机。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hover over the physical notch to open Captain Shu and daily tools. The Sweet Potato Timer, rest progress, and sweet potato stock stay on this Mac."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鼠标停留在物理刘海区域，展开薯队长与日常工具。红薯钟、休息进度和红薯库存保存在本机。"
           }
         }
       }
@@ -34587,6 +33958,703 @@
           "stringUnit": {
             "state": "translated",
             "value": "App"
+          }
+        }
+      }
+    },
+    "番茄钟": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pomodoro"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番茄钟"
+          }
+        }
+      }
+    },
+    "Pomodoro Timer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pomodoro Timer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番茄钟"
+          }
+        }
+      }
+    },
+    "倒计时": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Countdown"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "倒计时"
+          }
+        }
+      }
+    },
+    "正计时": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Count up"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正计时"
+          }
+        }
+      }
+    },
+    "开始": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始"
+          }
+        }
+      }
+    },
+    "取消": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "暂停": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停"
+          }
+        }
+      }
+    },
+    "继续": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续"
+          }
+        }
+      }
+    },
+    "结束": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束"
+          }
+        }
+      }
+    },
+    "清除": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除"
+          }
+        }
+      }
+    },
+    "本次专注主题": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus topic"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本次专注主题"
+          }
+        }
+      }
+    },
+    "番茄钟设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pomodoro settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番茄钟设置"
+          }
+        }
+      }
+    },
+    "%lld h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld h"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 小时"
+          }
+        }
+      }
+    },
+    "%lld m": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld m"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 分"
+          }
+        }
+      }
+    },
+    "%lld h %02lld m": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld h %02lld m"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 小时 %02lld 分"
+          }
+        }
+      }
+    },
+    "本周总计": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly total"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周总计"
+          }
+        }
+      }
+    },
+    "This week": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This week"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周"
+          }
+        }
+      }
+    },
+    "选择要查看的周": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a week"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择要查看的周"
+          }
+        }
+      }
+    },
+    "返回本周": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to this week"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回本周"
+          }
+        }
+      }
+    },
+    "不限时长": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open-ended"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不限时长"
+          }
+        }
+      }
+    },
+    "周一": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mon"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一"
+          }
+        }
+      }
+    },
+    "周二": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tue"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "二"
+          }
+        }
+      }
+    },
+    "周三": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "三"
+          }
+        }
+      }
+    },
+    "周四": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "四"
+          }
+        }
+      }
+    },
+    "周五": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fri"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "五"
+          }
+        }
+      }
+    },
+    "周六": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sat"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "六"
+          }
+        }
+      }
+    },
+    "周日": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sun"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日"
+          }
+        }
+      }
+    },
+    "专注热力图": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus heatmap"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "专注热力图"
+          }
+        }
+      }
+    },
+    "热力图配色": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heatmap palette"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "热力图配色"
+          }
+        }
+      }
+    },
+    "热力图按当日专注总时长由浅到深着色。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each day shades from light to dark with the day's total focused time."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "热力图按当日专注总时长由浅到深着色。"
+          }
+        }
+      }
+    },
+    "闭合时显示番茄钟计时": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the pomodoro on the closed island"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "闭合时显示番茄钟计时"
+          }
+        }
+      }
+    },
+    "Tomato red": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tomato red"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番茄红"
+          }
+        }
+      }
+    },
+    "Tangerine": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tangerine"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "蜜橘橙"
+          }
+        }
+      }
+    },
+    "Forest green": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forest green"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "森林绿"
+          }
+        }
+      }
+    },
+    "Ocean blue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocean blue"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "海蓝"
+          }
+        }
+      }
+    },
+    "Grape purple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grape purple"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "葡萄紫"
+          }
+        }
+      }
+    },
+    "Start timer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start timer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始计时"
+          }
+        }
+      }
+    },
+    "1 second to 24 hours. Closing this window keeps the timer running.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 second to 24 hours. Closing this window keeps the timer running."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 1 秒至 24 小时，关闭窗口后仍会继续计时。"
+          }
+        }
+      }
+    },
+    "鼠标停留在物理刘海区域，展开日常工具。番茄钟与专注记录保存在本机。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hover the physical notch to reveal everyday tools. The pomodoro and its focus history stay on this Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鼠标停留在物理刘海区域，展开日常工具。番茄钟与专注记录保存在本机。"
+          }
+        }
+      }
+    },
+    "Debug: switch to Pomodoro tab": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug: switch to Pomodoro tab"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试：切换到番茄钟"
+          }
+        }
+      }
+    },
+    "Debug: switch to Home tab": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug: switch to Home tab"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试：切换到主页"
           }
         }
       }

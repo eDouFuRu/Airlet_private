@@ -1,17 +1,17 @@
 # 本机稳定签名与安装
 
-本流程仅用于当前用户的本机开发。主应用和 XPC 使用同一张专用本地证书，固定安装在 `~/Applications/工位充电岛.app`。不使用新出现的 Apple Development 身份，不导出私钥，也不修改已安装的 boring.notch。
+本流程仅用于当前用户的本机开发。主应用和 XPC 使用同一张专用本地证书，固定安装在 `~/Applications/Airlet.app`。不使用新出现的 Apple Development 身份，不导出私钥，也不修改已安装的 boring.notch。
 
 | 项目 | 固定值 |
 | --- | --- |
 | 证书名称 | `NotchIsland Local Development` |
 | 证书 SHA-1 | `0A93291611F302DBECD76D2ACEC9DEF86D1F3DB2` |
-| 主应用 Bundle ID | `com.dongfengrui.NotchIsland` |
-| XPC Bundle ID | `com.dongfengrui.NotchIsland.XPCHelper` |
+| 主应用 Bundle ID | `com.dongfengrui.Airlet` |
+| XPC Bundle ID | `com.dongfengrui.Airlet.XPCHelper` |
 | XPC 相对路径 | `Contents/XPCServices/NotchIslandXPCHelper.xpc` |
 | Xcode 工程默认 Build | `280` |
 | 构建脚本默认 Build | `280`（音频输出、显示模式与原彩显示） |
-| 安装位置 | `~/Applications/工位充电岛.app` |
+| 安装位置 | `~/Applications/Airlet.app` |
 
 证书已经创建在登录钥匙串，当前用户的 `codeSign` 信任已按用户确认配置，专用 SHA-1 已通过 `security find-identity -v -p codesigning` 验证。没有修改系统范围信任，没有导出私钥。首次私钥访问由 macOS 钥匙串管理；脚本不会代填密码或自动放行。
 
@@ -31,11 +31,11 @@ bash scripts/build.sh Release
 
 脚本首先确认专用 SHA-1 对应的有效代码签名身份，再明确向 Xcode 传入该身份、手动签名与空 Development Team。找不到身份、信任未就绪或签名失败时直接失败，不选择其他证书，也不自动退回临时签名。工程的主应用/XPC、Debug/Release 四项配置均使用上述证书名称；脚本用 SHA-1 进一步避免重名证书歧义。
 
-构建产物为 `build/Build/Products/Debug/NotchIslandNext.app`（Release 对应 Release 目录）。构建完成后，`scripts/codesign-local.sh` 检查主应用与 XPC 的公开签名证书及 designated requirement（DR）。目标要求是：
+构建产物为 `build/Build/Products/Debug/Airlet.app`（Release 对应 Release 目录）。构建完成后，`scripts/codesign-local.sh` 检查主应用与 XPC 的公开签名证书及 designated requirement（DR）。目标要求是：
 
 ```text
-identifier "com.dongfengrui.NotchIsland" and certificate leaf = H"0A93291611F302DBECD76D2ACEC9DEF86D1F3DB2"
-identifier "com.dongfengrui.NotchIsland.XPCHelper" and certificate leaf = H"0A93291611F302DBECD76D2ACEC9DEF86D1F3DB2"
+identifier "com.dongfengrui.Airlet" and certificate leaf = H"0A93291611F302DBECD76D2ACEC9DEF86D1F3DB2"
+identifier "com.dongfengrui.Airlet.XPCHelper" and certificate leaf = H"0A93291611F302DBECD76D2ACEC9DEF86D1F3DB2"
 ```
 
 如果 codesign 已生成相同的要求，或者针对这张自签证书生成等价的 `identifier … and anchor H"同一 SHA-1"` 要求，保留原签名。否则按 XPC、主应用的顺序固定 DR，保留既有 entitlements 和 hardened runtime 数据；不使用 `--deep --force` 重签第三方代码。最后同时检查证书 SHA-1、Bundle ID、DR、外部 leaf 要求及嵌套签名完整性。整个流程不导出私钥；验签暂存的公开 DER 证书随即删除。
@@ -50,7 +50,7 @@ ISLAND_SIGN_IDENTITY=- bash scripts/build.sh Debug
 
 ## 安装与首次授权
 
-先从应用菜单退出所有运行中的“工位充电岛”，包括旧原型或其他路径下的同 Bundle ID 副本。安装脚本只读取 AppKit 的运行应用清单，不发送退出指令，也不按名称结束任何进程。
+先从应用菜单退出所有运行中的“Airlet”，包括旧原型或其他路径下的同 Bundle ID 副本。安装脚本只读取 AppKit 的运行应用清单，不发送退出指令，也不按名称结束任何进程。
 
 ```sh
 # 仅验签、显示主应用/XPC的DR，不安装、不启动
@@ -66,12 +66,12 @@ bash scripts/install-local.sh Release
 安装脚本不接受 `sudo`。它先验证源应用的证书、ID、DR 与嵌套签名，再复制到 `~/Applications` 内的临时目录并重新验证。已有目标必须是本应用 Bundle ID 的真实目录；符号链接或其他应用会被拒绝。替换前再次检查运行状态，然后把旧应用移动至：
 
 ```text
-~/Applications/.NotchIsland-backups/工位充电岛-日期时间-唯一编号.app
+~/Applications/.NotchIsland-backups/Airlet-日期时间-唯一编号.app
 ```
 
 随后把通过验证的新应用移动到固定位置；最终移动失败时尝试恢复旧版本。备份不会自动删除。脚本不碰应用偏好、休息数据、钥匙串或辅助功能授权，也不操作 `/Applications/boringNotch.app`。备份与临时文件可能保留 Finder 元数据，这是复制应用的正常行为；脚本不移除 quarantine 来规避系统检查。
 
-首次授权应针对最终的 **`~/Applications/工位充电岛.app`**，不要针对构建目录或备份副本。打开这份固定应用，在 HUD 设置中查看诊断的 Process、Bundle ID、Signature、AX 和 Event tap，再按界面操作授权。若系统仍保留旧临时签名条目，用户可在辅助功能列表确认并替换为固定路径下的新应用；脚本不会重置整个 TCC 数据库。
+首次授权应针对最终的 **`~/Applications/Airlet.app`**，不要针对构建目录或备份副本。打开这份固定应用，在 HUD 设置中查看诊断的 Process、Bundle ID、Signature、AX 和 Event tap，再按界面操作授权。若系统仍保留旧临时签名条目，用户可在辅助功能列表确认并替换为固定路径下的新应用；脚本不会重置整个 TCC 数据库。
 
 今后更新继续使用同一证书、Bundle ID、稳定 DR 与固定路径。代码变化应改变 CDHash，但不应改变 DR。该机制用于建立稳定身份；**是否保留 macOS 的辅助功能授权仍需在此机器上实测，不把签名校验通过视为权限验收通过。** 本地证书不等于 Developer ID 公证分发身份。
 

@@ -11,7 +11,7 @@ protocol NightShiftControlling: Sendable {
 /// enabled/status methods are used; no temperature or schedule is read into
 /// application state or changed. Unsupported symbols/ABIs fail closed.
 final class CoreBrightnessNightShiftDevice: NightShiftControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.night-shift", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.night-shift", qos: .userInitiated)
 
     func execute(_ command: NightShiftCommand) async -> NightShiftResult {
         await withCheckedContinuation { continuation in

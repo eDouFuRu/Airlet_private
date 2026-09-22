@@ -2,7 +2,7 @@ import XCTest
 @testable import NotchInteractionCore
 
 final class AppNotificationPolicyTests: XCTestCase {
-    private let island = "com.dongfengrui.NotchIsland"
+    private let island = "com.dongfengrui.Airlet"
 
     func testUnconfiguredSourcesFollowTheDefault() {
         XCTAssertTrue(AppNotificationPolicy().allows("com.tencent.xinWeChat"))

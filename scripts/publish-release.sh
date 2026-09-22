@@ -34,7 +34,7 @@ gh auth status >/dev/null 2>&1 || island_die 'gh is not authenticated: gh auth l
 ISLAND_TAG="$(/usr/bin/git -C "$ISLAND_SNAPSHOT" describe --tags --exact-match HEAD)" ||
   island_die 'The snapshot HEAD carries no version tag.'
 ISLAND_VERSION="${ISLAND_TAG#v}"
-[[ -n "$ISLAND_IMAGE" ]] || ISLAND_IMAGE="$ISLAND_PROJECT_ROOT/dist/NotchIsland-$ISLAND_VERSION.dmg"
+[[ -n "$ISLAND_IMAGE" ]] || ISLAND_IMAGE="$ISLAND_PROJECT_ROOT/dist/Airlet-$ISLAND_VERSION.dmg"
 ISLAND_NOTES="$ISLAND_PROJECT_ROOT/dist/RELEASE-NOTES-$ISLAND_VERSION.md"
 [[ -f "$ISLAND_IMAGE" ]] || island_die "No disk image at $ISLAND_IMAGE (run scripts/package-release.sh)"
 [[ -f "$ISLAND_NOTES" ]] || island_die "No release notes at $ISLAND_NOTES"
@@ -57,7 +57,7 @@ if gh repo view "$ISLAND_REPOSITORY" >/dev/null 2>&1; then
   printf 'Repository already exists; pushing the new snapshot.\n'
 else
   gh repo create "$ISLAND_REPOSITORY" --public \
-    --description '工位充电岛 · macOS 刘海小岛应用（基于 boring.notch 的定制版，GPL-3.0）'
+    --description 'Airlet · macOS 刘海小岛应用（基于 boring.notch 的定制版，GPL-3.0）'
 fi
 
 /usr/bin/git -C "$ISLAND_SNAPSHOT" remote remove origin 2>/dev/null || true
@@ -73,7 +73,7 @@ if gh release view "$ISLAND_TAG" --repo "$ISLAND_REPOSITORY" >/dev/null 2>&1; th
   gh release upload "$ISLAND_TAG" "$ISLAND_IMAGE" --repo "$ISLAND_REPOSITORY" --clobber
 else
   gh release create "$ISLAND_TAG" "$ISLAND_IMAGE" --repo "$ISLAND_REPOSITORY" \
-    --title "工位充电岛 $ISLAND_TAG" --notes-file "$ISLAND_NOTES"
+    --title "Airlet $ISLAND_TAG" --notes-file "$ISLAND_NOTES"
 fi
 
 printf '\nPublished: https://github.com/%s/releases/tag/%s\n' "$ISLAND_REPOSITORY" "$ISLAND_TAG"

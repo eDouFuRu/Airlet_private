@@ -472,7 +472,11 @@ struct NotchHomeView: View {
                     .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.76, blendDuration: 0), value: shouldShowCamera)
             }
         }
-        .transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))
+        // Pure crossfade. The inherited-from-upstream `insertion: .move(edge: .top)` here
+        // was meant for the one-time first-launch reveal, but the home page is re-inserted
+        // on every tab switch back to it, which replayed the move and read as the whole
+        // page sliding down from the tab bar.
+        .transition(.opacity)
         .blur(radius: vm.notchState == .closed ? 30 : 0)
     }
 }

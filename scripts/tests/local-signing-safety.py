@@ -52,8 +52,8 @@ esac
 
 def make_app(path):
     xpc = path / "Contents/XPCServices/NotchIslandXPCHelper.xpc"
-    for bundle, identifier in [(path, "com.dongfengrui.NotchIsland"),
-                               (xpc, "com.dongfengrui.NotchIsland.XPCHelper")]:
+    for bundle, identifier in [(path, "com.dongfengrui.Airlet"),
+                               (xpc, "com.dongfengrui.Airlet.XPCHelper")]:
         (bundle / "Contents/MacOS").mkdir(parents=True)
         (bundle / "Contents/Info.plist").write_bytes(plistlib.dumps({"CFBundleIdentifier": identifier}))
     return xpc

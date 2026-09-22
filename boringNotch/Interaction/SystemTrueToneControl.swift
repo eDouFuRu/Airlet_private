@@ -10,7 +10,7 @@ protocol TrueToneControlling: Sendable {
 /// Experimental compatibility with CoreBrightness. It changes only the user's
 /// True Tone enabled preference, and only after an explicit toggle command.
 final class CoreBrightnessTrueToneDevice: TrueToneControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.true-tone", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.true-tone", qos: .userInitiated)
 
     func execute(_ command: TrueToneCommand) async -> TrueToneResult {
         await withCheckedContinuation { continuation in

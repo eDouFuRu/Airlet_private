@@ -125,7 +125,7 @@ struct ToolReorderEventCounters: Equatable, Sendable {
 /// Native source and destination use one explicit bounded serialization format.
 /// Do not depend on the opaque encoding chosen by SwiftUI's Transferable bridge.
 enum ToolReorderPayloadCodec {
-    static let pasteboardType = "com.dongfengrui.NotchIsland.tool-reorder"
+    static let pasteboardType = "com.dongfengrui.Airlet.tool-reorder"
     static let maximumBytes = 2_048
 
     static func encode(_ payload: ToolGridDragPayload) -> Data? {

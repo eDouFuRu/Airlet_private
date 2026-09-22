@@ -34,8 +34,8 @@ assert p.count('CODE_SIGN_IDENTITY = "NotchIsland Local Development";')==4
 assert 'CODE_SIGN_IDENTITY[sdk=' not in p
 versions=re.findall(r'CURRENT_PROJECT_VERSION = (\d+);', p)
 assert len(versions)==4 and len(set(versions))==1 and int(versions[0])>0
-assert p.count('PRODUCT_BUNDLE_IDENTIFIER = com.dongfengrui.NotchIsland;')==2
-assert p.count('PRODUCT_BUNDLE_IDENTIFIER = com.dongfengrui.NotchIsland.XPCHelper;')==2
+assert p.count('PRODUCT_BUNDLE_IDENTIFIER = com.dongfengrui.Airlet;')==2
+assert p.count('PRODUCT_BUNDLE_IDENTIFIER = com.dongfengrui.Airlet.XPCHelper;')==2
 assert p.count('CODE_SIGN_ENTITLEMENTS = boringNotch/boringNotch.local.entitlements;')==2
 assert p.count('ENABLE_HARDENED_RUNTIME = YES;')==2
 base=plistlib.loads(Path('boringNotch/boringNotch.entitlements').read_bytes())

@@ -5,7 +5,7 @@ ISLAND_PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ISLAND_PROJECT_ROOT/scripts/lib/local-signing.sh"
 source "$ISLAND_PROJECT_ROOT/scripts/lib/local-lock.sh"
 [[ "$(/usr/bin/id -u)" -ne 0 ]] || island_die 'Run this installer as the current user, without sudo.'
-ISLAND_INSTALL_SOURCE="$ISLAND_PROJECT_ROOT/build/Build/Products/Debug/NotchIslandNext.app"
+ISLAND_INSTALL_SOURCE="$ISLAND_PROJECT_ROOT/build/Build/Products/Debug/Airlet.app"
 ISLAND_VERIFY_ONLY=false
 ISLAND_SOURCE_SET=false
 for ISLAND_ARGUMENT in "$@"; do
@@ -18,7 +18,7 @@ for ISLAND_ARGUMENT in "$@"; do
       [[ "$ISLAND_SOURCE_SET" == false ]] || island_die 'Specify only one source application.'
       ISLAND_SOURCE_SET=true
       case "$ISLAND_ARGUMENT" in
-        Debug|Release) ISLAND_INSTALL_SOURCE="$ISLAND_PROJECT_ROOT/build/Build/Products/$ISLAND_ARGUMENT/NotchIslandNext.app" ;;
+        Debug|Release) ISLAND_INSTALL_SOURCE="$ISLAND_PROJECT_ROOT/build/Build/Products/$ISLAND_ARGUMENT/Airlet.app" ;;
         /*) ISLAND_INSTALL_SOURCE="$ISLAND_ARGUMENT" ;;
         *) island_die 'Source must be Debug, Release, or an absolute app path.' ;;
       esac ;;
@@ -31,7 +31,7 @@ printf 'XPC requirement: %s\n' "$(island_read_requirement "$ISLAND_INSTALL_SOURC
 [[ "$ISLAND_VERIFY_ONLY" == false ]] || exit 0
 
 ISLAND_APPLICATIONS="$HOME/Applications"
-ISLAND_INSTALL_DESTINATION="$ISLAND_APPLICATIONS/工位充电岛.app"
+ISLAND_INSTALL_DESTINATION="$ISLAND_APPLICATIONS/Airlet.app"
 ISLAND_BACKUP_DIRECTORY="$ISLAND_APPLICATIONS/.NotchIsland-backups"
 ISLAND_BACKUP_PATH=''
 ISLAND_STAGE_DIRECTORY=''
@@ -48,7 +48,7 @@ var matches = [];
 var apps = $.NSWorkspace.sharedWorkspace.runningApplications;
 for (var i = 0; i < apps.count; i++) {
     var app = apps.objectAtIndex(i);
-    if (ObjC.unwrap(app.bundleIdentifier) === 'com.dongfengrui.NotchIsland') {
+    if (ObjC.unwrap(app.bundleIdentifier) === 'com.dongfengrui.Airlet') {
         matches.push('PID ' + app.processIdentifier + ': ' + ObjC.unwrap(app.bundleURL.path));
     }
 }
@@ -57,7 +57,7 @@ JXA
 )" || island_die 'Could not check running applications; installation stopped.'
   if [[ -n "$island_running" ]]; then
     printf 'Running copies:\n%s\n' "$island_running" >&2
-    island_die 'Quit 工位充电岛 before installing, then rerun this script.'
+    island_die 'Quit Airlet before installing, then rerun this script.'
   fi
 }
 
@@ -98,19 +98,19 @@ island_acquire_lock "$ISLAND_APPLICATIONS/.NotchIsland-install.lock" 'Fixed-path
 island_check_destination
 island_assert_stopped
 ISLAND_STAGE_DIRECTORY="$(/usr/bin/mktemp -d "$ISLAND_APPLICATIONS/.NotchIsland-install.XXXXXX")"
-/usr/bin/ditto "$ISLAND_INSTALL_SOURCE" "$ISLAND_STAGE_DIRECTORY/工位充电岛.app"
-island_verify_app "$ISLAND_STAGE_DIRECTORY/工位充电岛.app"
+/usr/bin/ditto "$ISLAND_INSTALL_SOURCE" "$ISLAND_STAGE_DIRECTORY/Airlet.app"
+island_verify_app "$ISLAND_STAGE_DIRECTORY/Airlet.app"
 # Recheck after copying; a launched app or changed destination must not be
 # silently replaced. Installation still requires the user to keep it stopped.
 island_check_destination
 island_assert_stopped
 if [[ -e "$ISLAND_INSTALL_DESTINATION" ]]; then
   /bin/mkdir -p "$ISLAND_BACKUP_DIRECTORY"
-  ISLAND_BACKUP_PATH="$ISLAND_BACKUP_DIRECTORY/工位充电岛-$(/bin/date '+%Y%m%d-%H%M%S')-$(/usr/bin/uuidgen).app"
+  ISLAND_BACKUP_PATH="$ISLAND_BACKUP_DIRECTORY/Airlet-$(/bin/date '+%Y%m%d-%H%M%S')-$(/usr/bin/uuidgen).app"
   /bin/mv "$ISLAND_INSTALL_DESTINATION" "$ISLAND_BACKUP_PATH"
   ISLAND_OLD_MOVED=true
 fi
-/bin/mv "$ISLAND_STAGE_DIRECTORY/工位充电岛.app" "$ISLAND_INSTALL_DESTINATION"
+/bin/mv "$ISLAND_STAGE_DIRECTORY/Airlet.app" "$ISLAND_INSTALL_DESTINATION"
 ISLAND_COMMITTED=true
 printf 'Installed: %s\n' "$ISLAND_INSTALL_DESTINATION"
 if [[ -n "$ISLAND_BACKUP_PATH" ]]; then printf 'Previous version: %s\n' "$ISLAND_BACKUP_PATH"; fi

@@ -13,7 +13,7 @@ protocol BluetoothPowerControlling: Sendable {
 /// The public SDK exposes only a readonly controller powerState. Never substitute
 /// writes to preference files or enumerate nearby/paired devices for this SPI.
 final class NativeBluetoothPowerDevice: BluetoothPowerControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.bluetooth-power", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.bluetooth-power", qos: .userInitiated)
     private let executableURL: URL?
 
     init(executableURL: URL? = Bundle.main.executableURL) { self.executableURL = executableURL }

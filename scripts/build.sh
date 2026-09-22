@@ -46,7 +46,7 @@ xcodebuild \
   "CURRENT_PROJECT_VERSION=$ISLAND_REQUESTED_BUILD_NUMBER" \
   build
 
-ISLAND_BUILT_APP="$ISLAND_PROJECT_ROOT/build/Build/Products/$ISLAND_CONFIGURATION/NotchIslandNext.app"
+ISLAND_BUILT_APP="$ISLAND_PROJECT_ROOT/build/Build/Products/$ISLAND_CONFIGURATION/Airlet.app"
 if [[ "$ISLAND_REQUESTED_IDENTITY" == - ]]; then
   /usr/bin/codesign --verify --deep --strict "$ISLAND_BUILT_APP"
   printf 'Built with explicit ad-hoc signing; fixed-path installer will reject this debug artifact.\n'

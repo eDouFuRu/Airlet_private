@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: when the shelf's ⌘ chords may listen to the keyboard.
+// Custom changes for Airlet: when the shelf's ⌘ chords may listen to the keyboard.
 import Foundation
 
 /// Decides whether the shelf's ⌘C/⌘X/⌘V monitors may be installed.

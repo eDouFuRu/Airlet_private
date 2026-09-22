@@ -25,8 +25,8 @@ struct SettingsView: View {
                 NavigationLink(value: "General") {
                     Label("General", systemImage: "gear")
                 }
-                NavigationLink(value: "PotatoTimer") {
-                    Label("Sweet Potato Timer", systemImage: "timer")
+                NavigationLink(value: "Pomodoro") {
+                    Label("Pomodoro Timer", systemImage: "timer")
                 }
                 NavigationLink(value: "SystemTools") {
                     Label("Quick tools", systemImage: "square.grid.2x2.fill")
@@ -77,8 +77,8 @@ struct SettingsView: View {
                 switch selectedTab {
                 case "General":
                     GeneralSettings()
-                case "PotatoTimer":
-                    PotatoTimerSettings()
+                case "Pomodoro":
+                    PomodoroSettings()
                 case "SystemTools":
                     SystemToolsSettings()
                 case "Appearance":
@@ -114,7 +114,7 @@ struct SettingsView: View {
             .id(language.selection)
         }
         .environment(\.locale, language.locale)
-        .onReceive(NotificationCenter.default.publisher(for: .islandOpenTimerSettings)) { _ in selectedTab = "PotatoTimer" }
+        .onReceive(NotificationCenter.default.publisher(for: .islandOpenTimerSettings)) { _ in selectedTab = "Pomodoro" }
         .onReceive(NotificationCenter.default.publisher(for: .islandOpenToolsSettings)) { _ in selectedTab = "SystemTools" }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
@@ -870,21 +870,22 @@ func lighterColor(from nsColor: NSColor, amount: CGFloat = 0.14) -> Color {
 }
 
 struct About: View {
-    @ObservedObject private var icons = IslandIconManager.shared
     var body: some View {
         Form {
-            Section("工位充电岛") {
+            Section("Airlet") {
                 HStack(spacing: 16) {
-                    Image(icons.selected.assetName).resizable().frame(width: 76, height: 76)
-                        .accessibilityLabel(icons.selected.title)
+                    if let appIcon = NSApp.applicationIconImage {
+                        Image(nsImage: appIcon).resizable().frame(width: 76, height: 76)
+                            .accessibilityLabel("Airlet")
+                    }
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("工位充电岛").font(.title2.bold())
-                        Text("Sweet Potato Timer").foregroundStyle(.secondary)
+                        Text("Airlet").font(.title2.bold())
+                        Text("Pomodoro Timer").foregroundStyle(.secondary)
                     }
                 }.padding(.vertical, 4)
                 LabeledContent("版本", value: "\(Bundle.main.releaseVersionNumber ?? L("未知")) · \(L("定制版"))")
                 LabeledContent("构建", value: Bundle.main.buildVersionNumber ?? L("未知"))
-                Text("鼠标停留在物理刘海区域，展开薯队长与日常工具。红薯钟、休息进度和红薯库存保存在本机。")
+                Text("鼠标停留在物理刘海区域，展开日常工具。番茄钟与专注记录保存在本机。")
                     .foregroundStyle(.secondary)
             }
 
@@ -905,7 +906,7 @@ struct About: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(Text(verbatim: L("关于工位充电岛")))
+        .navigationTitle(Text(verbatim: L("关于Airlet")))
     }
 }
 
@@ -1415,11 +1416,7 @@ struct Advanced: View {
             } header: {
                 Text("Window Appearance")
             }
-            
-            Section("App icon") {
-                IslandIconPicker()
-            }
-            
+
             Section {
                 Text("锁屏时小岛自动隐藏，解锁后恢复原来的显示状态。")
                     .foregroundStyle(.secondary)

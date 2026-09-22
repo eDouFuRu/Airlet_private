@@ -76,11 +76,11 @@ done
   "$ISLAND_OUTPUT/boringNotch.xcodeproj/project.pbxproj"
 
 # The public README points at an icon that must survive the artwork removal.
-[[ -f "$ISLAND_OUTPUT/boringNotch/Assets.xcassets/ShuIcon-captain.imageset/icon.png" ]] ||
-  island_die 'The icon referenced by the public README is missing from the snapshot.'
+[[ -f "$ISLAND_OUTPUT/boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-1024.png" ]] ||
+  island_die 'The app icon referenced by the public README is missing from the snapshot.'
 
 # Guard against publishing local machine details. The product bundle id
-# (com.dongfengrui.NotchIsland) is deliberately not in this list.
+# (com.dongfengrui.Airlet) is deliberately not in this list.
 ISLAND_FORBIDDEN=(
   '/Users/dongfengrui' "$ISLAND_CERT_SHA1" '小红书' 'xiaohongshu' '.codex/'
   'NotchIsland Local Development'
@@ -98,7 +98,7 @@ done
 
 /usr/bin/git -C "$ISLAND_OUTPUT" init -q -b main
 /usr/bin/git -C "$ISLAND_OUTPUT" add -A
-/usr/bin/git -C "$ISLAND_OUTPUT" -c commit.gpgsign=false commit -q -m "工位充电岛 v$ISLAND_SHORT_VERSION
+/usr/bin/git -C "$ISLAND_OUTPUT" -c commit.gpgsign=false commit -q -m "Airlet v$ISLAND_SHORT_VERSION
 
 基于 boring.notch v2.7.3（GPL-3.0，上游提交 16b0f11f51c79d42e27c10d77fd9e53c11410fdb）的定制版本。
 本提交是对外发布版本对应的完整源码快照，用于满足 GPL-3.0 的源码提供义务。"

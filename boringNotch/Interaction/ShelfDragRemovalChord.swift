@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: shelf drag-out removal chord.
+// Custom changes for Airlet: shelf drag-out removal chord.
 import AppKit
 import Defaults
 

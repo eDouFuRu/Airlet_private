@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛. One gate for every notch surface.
+// Custom changes for Airlet. One gate for every notch surface.
 import AppKit
 import Combine
 

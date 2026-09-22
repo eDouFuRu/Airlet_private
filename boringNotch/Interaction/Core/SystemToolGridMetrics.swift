@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: quick-tool grid geometry.
+// Custom changes for Airlet: quick-tool grid geometry.
 import CoreGraphics
 
 /// Geometry shared by the quick-tool grid and the island height that has to contain it.

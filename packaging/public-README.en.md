@@ -1,4 +1,4 @@
-# Recharge Island · NotchIsland
+# Airlet
 
 **Turns the MacBook notch into something you can actually use.** Hover over the notch and it expands into a small panel with media controls and lyrics, calendar, volume/brightness HUDs, a pomodoro timer, a file shelf, and a page full of system shortcuts.
 
@@ -8,7 +8,7 @@
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-black)
 ![License GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue)
 
-<p align="center"><img src="boringNotch/Assets.xcassets/ShuIcon-captain.imageset/icon.png" width="150" alt="Captain Shu"></p>
+<p align="center"><img src="boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-1024.png" width="150" alt="Airlet"></p>
 
 <p align="center"><img src="docs/screenshots/island.png" width="820" alt="The expanded island: media controls, lyrics and calendar"></p>
 <p align="center"><i>Hover the notch and it expands: media controls, synced lyrics and the calendar at a glance</i></p>
@@ -40,7 +40,7 @@ A native macOS app (SwiftUI + AppKit) that lives in the notch at the top of your
 - **Hover to expand** — it becomes an interactive panel with four pages.
 - **Never steals keyboard focus** — the island is never the active window, so it cannot interrupt your typing.
 
-It is built on the open-source [boring.notch](https://github.com/TheBoredTeam/boring.notch) (GPL-3.0), with a sweet-potato mascot ("Captain Shu"), a pomodoro game built around it, and a full page of system shortcuts added on top.
+It is built on the open-source [boring.notch](https://github.com/TheBoredTeam/boring.notch) (GPL-3.0), with a built-in pomodoro timer (focus timing plus a weekly focus heatmap) and a full page of system shortcuts added on top.
 
 **Requirements**
 
@@ -59,14 +59,14 @@ It is built on the open-source [boring.notch](https://github.com/TheBoredTeam/bo
 
 **[Go to the latest release](../../releases/latest)**
 
-Scroll down to the **Assets** section and click the file named like `NotchIsland-1.0.0.dmg`.
+Scroll down to the **Assets** section and click the file named like `Airlet-1.0.0.dmg`.
 
 > ⚠️ `Source code (zip)` / `Source code (tar.gz)` in the same list are the **source code**, not the app.
 
 ### Step 2: Drag it into Applications
 
 1. Double-click the downloaded `.dmg`.
-2. Drag the **工位充电岛** (Recharge Island) icon onto the **Applications** folder next to it.
+2. Drag the **Airlet** icon onto the **Applications** folder next to it.
 3. Eject the mounted disk image from the Finder sidebar; the `.dmg` can then be deleted.
 
 ### Step 3: Allow it the first time (this always happens, do not worry)
@@ -85,7 +85,7 @@ After that it launches normally.
 <summary>Command-line alternative (click to expand)</summary>
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/工位充电岛.app
+xattr -dr com.apple.quarantine /Applications/Airlet.app
 ```
 
 This means you take on the risk of skipping the Gatekeeper check yourself — please make sure the `.dmg` came from this repository's Releases page.
@@ -109,7 +109,7 @@ The first launch shows a short onboarding page; you can also grant everything la
 
 ### Step 5 (optional): Launch at login
 
-Menu bar potato icon → **Settings…** → **General** → enable "Launch at login".
+Menu bar tomato icon → **Settings…** → **General** → enable "Launch at login".
 
 ---
 
@@ -121,10 +121,10 @@ Menu bar potato icon → **Settings…** → **General** → enable "Launch at l
 |---|---|
 | Expand | Hover the notch for ~0.15 s; it collapses ~0.1 s after you leave |
 | Keyboard | **⇧⌘I** by default (configurable in Settings → Shortcuts) |
-| From the menu bar | Potato icon → "Open island" |
-| Hide it temporarily (e.g. before screen sharing) | Potato icon → "Hide island"; click again to restore |
-| Settings | Potato icon → "Settings…", or **⌘,** while the app is frontmost |
-| Quit | Potato icon → "Quit" |
+| From the menu bar | Tomato icon → "Open island" |
+| Hide it temporarily (e.g. before screen sharing) | Tomato icon → "Hide island"; click again to restore |
+| Settings | Tomato icon → "Settings…", or **⌘,** while the app is frontmost |
+| Quit | Tomato icon → "Quit" |
 
 > **Only the real physical notch rectangle triggers the expansion.** The media wings, the lyrics row and the widened HUD bar are drawn outside it and deliberately do *not* trigger anything — otherwise the island would pop up whenever you reach for the menu bar.
 
@@ -134,7 +134,7 @@ The row of small icons at the top switches pages (hovering an icon switches by d
 
 | Page | Contents |
 |---|---|
-| 🍠 **Island** | Captain Shu's little farm plus the Sweet Potato Timer (pomodoro). Harvested potatoes pile up on the ground |
+| 🍅 **Pomodoro** | Focus countdown / count-up, focus topics and a weekly focus heatmap |
 | 🏠 **Home** (default landing page) | Now playing (artwork, progress, previous/play/next), calendar and reminders, mirror, shelf entry |
 | 📥 **Shelf** | A temporary tray for files — drag in, drag out |
 | ⊞ **Quick tools** | A page of system shortcuts and small utilities; pick which ones show and in what order |
@@ -143,7 +143,7 @@ The row of small icons at the top switches pages (hovering an icon switches by d
 
 - While music plays: artwork and a spectrum on either side of the notch (can be turned off in Settings → Media);
 - With lyrics enabled: a synced lyrics line **below** the notch;
-- While the timer runs: a potato icon and the remaining time;
+- While the timer runs: a tomato icon and the clock;
 - When you change volume/brightness/mute: the HUD is drawn on the notch instead of the system's big square;
 - When you plug or unplug power: a brief charging notice.
 
@@ -173,19 +173,18 @@ Replaces the translucent system square for the **built-in keyboard's** volume, b
 - Requires **Accessibility**. Without it, the system HUD is left in place — you never get both at once.
 - Settings → HUDs contains a read-only diagnostics block (process path, signature, authorization state, recent media-key events) that you can copy into an issue.
 
-### 3. Sweet Potato Timer (pomodoro)
+### 3. Pomodoro
 
-<p align="center"><img src="docs/screenshots/timer.png" width="820" alt="Sweet Potato Timer: Captain Shu's farm and the potato stock"></p>
+On the 🍅 page. Three columns: configure on the left, the progress ring in the middle, and the weekly focus heatmap on the right.
 
-On the 🍠 page. Focus and rest are mutually exclusive.
-
-- **Focus**: 25 minutes by default, 1–120 configurable. A ring shows the remaining time while Captain Shu eats a baked potato in six bites. Completing one consumes a potato from your stock; with zero stock you can still run a round ("tasting") and never go into debt.
-- **Rest**: 1 minute by default, 1–120 configurable. Tilling, watering and pulling in the first half, roasting in the second — **every completed minute earns one potato**.
-- Pause / resume and early stop are supported (completed whole minutes are kept, partial minutes are not).
-- **Closing the lid, locking the screen or quitting the app does not change the end time**: the next launch settles the harvest from the real elapsed time.
-- The farm draws up to 12 potatoes (3×4); anything beyond that shows as `+N`, while the number always reflects the full stock.
-- When a focus round ends the island expands once and stays readable for at least 10 seconds. **No sound, no focus stealing** — the next round is started by you.
-- Settings → Sweet Potato Timer can turn off "show the countdown on the collapsed notch"; the timer itself keeps running and settling either way.
+- **Focus topic**: tap the capsule in the top left to give this session a one-line topic (optional).
+- **Countdown**: 25 minutes by default. Two scrolling wheels pick 0–12 hours + 0–59 minutes (a classic 25-minute pomodoro included, up to a 12 h 59 m marathon).
+- **Count up**: unbounded — highlight "Count up" and go. The ring loops once per hour while the digital clock keeps absolute time.
+- The ring depletes with the remaining time (or fills with the elapsed time); the center shows `mm:ss`, promoted to `h:mm:ss` past one hour. Before you start, a tomato sits in the ring as a placeholder.
+- Once started the buttons become Pause / End; Pause turns into Resume. Cancel (only before starting) returns to mode selection; End — or a countdown running out — returns to the start state with the configuration remembered.
+- **Weekly heatmap**: the right column colors Monday–Sunday by that day's total focused time (five palettes in Settings → Pomodoro). Tap the week range at the top to browse any of the past 12 weeks.
+- **Closing the lid, locking the screen or quitting the app does not change the end time**: the next launch settles from the real elapsed time.
+- Settings → Pomodoro can turn off "show the pomodoro on the closed island"; the timer itself keeps running and settling either way.
 
 ### 4. File shelf
 
@@ -237,19 +236,18 @@ Plugging or unplugging power shows a notice shaped like the volume HUD (followin
 ### 9. Appearance, icon and language
 
 - **Language**: Settings → General → Language, Chinese/English, applied immediately.
-- **App icon**: three variants under Settings → Advanced.
-- With the system's "Reduce motion" enabled, Captain Shu's animation degrades to static frames.
+- With the system's "Reduce motion" enabled, the island's animations are simplified accordingly.
 
 ---
 
 ## 4. Settings at a glance
 
-Menu bar potato icon → "Settings…". The sidebar has (there is a search field at the top right):
+Menu bar tomato icon → "Settings…". The sidebar has (there is a search field at the top right):
 
 | Pane | What it covers |
 |---|---|
 | **General** | Language, launch at login, menu bar icon, which display hosts the island |
-| **Sweet Potato Timer** | Focus/rest durations, countdown on the collapsed notch |
+| **Pomodoro** | Heatmap palette, timer on the closed notch |
 | **Quick tools** | Which of the 73 tools show, and their order |
 | **Appearance** | Notch behavior: open-on-hover switch, collapse mode and delay, hover tab switching and delay, haptics, remember last tab, mirror toggle |
 | **Media** | Notch media wings, lyrics location and color, media control layout, artwork glow |
@@ -275,7 +273,7 @@ Expected, because the app is not notarized. Follow [Step 3](#step-3-allow-it-the
 <details>
 <summary><b>Nothing shows on the notch / hovering does nothing</b></summary>
 
-1. Is the app running? There should be a potato icon in the menu bar. If not, launch it from Applications (if you disabled the menu bar icon, relaunching opens the settings window instead).
+1. Is the app running? There should be a tomato icon in the menu bar. If not, launch it from Applications (if you disabled the menu bar icon, relaunching opens the settings window instead).
 2. Did you press "Hide island"? Use the menu bar icon → "Show island".
 3. Hover the **notch itself**, not the menu bar beside it and not the wings the app draws.
 4. Is "Open notch on hover" turned off in Settings → Appearance → Notch behavior? (With it off, only the shortcut and the menu bar can open the island.)
@@ -318,7 +316,7 @@ This needs **Accessibility**: System Settings → Privacy & Security → Accessi
 <details>
 <summary><b>How do I update?</b></summary>
 
-**There is no auto-update** (that also needs a paid developer account for signing). Download the newer `.dmg` from [Releases](../../releases/latest) and replace the app; your potato stock, settings and shelf are preserved. Quit the running app first.
+**There is no auto-update** (that also needs a paid developer account for signing). Download the newer `.dmg` from [Releases](../../releases/latest) and replace the app; your focus history, settings and shelf are preserved. Quit the running app first.
 
 To hear about new versions, use **Watch → Custom → Releases** at the top of the repository.
 </details>
@@ -326,12 +324,12 @@ To hear about new versions, use **Watch → Custom → Releases** at the top of 
 <details>
 <summary><b>How do I uninstall it completely?</b></summary>
 
-1. Menu bar potato icon → Quit.
-2. Move **工位充电岛** from Applications to the Trash.
+1. Menu bar tomato icon → Quit.
+2. Move **Airlet** from Applications to the Trash.
 3. Optionally remove the local data:
    ```sh
    rm -rf ~/Library/Application\ Support/boringNotch
-   defaults delete com.dongfengrui.NotchIsland
+   defaults delete com.dongfengrui.Airlet
    ```
 4. Optionally remove the leftover entries in System Settings → Privacy & Security → Accessibility / Screen Recording with the "−" button.
 </details>
@@ -405,6 +403,6 @@ This project is licensed under **GPL-3.0**, same as upstream: use, modify and re
 - Full license in [LICENSE](LICENSE), third-party notices in [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES), the upstream readme in [docs/upstream/README-boring-notch.md](docs/upstream/README-boring-notch.md).
 - Version history in [CHANGELOG.md](CHANGELOG.md).
 
-**About the mascot**: the "Captain Shu" illustrations and 2.5D sprites were generated for this project. This is a personal side project, unaffiliated with and unendorsed by any company. If you believe an asset infringes your rights, please open an issue and it will be removed or replaced.
+**About the artwork**: the tomato icon and illustrations were made for this project. This is a personal side project, unaffiliated with and unendorsed by any company. If you believe an asset infringes your rights, please open an issue and it will be removed or replaced.
 
 Questions, ideas and bug reports are welcome in [issues](../../issues).

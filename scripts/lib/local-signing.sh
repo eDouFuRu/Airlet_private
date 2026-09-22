@@ -2,8 +2,8 @@
 # Shared policy. Sourcing this file does not build, sign, install, or change trust.
 readonly ISLAND_CERT_NAME='NotchIsland Local Development'
 readonly ISLAND_CERT_SHA1='0A93291611F302DBECD76D2ACEC9DEF86D1F3DB2'
-readonly ISLAND_APP_ID='com.dongfengrui.NotchIsland'
-readonly ISLAND_XPC_ID='com.dongfengrui.NotchIsland.XPCHelper'
+readonly ISLAND_APP_ID='com.dongfengrui.Airlet'
+readonly ISLAND_XPC_ID='com.dongfengrui.Airlet.XPCHelper'
 readonly ISLAND_XPC_RELATIVE_PATH='Contents/XPCServices/NotchIslandXPCHelper.xpc'
 
 island_die() { printf 'Error: %s\n' "$*" >&2; exit 1; }

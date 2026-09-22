@@ -10,7 +10,7 @@ protocol SystemAppearanceToggling: Sendable {
 /// SystemEvents.sdef (appearance preferences.dark mode). No private defaults or
 /// automatic permission probes are used. Execution begins only after a click.
 final class SystemEventsAppearanceDevice: SystemAppearanceToggling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.appearance", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.appearance", qos: .userInitiated)
 
     func toggle() async -> AppearanceToggleResult {
         let cancellation = AppearanceProcessCancellation()

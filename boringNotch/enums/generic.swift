@@ -25,7 +25,7 @@ public enum NotchState {
 }
 
 public enum NotchViews {
-    case island
+    case pomodoro
     case home
     case shelf
     case tools
@@ -56,6 +56,14 @@ enum DownloadIconStyle: String, Defaults.Serializable {
 enum MirrorShapeEnum: String, Defaults.Serializable {
     case rectangle = "Rectangular"
     case circle = "Circular"
+}
+
+/// Mirrors `PomodoroHeatmapPalette`, which lives in the Core module and so cannot depend
+/// on `Defaults`.
+enum PomodoroHeatmapPaletteOption: String, CaseIterable, Defaults.Serializable {
+    case tomatoRed, tangerine, forestGreen, oceanBlue, grapePurple
+
+    var core: PomodoroHeatmapPalette { PomodoroHeatmapPalette(rawValue: rawValue)! }
 }
 
 /// Mirrors `NotchHoverStateMachine.CloseTrigger`, which lives in the Core module and so

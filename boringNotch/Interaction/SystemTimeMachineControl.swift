@@ -11,7 +11,7 @@ protocol TimeMachineControlling: Sendable {
 /// require root in that manual. Runtime permission failures remain failures;
 /// this runner never elevates privileges or changes configuration/backup files.
 final class NativeTimeMachineDevice: TimeMachineControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.time-machine", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.time-machine", qos: .userInitiated)
 
     func execute(_ command: TimeMachineCommand) async -> TimeMachineResult {
         let cancellation = TimeMachineProcessCancellation()

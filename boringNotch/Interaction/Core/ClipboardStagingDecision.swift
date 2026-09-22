@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: what the clipboard should contribute to the shelf.
+// Custom changes for Airlet: what the clipboard should contribute to the shelf.
 import Foundation
 
 /// What, if anything, the clipboard should put on the shelf.

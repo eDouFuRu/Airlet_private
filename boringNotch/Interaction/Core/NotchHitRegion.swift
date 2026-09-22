@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛. Geometry is independent of AppKit and SwiftUI.
+// Custom changes for Airlet. Geometry is independent of AppKit and SwiftUI.
 import Foundation
 import CoreGraphics
 

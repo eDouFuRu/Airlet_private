@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: shelf drag-out removal semantics.
+// Custom changes for Airlet: shelf drag-out removal semantics.
 import Foundation
 import CoreGraphics
 

@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: containment check in front of a destructive delete.
+// Custom changes for Airlet: containment check in front of a destructive delete.
 import Foundation
 
 /// Decides whether a path is safely inside the temporary directory before anything deletes it.

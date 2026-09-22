@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: physical-notch-only opening and transparent-window input.
+// Custom changes for Airlet: physical-notch-only opening and transparent-window input.
 import AppKit
 import Combine
 import Defaults

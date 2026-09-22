@@ -16,7 +16,7 @@ protocol AccessibilityDisplayControlling: Sendable {
 final class NativeAccessibilityDisplayDevice: AccessibilityDisplayControlling, @unchecked Sendable {
     private typealias Getter = @convention(c) () -> Int32
     private typealias Setter = @convention(c) (Int32) -> Void
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.accessibility-display", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.accessibility-display", qos: .userInitiated)
     private let handle: UnsafeMutableRawPointer?
     private let getters: [AccessibilityDisplayFeature: Getter]
     private let setters: [AccessibilityDisplayFeature: Setter]

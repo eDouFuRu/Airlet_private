@@ -10,7 +10,7 @@ protocol DisplayModeControlling: Sendable {
 /// Public display metadata and mode API only. No screenshots, window lists,
 /// display capture, private preferences, permanent configuration or privileges.
 final class CoreGraphicsDisplayModeDevice: DisplayModeControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.display-mode", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.display-mode", qos: .userInitiated)
 
     func execute(_ command: DisplayModeCommand) async -> DisplayModeResult {
         let cancellation = DisplayModeCancellation()

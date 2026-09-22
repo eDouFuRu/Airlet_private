@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛. Owned exclusively by the camera's serial queue.
+// Custom changes for Airlet. Owned exclusively by the camera's serial queue.
 struct CameraSessionIntent {
     private(set) var desiredRunning = false
     private(set) var generation: UInt64 = 0

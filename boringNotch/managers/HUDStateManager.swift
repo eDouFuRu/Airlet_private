@@ -1,4 +1,4 @@
-// Main-process authorization and media-key interception lifecycle for 工位充电岛.
+// Main-process authorization and media-key interception lifecycle for Airlet.
 import AppKit
 import ApplicationServices
 import Combine

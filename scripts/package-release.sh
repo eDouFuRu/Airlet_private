@@ -25,22 +25,19 @@ for ISLAND_ARGUMENT in "$@"; do
 done
 
 ISLAND_BASELINE_FILE="$ISLAND_PROJECT_ROOT/scripts/release-artwork-baseline.txt"
-# Every shipped image that used to carry the company wordmark. Their hashes are
-# pinned so a stale or reverted asset can never reach a public download.
+# Every shipped tomato image. Their hashes are pinned so a stale or reverted asset
+# can never reach a public download.
 ISLAND_ARTWORK_FILES=(
-  'boringNotch/Assets.xcassets/AppIcon.appiconset/shu-16.png'
-  'boringNotch/Assets.xcassets/AppIcon.appiconset/shu-32.png'
-  'boringNotch/Assets.xcassets/AppIcon.appiconset/shu-64.png'
-  'boringNotch/Assets.xcassets/AppIcon.appiconset/shu-128.png'
-  'boringNotch/Assets.xcassets/AppIcon.appiconset/shu-256.png'
-  'boringNotch/Assets.xcassets/AppIcon.appiconset/shu-512.png'
-  'boringNotch/Assets.xcassets/AppIcon.appiconset/shu-1024.png'
-  'boringNotch/Assets.xcassets/ShuIcon-captain.imageset/icon.png'
-  'boringNotch/Assets.xcassets/ShuIcon-planting.imageset/icon.png'
-  'boringNotch/Assets.xcassets/ShuIcon-roasting.imageset/icon.png'
-  'boringNotch/Assets.xcassets/Shu25D-captain-base.imageset/captain-base.png'
-  'boringNotch/Assets.xcassets/Shu25D-captain-holding.imageset/captain-holding.png'
-  'boringNotch/Assets.xcassets/logo2.imageset/shu-brand.png'
+  'boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-16.png'
+  'boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-32.png'
+  'boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-64.png'
+  'boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-128.png'
+  'boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-256.png'
+  'boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-512.png'
+  'boringNotch/Assets.xcassets/AppIcon.appiconset/tomato-1024.png'
+  'boringNotch/Assets.xcassets/logo2.imageset/tomato-brand.png'
+  'boringNotch/Assets.xcassets/PomodoroTomato.imageset/tomato-idle.png'
+  'boringNotch/Assets.xcassets/TomatoGlyph.imageset/tomato-glyph.png'
 )
 
 island_artwork_hashes() {
@@ -76,7 +73,7 @@ if [[ "$ISLAND_SKIP_BUILD" != true ]]; then
   bash "$ISLAND_PROJECT_ROOT/scripts/build.sh" Release
 fi
 
-ISLAND_BUILT_APP="$ISLAND_PROJECT_ROOT/build/Build/Products/Release/NotchIslandNext.app"
+ISLAND_BUILT_APP="$ISLAND_PROJECT_ROOT/build/Build/Products/Release/Airlet.app"
 [[ -d "$ISLAND_BUILT_APP" ]] || island_die "No Release build at $ISLAND_BUILT_APP"
 island_verify_app "$ISLAND_BUILT_APP"
 ISLAND_SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$ISLAND_BUILT_APP/Contents/Info.plist")"
@@ -84,28 +81,28 @@ ISLAND_BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$ISL
 printf 'Verified: %s (version %s, build %s)\n' "$ISLAND_BUILT_APP" "$ISLAND_SHORT_VERSION" "$ISLAND_BUILD_VERSION"
 
 ISLAND_DISTRIBUTION="$ISLAND_PROJECT_ROOT/dist"
-ISLAND_IMAGE="$ISLAND_DISTRIBUTION/NotchIsland-$ISLAND_SHORT_VERSION.dmg"
+ISLAND_IMAGE="$ISLAND_DISTRIBUTION/Airlet-$ISLAND_SHORT_VERSION.dmg"
 ISLAND_STAGE="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/notchisland-release.XXXXXX")"
 trap '/bin/rm -rf "$ISLAND_STAGE"' EXIT
 /bin/mkdir -p "$ISLAND_DISTRIBUTION" "$ISLAND_STAGE/volume"
 # The app is renamed the same way the local installer does it, so downloaded and
 # locally installed copies show the same name in Finder, Dock and permissions.
-/usr/bin/ditto "$ISLAND_BUILT_APP" "$ISLAND_STAGE/volume/工位充电岛.app"
+/usr/bin/ditto "$ISLAND_BUILT_APP" "$ISLAND_STAGE/volume/Airlet.app"
 # This script runs under umask 077; a downloaded app has to stay readable and
 # executable for whoever copies it, so restore the usual bundle permissions.
-/bin/chmod -R a+rX "$ISLAND_STAGE/volume/工位充电岛.app"
-island_verify_app "$ISLAND_STAGE/volume/工位充电岛.app"
+/bin/chmod -R a+rX "$ISLAND_STAGE/volume/Airlet.app"
+island_verify_app "$ISLAND_STAGE/volume/Airlet.app"
 /bin/ln -s /Applications "$ISLAND_STAGE/volume/应用程序"
 /bin/rm -f "$ISLAND_IMAGE"
-/usr/bin/hdiutil create -quiet -volname '工位充电岛' -srcfolder "$ISLAND_STAGE/volume" \
+/usr/bin/hdiutil create -quiet -volname 'Airlet' -srcfolder "$ISLAND_STAGE/volume" \
   -fs HFS+ -format UDZO -imagekey zlib-level=9 "$ISLAND_IMAGE"
 
 ISLAND_CHECKSUM="$(/usr/bin/shasum -a 256 "$ISLAND_IMAGE" | /usr/bin/awk '{print $1}')"
 ISLAND_NOTES="$ISLAND_DISTRIBUTION/RELEASE-NOTES-$ISLAND_SHORT_VERSION.md"
 cat >"$ISLAND_NOTES" <<NOTES
-## 工位充电岛 v${ISLAND_SHORT_VERSION}（build ${ISLAND_BUILD_VERSION}）
+## Airlet v${ISLAND_SHORT_VERSION}（build ${ISLAND_BUILD_VERSION}）
 
-macOS 15.0 及以上，Apple Silicon。下载 \`$(basename "$ISLAND_IMAGE")\`，打开后把「工位充电岛」拖进「应用程序」。
+macOS 15.0 及以上，Apple Silicon。下载 \`$(basename "$ISLAND_IMAGE")\`，打开后把「Airlet」拖进「应用程序」。
 
 ### 首次打开需要手动放行
 
@@ -115,7 +112,7 @@ macOS 15.0 及以上，Apple Silicon。下载 \`$(basename "$ISLAND_IMAGE")\`，
 2. 打开「系统设置 → 隐私与安全性」，在底部找到被拦下的记录，点「仍要打开」；
 3. 再双击一次，在弹窗里点「打开」。
 
-macOS 15 之后已取消「按住 Control 点图标 → 打开」这条旧路径。命令行等价做法（自行承担跳过 Gatekeeper 校验的风险）：\`xattr -dr com.apple.quarantine /Applications/工位充电岛.app\`。
+macOS 15 之后已取消「按住 Control 点图标 → 打开」这条旧路径。命令行等价做法（自行承担跳过 Gatekeeper 校验的风险）：\`xattr -dr com.apple.quarantine /Applications/Airlet.app\`。
 
 放行一次之后正常双击即可。首次运行还会请求「辅助功能」与「屏幕录制」权限，分别用于接管系统 HUD／通知横幅和截屏录屏工具。
 

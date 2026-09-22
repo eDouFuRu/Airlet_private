@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: clipboard-to-shelf import gating.
+// Custom changes for Airlet: clipboard-to-shelf import gating.
 import Foundation
 
 /// Decides which clipboard generations should be pulled onto the shelf.

@@ -12,7 +12,7 @@ protocol VPNConnectionControlling: Sendable {
 /// No private API is linked here. No show/status/statistics/configuration command,
 /// credentials, shell, elevated privileges, or VPN-type enable/disable is used.
 final class ScutilVPNDevice: VPNConnectionControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.vpn", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.vpn", qos: .userInitiated)
 
     func execute(_ command: VPNConnectionCommand) async -> VPNConnectionResult {
         let cancellation = VPNChildCancellation()

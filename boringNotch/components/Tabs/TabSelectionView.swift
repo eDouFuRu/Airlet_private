@@ -17,12 +17,12 @@ struct TabModel: Identifiable {
 
     var icon: Image {
         if let systemIcon { return Image(systemName: systemIcon) }
-        return Image(nsImage: PotatoStatusIcon.image).renderingMode(.template)
+        return Image(nsImage: TomatoStatusIcon.image).renderingMode(.template)
     }
 }
 
 private let tabs = [
-    TabModel(label: "小岛", systemIcon: nil, view: .island),
+    TabModel(label: "番茄钟", systemIcon: nil, view: .pomodoro),
     TabModel(label: "工具主页", systemIcon: "house.fill", view: .home),
     TabModel(label: "文件暂存", systemIcon: "tray.fill", view: .shelf),
     TabModel(label: "Quick tools", systemIcon: "square.grid.2x2.fill", view: .tools)

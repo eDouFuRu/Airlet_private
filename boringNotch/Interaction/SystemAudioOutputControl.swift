@@ -35,7 +35,7 @@ private final class AudioOutputCompletion: @unchecked Sendable {
 /// HAL access is serialized off the main thread. Only output-scope stream
 /// metadata is queried; stream buffer pointers/audio samples are never read.
 final class CoreAudioOutputDevice: AudioOutputControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.audio-output", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.audio-output", qos: .userInitiated)
     private struct Listener {
         let object: AudioObjectID
         var address: AudioObjectPropertyAddress

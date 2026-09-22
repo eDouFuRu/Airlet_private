@@ -1,4 +1,4 @@
-// Custom changes for 工位充电岛: shelf items expire on their own clock.
+// Custom changes for Airlet: shelf items expire on their own clock.
 import AppKit
 import Combine
 import Defaults

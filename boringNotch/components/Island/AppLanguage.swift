@@ -39,27 +39,3 @@ struct IslandLocalization: ViewModifier {
         content.environment(\.locale, language.locale).id(language.selection)
     }
 }
-
-enum IslandIcon: String, CaseIterable {
-    case captain, planting, roasting
-    var title: String {
-        switch self {
-        case .captain: return L("Captain Shu")
-        case .planting: return L("Planting sweet potatoes")
-        case .roasting: return L("Roasting sweet potatoes")
-        }
-    }
-    var assetName: String { "ShuIcon-" + rawValue }
-}
-
-@MainActor
-final class IslandIconManager: ObservableObject {
-    static let shared = IslandIconManager()
-    @Published var selected: IslandIcon {
-        didSet { UserDefaults.standard.set(selected.rawValue, forKey: "island.icon"); apply() }
-    }
-    private init() {
-        selected = IslandIcon(rawValue: UserDefaults.standard.string(forKey: "island.icon") ?? "") ?? .captain
-    }
-    func apply() { NSApp.applicationIconImage = NSImage(named: selected.assetName) }
-}

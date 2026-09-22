@@ -85,7 +85,7 @@ final class CaptureNativeRecorder: NSObject {
         configuration.capturesAudio = false
         configuration.captureMicrophone = false
         configuration.captureDynamicRange = .SDR
-        configuration.streamName = "工位充电岛"
+        configuration.streamName = "Airlet"
         let outputConfiguration = SCRecordingOutputConfiguration()
         outputConfiguration.outputURL = outputURL
         outputConfiguration.videoCodecType = .h264

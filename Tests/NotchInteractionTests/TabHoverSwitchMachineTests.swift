@@ -2,7 +2,7 @@ import XCTest
 @testable import NotchInteractionCore
 
 final class TabHoverSwitchMachineTests: XCTestCase {
-    private enum Tab { case island, home, shelf, tools }
+    private enum Tab { case pomodoro, home, shelf, tools }
 
     func testHoveringTheOpenTabNeverSchedulesASwitch() {
         var machine = TabHoverSwitchMachine<Tab>()
@@ -46,7 +46,7 @@ final class TabHoverSwitchMachineTests: XCTestCase {
     /// each tab it passed over.
     func testSweepingAcrossEveryTabSwitchesToNone() {
         var machine = TabHoverSwitchMachine<Tab>(delay: 0.12)
-        XCTAssertNil(machine.update(hovered: .island, current: .home, now: 0))
+        XCTAssertNil(machine.update(hovered: .pomodoro, current: .home, now: 0))
         XCTAssertNil(machine.update(hovered: .shelf, current: .home, now: 0.03))
         XCTAssertNil(machine.update(hovered: .tools, current: .home, now: 0.06))
         XCTAssertNil(machine.update(hovered: nil, current: .home, now: 0.09))

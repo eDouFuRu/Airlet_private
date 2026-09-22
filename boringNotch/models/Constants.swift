@@ -108,11 +108,13 @@ extension Defaults.Keys {
     static let showOnLockScreen = Key<Bool>("showOnLockScreen", default: false)
     static let hideFromScreenRecording = Key<Bool>("hideFromScreenRecording", default: false)
 
-    // MARK: Sweet Potato Timer
-    /// The countdown beside the camera is a glanceable extra, not part of the timer. Turning
-    /// it off only stops it being drawn — the session keeps running and settles as it would
-    /// have, and the focus-finished reminder still opens the island.
-    static let showRestTimerOnClosed = Key<Bool>("showRestTimerOnClosed", default: true)
+    // MARK: Pomodoro
+    /// The countdown beside the notch is a glanceable extra, not part of the timer. Turning
+    /// it off only stops it being drawn — the session keeps running and settles as it
+    /// would have.
+    static let showPomodoroTimerOnClosed = Key<Bool>("showPomodoroTimerOnClosed", default: true)
+    static let pomodoroHeatmapPalette = Key<PomodoroHeatmapPaletteOption>("pomodoroHeatmapPalette",
+                                                                          default: .tomatoRed)
 
     // MARK: Appearance
     static let showEmojis = Key<Bool>("showEmojis", default: false)

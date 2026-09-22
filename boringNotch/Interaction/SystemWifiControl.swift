@@ -9,7 +9,7 @@ protocol WifiPowerControlling: Sendable {
 /// No network names, scan results, BSSIDs, or saved configurations are read. All
 /// CoreWLAN transactions run off the main thread and are serialized on one queue.
 final class CoreWLANPowerDevice: WifiPowerControlling, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.dongfengrui.NotchIsland.wifi-power", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.dongfengrui.Airlet.wifi-power", qos: .userInitiated)
 
     func execute(_ command: WifiPowerCommand) async -> WifiPowerResult {
         await withCheckedContinuation { continuation in

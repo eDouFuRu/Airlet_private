@@ -18,7 +18,7 @@ struct ContentView: View {
     @EnvironmentObject var vm: BoringViewModel
     @EnvironmentObject var pointer: NotchPointerCoordinator
     @ObservedObject private var visibility = IslandVisibility.shared
-    @ObservedObject private var rest = IslandRestModel.shared
+    @ObservedObject private var pomodoro = PomodoroModel.shared
     @ObservedObject private var systemHUD = SystemHUDPresentation.shared
     @ObservedObject private var brief = BriefPresentationCoordinator.shared
     @ObservedObject private var lyrics = LyricsStore.shared
@@ -56,7 +56,7 @@ struct ContentView: View {
     @Default(.hudReplacement) private var hudReplacement
     @Default(.playerColorTinting) private var playerColorTinting
     @Default(.showPowerStatusNotifications) private var showPowerStatusNotifications
-    @Default(.showRestTimerOnClosed) private var showRestTimerOnClosed
+    @Default(.showPomodoroTimerOnClosed) private var showPomodoroTimerOnClosed
     @Default(.sneakPeekStyles) private var sneakPeekStyles
     @Default(.boringShelf) private var boringShelf
 
@@ -104,12 +104,12 @@ struct ContentView: View {
         return vm.closedNotchSize.width
     }
 
-    private var resting: Bool { rest.phase == .running || rest.phase == .paused }
-    /// Whether the closed shell gives the countdown its wings. The header and the width both
-    /// read this one value rather than testing `resting` apiece: those are two hand-written
-    /// branch chains, and letting them disagree is how a shell ends up 88pt wider than the
-    /// thing it was widened for.
-    private var showsRestOnClosed: Bool { resting && showRestTimerOnClosed }
+    private var pomodoroBusy: Bool { pomodoro.phase != .idle }
+    /// Whether the closed shell gives the pomodoro its wings. The header and the width both
+    /// read this one value rather than testing `pomodoroBusy` apiece: those are two
+    /// hand-written branch chains, and letting them disagree is how a shell ends up 88pt
+    /// wider than the thing it was widened for.
+    private var showsPomodoroOnClosed: Bool { pomodoroBusy && showPomodoroTimerOnClosed }
     private var isOpen: Bool { vm.notchState == .open }
     private var headerHeight: CGFloat {
         max(24, max(vm.closedNotchSize.height, vm.screenUUID.flatMap { NSScreen.screen(withUUID: $0)?.safeAreaInsets.top } ?? 0))
@@ -144,15 +144,16 @@ struct ContentView: View {
     private var baseExpandedHeight: CGFloat {
         // Derived from the grid's own constants so the island is exactly tall enough for a
         // whole number of rows. A hand-tuned floor here is what previously left a spare
-        // half row visible below the third one.
+        // half row visible below the third one. Every page — pomodoro included — shares
+        // this height; the tools grid derives its own.
         if coordinator.currentView == .tools {
             return max(openNotchSize.height, SystemToolGridMetrics.expandedHeight(headerHeight: headerHeight))
         }
-        return coordinator.currentView == .island ? max(250, headerHeight + 214) : max(openNotchSize.height, headerHeight + 156)
+        return max(openNotchSize.height, headerHeight + 156)
     }
     private var baseClosedWidth: CGFloat {
         if vm.hideOnClosed { return vm.closedNotchSize.width }
-        if showsRestOnClosed { return vm.closedNotchSize.width + 88 }
+        if showsPomodoroOnClosed { return vm.closedNotchSize.width + 88 }
         return max(vm.closedNotchSize.width + 12, computedChinWidth)
     }
     private var hudLayout: SystemHUDLayout {
@@ -167,6 +168,15 @@ struct ContentView: View {
         guard !reduceMotion else { return nil }
         return .spring(response: isOpen ? 0.42 : 0.45,
                        dampingFraction: isOpen ? 0.8 : 1.0, blendDuration: 0)
+    }
+
+    /// Tab swaps are instant: an explicit per-branch identity transition overrides the
+    /// scale transition the surrounding page container propagates down. With inherited
+    /// or opacity transitions the incoming page still settled ~44pt low with a spring
+    /// (layout reflow animated by the shell spring), which read as the page sliding
+    /// down from the tab bar. Open/close keeps the container's scale+opacity.
+    private var pageSwapTransition: AnyTransition {
+        .identity
     }
 
     /// The shelf is pinned open, so it needs a dismiss control that does not depend on the
@@ -220,13 +230,26 @@ struct ContentView: View {
         NotchLayout()
             .padding(.horizontal, isOpen ? 31 : 6)
             .padding(.bottom, isOpen ? 12 : 0)
-            .frame(width: visibleWidth, height: visibleHeight, alignment: .top)
+            // Width stays pinned inside the shape: the closed header's natural width is not
+            // trusted to match the formula. Height must NOT be set here — the morphing height
+            // proposal has to arrive from OUTSIDE the background, so the black shape hugs the
+            // content and grows with it (upstream boring.notch's mechanism). A frame wrapping
+            // the background turns the shape into a fixed mask that sweeps down over
+            // already-laid-out content, which reads as the whole page sliding in from the top.
+            .frame(width: visibleWidth, alignment: .top)
             .background(.black)
             .clipShape(NotchShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomRadius))
             .overlay(alignment: .top) {
                 Rectangle().fill(.black).frame(height: 1).padding(.horizontal, topCornerRadius)
             }
             .shadow(color: isOpen && enableShadow ? .black.opacity(0.6) : .clear, radius: 6)
+            // The animating height proposal, mirroring upstream's
+            // `.frame(height: open ? notchSize.height : nil)`: pages are re-laid-out at every
+            // intermediate height while the shell spring runs, so the island unfolds around
+            // its content instead of revealing it behind a moving clip edge. `.animation(
+            // shellAnimation, value:)` below animates the content re-layout this triggers,
+            // which is what keeps the closing half of the cycle smooth too.
+            .frame(height: isOpen ? visibleHeight : nil, alignment: .top)
             .modifier(NotchPresentationReporter(width: visibleWidth, height: visibleHeight,
                                                 topRadius: topCornerRadius, bottomRadius: bottomRadius,
                                                 coordinator: pointer))
@@ -244,42 +267,34 @@ struct ContentView: View {
             .preferredColorScheme(.dark)
             .modifier(IslandLocalization())
             .onAppear {
-                syncPresentation()
+                syncBriefPresentation()
                 pointer.setAccessoryControlVisible(showsFloatingCollapse)
             }
             .onChange(of: showsFloatingCollapse) { _, visible in
                 pointer.setAccessoryControlVisible(visible)
             }
             .onChange(of: vm.notchState) {
-                syncPresentation(); pointer.reevaluate()
+                syncBriefPresentation(); pointer.reevaluate()
                 if isOpen && enableHaptics { NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) }
             }
-            .onChange(of: coordinator.currentView) { syncPresentation() }
+            .onChange(of: coordinator.currentView) { syncBriefPresentation() }
             .onChange(of: briefSource) { syncBriefPresentation() }
             .onChange(of: lyrics.shouldShowNotch) { syncBriefPresentation() }
             .onChange(of: vm.hideOnClosed) { syncBriefPresentation() }
             .onChange(of: boringShelf) {
                 if !boringShelf && coordinator.currentView == .shelf { coordinator.currentView = .home }
             }
-            .onChange(of: visibility.isHidden) { syncPresentation() }
-            .onChange(of: visibility.screenUnavailable) { syncPresentation() }
+            .onChange(of: visibility.isHidden) { syncBriefPresentation() }
+            .onChange(of: visibility.screenUnavailable) { syncBriefPresentation() }
             .onChange(of: vm.isBatteryPopoverActive) { pointer.reevaluate() }
             .onChange(of: hudLayout.showsInline) {
                 // Replacing the header dismisses its popover and its keep-open claim.
                 if hudLayout.showsInline { vm.isBatteryPopoverActive = false }
             }
             .onDisappear {
-                rest.removePresentation(sourceID: presentationID)
                 lyrics.removeNotchPresentation(sourceID: presentationID)
                 brief.setHovered(sourceID: presentationID, hovered: false)
             }
-    }
-
-    private func syncPresentation() {
-        syncBriefPresentation()
-        rest.setPresentation(sourceID: presentationID, notchOpen: isOpen,
-                             isIslandPage: coordinator.currentView == .island,
-                             hidden: visibility.isHidden, locked: visibility.screenUnavailable)
     }
 
     private func syncBriefPresentation() {
@@ -345,21 +360,29 @@ struct ContentView: View {
             .zIndex(2)
 
             if isOpen {
-                Group {
+                // A real VStack container, like upstream: the transition below belongs to
+                // THIS view, so it only runs when the island opens/closes. Tab switches
+                // swap children *inside* it and get the default crossfade — a Group here
+                // would push the scale transition down onto every switch branch, making
+                // the incoming page slide down from the tab bar on each tab change.
+                VStack(spacing: 0) {
                     switch coordinator.currentView {
-                    case .island:
-                        IslandPage(presentationID: presentationID)
+                    case .pomodoro:
+                        PomodoroPage().transition(pageSwapTransition)
                     case .home:
-                        NotchHomeView(albumArtNamespace: albumArtNamespace)
+                        NotchHomeView(albumArtNamespace: albumArtNamespace).transition(pageSwapTransition)
                     case .shelf:
-                        ShelfView()
+                        ShelfView().transition(pageSwapTransition)
                     case .tools:
-                        SystemToolsPage()
+                        SystemToolsPage().transition(pageSwapTransition)
                     }
                 }
                 .padding(.top, 8)
-                // Inserting a default HUD row never compresses the page's controls.
-                .frame(height: max(0, baseExpandedHeight - headerHeight - 12), alignment: .top)
+                // No size frame here on purpose (upstream mounts pages bare): every page
+                // stretches to the shell's animating proposal on its own — home via the
+                // GeometryReader in its controls column, shelf via its greedy panel shape,
+                // tools via the scroll view, pomodoro via its own infinity frame (which is
+                // also what keeps a page from dragging the tab bar sideways on tab switch).
                 .transition(.scale(scale: 0.8, anchor: .top).combined(with: .opacity)
                     .animation(reduceMotion ? nil : .smooth(duration: 0.35)))
                 .zIndex(1)
@@ -384,13 +407,14 @@ struct ContentView: View {
     private var closedHeader: some View {
         if vm.hideOnClosed {
             Color.clear.frame(width: vm.closedNotchSize.width)
-        } else if showsRestOnClosed {
+        } else if showsPomodoroOnClosed {
             HStack(spacing: 0) {
-                Image(systemName: rest.mode == .focus ? "timer" : "flame.fill")
-                    .foregroundStyle(ShuPalette.flesh).frame(maxWidth: .infinity)
+                Image(systemName: pomodoro.phase == .paused ? "pause.fill" : "timer")
+                    .foregroundStyle(PomodoroTheme.accent).frame(maxWidth: .infinity)
                 Color.clear.frame(width: vm.closedNotchSize.width)
-                Text(rest.clockText).font(.system(size: 10, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.8)).frame(maxWidth: .infinity)
+                Text(pomodoro.clockText).font(.system(size: 10, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white.opacity(pomodoro.phase == .paused ? 0.5 : 0.8))
+                    .frame(maxWidth: .infinity)
             }
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
                     && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled {

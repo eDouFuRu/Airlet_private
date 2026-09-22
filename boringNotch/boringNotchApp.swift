@@ -1,4 +1,4 @@
-// Derived from boring.notch v2.7.3, GPL-3.0. Custom lifecycle for 工位充电岛.
+// Derived from boring.notch v2.7.3, GPL-3.0. Custom lifecycle for Airlet.
 import AppKit
 import Combine
 import CoreGraphics
@@ -19,9 +19,9 @@ struct DynamicNotchApp: App {
         MenuBarExtra(isInserted: .constant(showMenuBarIcon || capture.isBusy)) {
             islandCommands
         } label: {
-            Image(nsImage: PotatoStatusIcon.image)
+            Image(nsImage: TomatoStatusIcon.image)
                 .renderingMode(.template)
-                .accessibilityLabel("工位充电岛")
+                .accessibilityLabel("Airlet")
         }
         Settings { EmptyView() }
             .commands {
@@ -48,6 +48,8 @@ struct DynamicNotchApp: App {
         #if DEBUG
         Button(L("Animation diagnostics (20 + 10 cycles)")) { appDelegate.runInteractionCheck() }
             .disabled(visibility.isChecking)
+        Button(L("Debug: switch to Pomodoro tab")) { appDelegate.switchTab(to: .pomodoro) }
+        Button(L("Debug: switch to Home tab")) { appDelegate.switchTab(to: .home) }
         #endif
         Divider()
         Button(L("Quit Recharge Island")) { NSApplication.shared.terminate(nil) }
@@ -70,7 +72,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let coordinator = BoringViewCoordinator.shared
     private let visibility = IslandVisibility.shared
     private var guiSession = GUISessionAvailability()
-    private var focusReminderTask: Task<Void, Never>?
     private var waitsForCaptureBeforeQuitting = false
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
@@ -88,7 +89,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         coordinator.firstLaunch = false
         coordinator.currentView = .home
         Defaults[.showOnLockScreen] = false
-        IslandIconManager.shared.apply()
         setupLifecycleObservers()
         // Observe first, then seed current state before creating any windows.
         // Future-only notifications miss an app launched while already locked.
@@ -127,7 +127,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] hidden, unavailable, capturing in
                 // Close the delivery gate synchronously, before queued timer work can run.
                 if hidden || unavailable || capturing {
-                    IslandRestModel.shared.setApplicationAvailable(false)
                     HUDStateManager.shared.setApplicationAvailable(false)
                     LyricsStore.shared.setApplicationAvailable(false)
                     HiNotificationManager.shared.setApplicationAvailable(false)
@@ -135,11 +134,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 // @Published emits before setting; defer to read the committed values.
                 DispatchQueue.main.async { self?.applyVisibility() }
-            }.store(in: &subscriptions)
-        IslandRestModel.shared.$pendingFocusReminder
-            .sink { [weak self] pending in
-                guard pending else { return }
-                DispatchQueue.main.async { self?.presentFocusReminderIfPossible() }
             }.store(in: &subscriptions)
         KeyboardShortcuts.onKeyDown(for: .toggleNotchOpen) { [weak self] in
             self?.toggleIsland()
@@ -151,10 +145,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        IslandRestModel.shared.refresh()
         HUDStateManager.shared.refresh()
         HiNotificationManager.shared.refresh()
-        presentFocusReminderIfPossible()
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         visibility.isHidden = false
@@ -163,14 +155,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    #if DEBUG
+    /// Frame-capture aid: reproduces a TabSelectionView tab switch (same `.smooth`
+    /// transaction) so the page-change animation can be recorded programmatically.
+    func switchTab(to view: NotchViews) {
+        guard visibility.isAvailable, let entry = preferredEntry else { return }
+        entry.pointer.keepExpandedForUserCommand()
+        withAnimation(.smooth) { coordinator.currentView = view }
+    }
+    #endif
+
     func expandIsland() {
         guard !visibility.screenUnavailable else { return }
         visibility.isHidden = false
         applyVisibility()
         guard visibility.isAvailable, let entry = preferredEntry else { return }
-        coordinator.currentView = .home
-        entry.pointer.keepExpandedForUserCommand()
-        entry.model.open(preferredPage: .home)
+        // Upstream drives the open through an explicit animation transaction; the
+        // transaction is what makes the freshly inserted page content lay out at every
+        // interpolated height of the shell spring instead of appearing at full size.
+        withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+            coordinator.currentView = .home
+            entry.pointer.keepExpandedForUserCommand()
+            entry.model.open(preferredPage: .home)
+        }
     }
 
     private func toggleIsland() {
@@ -258,7 +265,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         visibility.screenUnavailable = guiSession.isUnavailable
         applyVisibility()
         if visibility.isAvailable { rebuildWindows() }
-        IslandRestModel.shared.refresh()
         HUDStateManager.shared.refresh()
         HiNotificationManager.shared.refresh()
     }
@@ -275,7 +281,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                width: windowSize.width, height: windowSize.height)
             let window = BoringNotchSkyLightWindow(contentRect: frame,
                 styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-            window.title = "工位充电岛"
+            window.title = "Airlet"
             window.identifier = NSUserInterfaceItemIdentifier("NotchIslandNextPanel-" + id)
             window.hidesOnDeactivate = false
             window.animationBehavior = .none
@@ -286,7 +292,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 open: { [weak model] in
                     guard Defaults[.openNotchOnHover] else { return }
-                    model?.open()
+                    // Upstream's doOpen() wraps vm.open() in this exact transaction. The
+                    // transaction is REQUIRED for cold opens: without an in-flight animation
+                    // to join, the freshly inserted page is laid out at the final proposal
+                    // instantly and the shell growth degenerates into a clip reveal (rapid
+                    // re-opens morph either way because the close spring is still running).
+                    withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+                        model?.open()
+                    }
                 }, close: { [weak model] in model?.close() })
             let host = IslandHostingView(rootView: ContentView().environmentObject(model).environmentObject(pointer))
             host.sizingOptions = []
@@ -299,8 +312,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyVisibility() {
         if !visibility.isAvailable {
             HUDStateManager.shared.setApplicationAvailable(false)
-            IslandRestModel.shared.setApplicationAvailable(false)
-            cancelFocusReminderPresentation()
         }
         for entry in entries.values {
             if visibility.isAvailable {
@@ -323,37 +334,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator.sneakPeek.show = false
             coordinator.expandingView.show = false
             WebcamManager.shared.stopSession()
-        } else {
-            IslandRestModel.shared.setApplicationAvailable(hasVisiblePanel)
-            DispatchQueue.main.async { [weak self] in self?.presentFocusReminderIfPossible() }
         }
-    }
-
-    private func presentFocusReminderIfPossible() {
-        let rest = IslandRestModel.shared
-        guard visibility.isAvailable, rest.pendingFocusReminder, focusReminderTask == nil,
-              let entry = preferredEntry, entry.window.isVisible else { return }
-        coordinator.currentView = .island
-        entry.pointer.keepExpandedForUserCommand(duration: 10)
-        entry.model.open(preferredPage: .island)
-        guard entry.model.notchState == .open else { return }
-        // Keep the persisted reminder pending until it has had a full presentation.
-        // Hiding, locking, quitting or rebuilding the window during this interval
-        // preserves it for the next available island, rather than losing it on open().
-        focusReminderTask = Task { @MainActor [weak self] in
-            do { try await Task.sleep(for: .seconds(10)) }
-            catch { return }
-            guard let self else { return }
-            self.focusReminderTask = nil
-            if self.visibility.isAvailable, rest.mode == .focus, rest.phase == .completed {
-                rest.consumeFocusReminder()
-            }
-        }
-    }
-
-    private func cancelFocusReminderPresentation() {
-        focusReminderTask?.cancel()
-        focusReminderTask = nil
     }
 
     private func cleanupWindows() {
@@ -361,9 +342,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HiNotificationManager.shared.setApplicationAvailable(false)
         BriefPresentationCoordinator.shared.setApplicationAvailable(false)
         HUDStateManager.shared.setApplicationAvailable(false)
-        IslandRestModel.shared.setApplicationAvailable(false)
-        cancelFocusReminderPresentation()
-        IslandRestModel.shared.clearPresentationsForWindowRebuild()
         for entry in entries.values {
             entry.pointer.setEnabled(false)
             entry.window.orderOut(nil)
@@ -377,7 +355,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         ShelfStateViewModel.shared.finaliseUndoWindowBeforeTermination()
         HUDStateManager.shared.stop()
-        IslandRestModel.shared.setApplicationAvailable(false)
         cleanupWindows()
         for token in tokens { NotificationCenter.default.removeObserver(token) }
         for token in workspaceTokens { NSWorkspace.shared.notificationCenter.removeObserver(token) }
@@ -405,14 +382,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     try? await Task.sleep(for: .milliseconds(16))
                 }
             }
+            // Same transaction as the real open paths, so frame captures taken from this
+            // harness stay representative of what hovering produces.
+            let openTransaction = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
             for _ in 0..<20 {
-                entry.model.open(preferredPage: .island); await sample(for: 0.60)
+                withAnimation(openTransaction) { entry.model.open(preferredPage: .home) }; await sample(for: 0.60)
                 entry.model.close(force: true); await sample(for: 0.65)
             }
             for _ in 0..<10 {
-                entry.model.open(preferredPage: .island); await sample(for: 0.14)
+                withAnimation(openTransaction) { entry.model.open(preferredPage: .home) }; await sample(for: 0.14)
                 entry.model.close(force: true); await sample(for: 0.12)
-                entry.model.open(preferredPage: .island); await sample(for: 0.16)
+                withAnimation(openTransaction) { entry.model.open(preferredPage: .home) }; await sample(for: 0.16)
                 entry.model.close(force: true); await sample(for: 0.60)
             }
             var failures: [String] = []
@@ -423,7 +403,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("com.dongfengrui.NotchIsland", isDirectory: true)
+                .appendingPathComponent("com.dongfengrui.Airlet", isDirectory: true)
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let url = folder.appendingPathComponent("interaction-diagnostics.json")
             do { try encoder.encode(samples).write(to: url, options: .atomic) }

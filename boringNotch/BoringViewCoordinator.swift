@@ -50,14 +50,14 @@ struct ExpandedItem {
 class BoringViewCoordinator: ObservableObject {
     static let shared = BoringViewCoordinator()
 
-    /// Opening the shelf shrinks the island, which slides the pointer hit region out from
-    /// under a stationary cursor and collapses the page before it can be used. Pinning it
-    /// suspends pointer-driven collapse only: the shelf's own close button and a click
-    /// outside the island both still dismiss it.
+    /// Opening a pinned page shrinks the island, which slides the pointer hit region out
+    /// from under a stationary cursor and collapses the page before it can be used.
+    /// Pinning it suspends pointer-driven collapse only: a click outside the island both
+    /// still dismisses it.
     @Published var currentView: NotchViews = .home {
         didSet {
             guard oldValue != currentView else { return }
-            if currentView == .shelf {
+            if currentView == .shelf || currentView == .pomodoro {
                 NotchOpenHoldCenter.shared.begin(.pinnedPage)
             } else {
                 NotchOpenHoldCenter.shared.end(.pinnedPage)
