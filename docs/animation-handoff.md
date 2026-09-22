@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | 开发仓库 | `/Users/dongfengrui/Documents/Rednote_Vibecoding/NotchIslandNext-pomodoro`（git worktree，分支 `public-edition`） |
-| 当前状态 | 改动**未提交**（用户未开口不提交，仓库纪律）；`git status` 可见全部改动 |
+| 当前状态 | 全部工作已提交：`8ebfa7a`（番茄钟公开版 + Airlet 更名 + 动画修复），分支 `public-edition` |
 | 应用名 / Bundle ID | Airlet / `com.dongfengrui.Airlet` |
 | 构建 | `bash scripts/build.sh Debug`（固定本地证书，产物 `build/Build/Products/Debug/Airlet.app`） |
 | 安装运行 | 先 `osascript -e 'tell application id "com.dongfengrui.Airlet" to quit'; sleep 3`，再 `bash scripts/install-local.sh Debug`，最后 `open -a ~/Applications/Airlet.app`。**安装脚本拒绝应用运行时安装**；perl 适配器进程会残留，可靠序列见仓库 `LOCAL-SIGNING.md` |
