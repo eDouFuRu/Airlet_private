@@ -54,4 +54,7 @@ else
   # Keep the lock across xcodebuild and post-signing; no nested lock/process.
   island_codesign_app "$ISLAND_BUILT_APP"
 fi
+# Xcode registers build products with Launch Services. Keep only the fixed-path
+# installation visible as Airlet in Launchpad and application pickers.
+/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -u "$ISLAND_BUILT_APP" >/dev/null 2>&1 || true
 printf 'Built: %s\n' "$ISLAND_BUILT_APP"

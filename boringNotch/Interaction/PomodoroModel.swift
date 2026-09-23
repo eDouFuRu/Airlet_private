@@ -20,6 +20,11 @@ final class PomodoroModel: ObservableObject {
     @Published private(set) var elapsedSeconds: Double = 0
     /// Brief full-ring flash after a countdown completes naturally.
     @Published private(set) var justCompleted = false
+    @Published private(set) var completionPresentedAt: Date?
+    /// A stable copy of Core anchors; frame sampling is entirely presentation-only.
+    var ringPresentation: PomodoroRingPresentation {
+        PomodoroRingPresentation(state: state, completedAt: completionPresentedAt)
+    }
 
     private let store: PomodoroSessionStore
     private var state = PomodoroRunState()
@@ -60,18 +65,6 @@ final class PomodoroModel: ObservableObject {
             return PomodoroSessionCore.clockText(seconds: Double(remainingSeconds))
         }
         return PomodoroSessionCore.clockText(seconds: elapsedSeconds.rounded(.down))
-    }
-
-    /// Ring fill fraction, or `nil` when the ring should show its idle track only.
-    var ringFraction: Double? {
-        if phase == .idle { return justCompleted ? 1 : nil }
-        if mode == .countdown {
-            guard plannedSeconds > 0 else { return nil }
-            let remaining = PomodoroSessionCore.remainingSeconds(state, now: Date()) ?? 0
-            return min(1, max(0, remaining / Double(plannedSeconds)))
-        }
-        // Count-up loops the ring once per hour; the clock below carries absolute time.
-        return elapsedSeconds.truncatingRemainder(dividingBy: 3600) / 3600
     }
 
     var allSessions: [PomodoroSessionRecord] { sessions }
@@ -116,6 +109,9 @@ final class PomodoroModel: ObservableObject {
     func start() {
         guard PomodoroSessionCore.start(&state, now: Date()) else { return }
         persist(openRun: state)
+        completionFlashTask?.cancel()
+        completionPresentedAt = nil
+        justCompleted = false
         syncPublished()
         syncTicker()
     }
@@ -207,11 +203,15 @@ final class PomodoroModel: ObservableObject {
 
     private func beginCompletionFlash() {
         completionFlashTask?.cancel()
+        completionPresentedAt = Date()
         justCompleted = true
         completionFlashTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
             self?.justCompleted = false
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            self?.completionPresentedAt = nil
         }
     }
 }

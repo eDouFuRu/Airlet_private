@@ -50,14 +50,12 @@ struct ExpandedItem {
 class BoringViewCoordinator: ObservableObject {
     static let shared = BoringViewCoordinator()
 
-    /// Opening a pinned page shrinks the island, which slides the pointer hit region out
-    /// from under a stationary cursor and collapses the page before it can be used.
-    /// Pinning it suspends pointer-driven collapse only: a click outside the island both
-    /// still dismisses it.
+    /// Only the shelf stays pinned while the pointer is away. Pomodoro shares the
+    /// home page geometry and normal hover-out policy; its in-page controls never close it.
     @Published var currentView: NotchViews = .home {
         didSet {
             guard oldValue != currentView else { return }
-            if currentView == .shelf || currentView == .pomodoro {
+            if currentView == .shelf {
                 NotchOpenHoldCenter.shared.begin(.pinnedPage)
             } else {
                 NotchOpenHoldCenter.shared.end(.pinnedPage)

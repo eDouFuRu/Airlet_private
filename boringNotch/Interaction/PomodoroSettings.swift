@@ -5,8 +5,22 @@ struct PomodoroSettings: View {
     @Default(.showPomodoroTimerOnClosed) private var showOnClosed
     @Default(.pomodoroHeatmapPalette) private var paletteOption
 
+    @Default(.pomodoroCountdownRingFills) private var countdownRingFills
+
     var body: some View {
         Form {
+            Section {
+                Picker("圆环方向", selection: $countdownRingFills) {
+                    Text("从空到满").tag(true)
+                    Text("从满到空").tag(false)
+                }
+                Text("仅影响倒计时圆环，正计时仍每小时累积一圈。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("倒计时圆环")
+            }
+
             Section {
                 Picker("热力图配色", selection: $paletteOption) {
                     ForEach(PomodoroHeatmapPaletteOption.allCases, id: \.self) { option in

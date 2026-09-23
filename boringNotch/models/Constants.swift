@@ -112,6 +112,7 @@ extension Defaults.Keys {
     /// The countdown beside the notch is a glanceable extra, not part of the timer. Turning
     /// it off only stops it being drawn — the session keeps running and settles as it
     /// would have.
+    static let pomodoroCountdownRingFills = Key<Bool>("pomodoroCountdownRingFills", default: true)
     static let showPomodoroTimerOnClosed = Key<Bool>("showPomodoroTimerOnClosed", default: true)
     static let pomodoroHeatmapPalette = Key<PomodoroHeatmapPaletteOption>("pomodoroHeatmapPalette",
                                                                           default: .tomatoRed)

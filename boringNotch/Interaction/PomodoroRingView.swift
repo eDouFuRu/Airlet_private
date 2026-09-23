@@ -10,79 +10,100 @@ extension PomodoroRGB {
     var swiftUIColor: Color { Color(red: r, green: g, blue: b) }
 }
 
-/// Apple-Health-style single progress ring: a dim track, a gradient progress arc whose
-/// head is bright and tail deep, and a head cap whose shadow falls on the track beneath
-/// it to sell the layered look.
-///
-/// The ring is presentation-only — every frame is derived from values the model already
-/// settled and persisted.
+/// A single Activity-style ring. Only this Canvas updates at frame cadence; labels and
+/// the surrounding island retain their own layout/animation transactions.
 struct PomodoroRingView<Center: View>: View {
-    /// 0…1 progress, or `nil` for the idle track-only state.
-    let fraction: Double?
+    let presentation: PomodoroRingPresentation
     let baseRGB: PomodoroRGB
-    var lineWidth: CGFloat = 9
-    @ViewBuilder var center: () -> Center
-
-    /// Draws at `diameter` so the head-cap offset can be computed exactly.
+    var countdownFills = true
+    var isVisible = true
     var diameter: CGFloat = 128
+    var lineWidth: CGFloat = 14
+    @ViewBuilder var center: () -> Center
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var radius: CGFloat { (diameter - lineWidth) / 2 }
-
-    private var trackColor: Color { baseRGB.swiftUIColor.opacity(0.22) }
-    private var tailColor: Color { baseRGB.swiftUIColor.multiplyBrightness(0.62) }
-    private var headColor: Color { baseRGB.swiftUIColor.multiplyBrightness(1.16) }
-
-    /// Point on the ring where the progress arc ends (SwiftUI coordinates, y down).
-    private var headOffset: CGSize {
-        guard let fraction else { return .zero }
-        let clamped = min(max(fraction, 0), 1)
-        let radians = (-90.0 + 360.0 * clamped) * Double.pi / 180
-        return CGSize(width: radius * CGFloat(cos(radians)), height: radius * CGFloat(sin(radians)))
+    private var animates: Bool {
+        isVisible && !reduceMotion && (presentation.phase == .running || presentation.completedAt != nil)
     }
 
     var body: some View {
         ZStack {
-            Circle()
-                .stroke(trackColor, lineWidth: lineWidth)
-
-            if let fraction, fraction > 0.001 {
-                let clamped = min(max(fraction, 0.0001), 1)
-                Circle()
-                    .trim(from: 0, to: clamped)
-                    .stroke(
-                        AngularGradient(colors: [tailColor, headColor],
-                                        center: .center,
-                                        startAngle: .degrees(-90),
-                                        endAngle: .degrees(-90 + 360 * clamped)),
-                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-
-                Circle()
-                    .fill(headColor)
-                    .frame(width: lineWidth, height: lineWidth)
-                    .offset(headOffset)
-                    .shadow(color: .black.opacity(0.4), radius: 2.5, x: 0, y: 1.5)
+            if animates {
+                TimelineView(.animation(minimumInterval: 1.0 / 60)) { timeline in
+                    drawing(at: timeline.date)
+                }
+            } else {
+                // Model publication supplies the existing second cadence in reduced motion.
+                drawing(at: Date())
             }
-
             center()
         }
         .frame(width: diameter, height: diameter)
-        .animation(.linear(duration: 1), value: fraction)
+    }
+
+    private func drawing(at date: Date) -> some View {
+        PomodoroRingCanvas(progress: presentation.progress(at: date, countdownFills: countdownFills), baseRGB: baseRGB,
+                           progressOpacity: presentation.opacity(at: date, reduceMotion: reduceMotion),
+                           lineWidth: lineWidth)
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
     }
 }
 
-private extension Color {
-    /// Scales toward white (factor > 1) or black (factor < 1) without leaving sRGB.
-    func multiplyBrightness(_ factor: CGFloat) -> Color {
-        let nsColor = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.black
-        var (r, g, b, a): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
-        nsColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-        func scaled(_ component: CGFloat) -> CGFloat {
-            let value = factor >= 1 ? component + (1 - component) * (factor - 1)
-                                    : component * factor
-            return min(max(value, 0), 1)
+/// Also used by the isolated renderer, so visual evidence exercises production drawing.
+struct PomodoroRingCanvas: View {
+    let progress: Double?
+    let baseRGB: PomodoroRGB
+    var progressOpacity: Double = 1
+    var lineWidth: CGFloat = 14
+
+    var body: some View {
+        Canvas { context, size in
+            let diameter = min(size.width, size.height)
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let geometry = PomodoroRingGeometry(progress: progress ?? 0,
+                                               diameter: diameter, lineWidth: lineWidth)
+            let circle = Path(ellipseIn: CGRect(x: center.x - geometry.radius,
+                                                y: center.y - geometry.radius,
+                                                width: geometry.radius * 2, height: geometry.radius * 2))
+            context.stroke(circle, with: .color(baseRGB.swiftUIColor.opacity(0.20)), lineWidth: lineWidth)
+            guard let progress, progress > 0, progressOpacity > 0 else { return }
+            context.opacity = progressOpacity
+            let tail = Color(red: baseRGB.r * 0.68, green: baseRGB.g * 0.68, blue: baseRGB.b * 0.68)
+            let head = Color(red: baseRGB.r + (1 - baseRGB.r) * 0.24,
+                             green: baseRGB.g + (1 - baseRGB.g) * 0.24,
+                             blue: baseRGB.b + (1 - baseRGB.b) * 0.24)
+            let start = geometry.point(at: geometry.startAngle, center: center)
+            let end = geometry.point(at: geometry.endAngle, center: center)
+            func cap(_ point: CGPoint) -> Path {
+                Path(ellipseIn: CGRect(x: point.x - lineWidth / 2, y: point.y - lineWidth / 2,
+                                       width: lineWidth, height: lineWidth))
+            }
+            if geometry.sweep > 0 {
+                var arc = Path()
+                arc.addArc(center: center, radius: geometry.radius,
+                           startAngle: .radians(geometry.startAngle), endAngle: .radians(geometry.endAngle),
+                           clockwise: false)
+                let portion = max(0.000001, geometry.sweep / (2 * .pi))
+                let gradient = Gradient(stops: [.init(color: tail, location: 0),
+                                                 .init(color: head, location: portion),
+                                                 .init(color: head, location: 1)])
+                context.stroke(arc, with: .conicGradient(gradient, center: center,
+                                                        angle: .radians(geometry.startAngle)),
+                               style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+                if geometry.sweep < 2 * .pi { context.fill(cap(start), with: .color(tail)) }
+            }
+            // Clip the cap's forward shadow to the ring band: depth without a halo.
+            if geometry.sweep * geometry.radius > lineWidth {
+                context.drawLayer { layer in
+                    layer.clip(to: circle.strokedPath(StrokeStyle(lineWidth: lineWidth)))
+                    layer.addFilter(.shadow(color: .black.opacity(0.65), radius: 2,
+                                            x: -sin(geometry.endAngle) * 3,
+                                            y: cos(geometry.endAngle) * 3))
+                    layer.fill(cap(end), with: .color(head))
+                }
+            }
+            context.fill(cap(end), with: .color(head))
         }
-        return Color(red: Double(scaled(r)), green: Double(scaled(g)), blue: Double(scaled(b)), opacity: Double(a))
     }
 }

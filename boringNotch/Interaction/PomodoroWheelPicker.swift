@@ -103,7 +103,7 @@ struct PomodoroWeekWheel: View {
     /// Mondays, oldest first; the last entry is the current week.
     let weekStarts: [Date]
     @Binding var selection: Date
-    var rowHeight: CGFloat = 26
+    var rowHeight: CGFloat = 24
     var rangeText: (Date) -> String
 
     @State private var position: Int?
@@ -118,10 +118,11 @@ struct PomodoroWeekWheel: View {
             }
             .scrollTargetLayout()
         }
+        // Content margins belong INSIDE the fixed viewport, never around it.
+        .safeAreaPadding(.vertical, rowHeight)
         .frame(height: rowHeight * 3)
         .scrollPosition(id: $position, anchor: .center)
         .scrollTargetBehavior(.viewAligned)
-        .safeAreaPadding(.vertical, rowHeight)
         .sensoryFeedback(.alignment, trigger: haptics)
         .onChange(of: position) { _, newIndex in
             guard let index = newIndex, weekStarts.indices.contains(index) else { return }
@@ -148,12 +149,13 @@ struct PomodoroWeekWheel: View {
 
     private func row(_ index: Int, _ weekStart: Date) -> some View {
         let isSelected = position == index
-        let isCurrent = calendar.isDateInToday(weekStart.addingTimeInterval(3 * 86_400))
+        let isCurrent = calendar.isDate(weekStart, inSameDayAs: PomodoroHeatmapMath.startOfWeek(Date(), calendar: calendar))
         return Button {
             withAnimation(.easeOut(duration: 0.18)) { position = index }
         } label: {
             HStack(spacing: 5) {
                 Text(rangeText(weekStart))
+                    .lineLimit(1).minimumScaleFactor(0.7)
                     .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .rounded).monospacedDigit())
                 if isCurrent {
                     Text(L("This week"))

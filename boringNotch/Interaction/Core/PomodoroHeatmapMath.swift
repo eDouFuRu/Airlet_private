@@ -1,5 +1,30 @@
 import Foundation
 
+/// Scrolling edits a draft. Only explicit confirmation changes the displayed week.
+struct PomodoroWeekSelection {
+    private(set) var selectedWeekStart: Date?
+    private(set) var isPicking = false
+    var draftWeekStart: Date?
+
+    mutating func begin(currentWeekStart: Date) {
+        draftWeekStart = selectedWeekStart ?? currentWeekStart
+        isPicking = true
+    }
+
+    mutating func confirm(currentWeekStart: Date) {
+        guard isPicking, let draftWeekStart else { return }
+        selectedWeekStart = draftWeekStart == currentWeekStart ? nil : draftWeekStart
+        isPicking = false
+        self.draftWeekStart = nil
+    }
+
+    mutating func returnToCurrentWeek() {
+        selectedWeekStart = nil
+        draftWeekStart = nil
+        isPicking = false
+    }
+}
+
 /// An sRGB color expressed as plain numbers so heatmap math stays testable without AppKit.
 public struct PomodoroRGB: Equatable, Hashable {
     public var r: Double
@@ -118,5 +143,46 @@ public enum PomodoroHeatmapMath {
             return (PomodoroRGB.neutral, neutralAlpha)
         }
         return (palette.baseRGB, levelAlphas[level - 1])
+    }
+}
+
+/// Calendar-based display buckets; records remain attributed to their start date.
+enum PomodoroStatsPeriod: String, CaseIterable {
+    case week, month, year
+    var titleKey: String { switch self { case .week: return "周"; case .month: return "月"; case .year: return "年" } }
+    var component: Calendar.Component { self == .year ? .year : .month }
+
+    func start(containing date: Date, calendar: Calendar = .current) -> Date {
+        if self == .week {
+            let midnight = calendar.startOfDay(for: date)
+            return calendar.date(byAdding: .day, value: 1 - calendar.component(.weekday, from: midnight), to: midnight) ?? midnight
+        }
+        return calendar.dateInterval(of: component, for: date)?.start ?? calendar.startOfDay(for: date)
+    }
+
+    func dates(containing date: Date, calendar: Calendar = .current) -> [Date] {
+        let first = start(containing: date, calendar: calendar)
+        let count = self == .week ? 7 : self == .year ? 12 : (calendar.range(of: .day, in: .month, for: first)?.count ?? 0)
+        return (0..<count).compactMap { calendar.date(byAdding: self == .year ? .month : .day, value: $0, to: first) }
+    }
+
+    func totals(sessions: [PomodoroSessionRecord], containing date: Date, calendar: Calendar = .current) -> [Double] {
+        let buckets = dates(containing: date, calendar: calendar)
+        guard let first = buckets.first, let last = buckets.last,
+              let end = calendar.date(byAdding: self == .year ? .month : .day, value: 1, to: last) else { return [] }
+        var result = Array(repeating: 0.0, count: buckets.count)
+        for record in sessions where record.startedAt >= first && record.startedAt < end {
+            let index = self == .year ? calendar.dateComponents([.month], from: first, to: record.startedAt).month : calendar.dateComponents([.day], from: first, to: calendar.startOfDay(for: record.startedAt)).day
+            if let index, result.indices.contains(index), record.elapsedSeconds.isFinite {
+                result[index] += max(0, record.elapsedSeconds)
+            }
+        }
+        return result
+    }
+
+    static func ratios(_ totals: [Double]) -> [Double] {
+        let clean = totals.map { $0.isFinite ? max(0, $0) : 0 }
+        guard let maximum = clean.max(), maximum > 0 else { return clean.map { _ in 0 } }
+        return clean.map { $0 / maximum }
     }
 }

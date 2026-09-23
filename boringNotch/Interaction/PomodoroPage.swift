@@ -5,31 +5,49 @@ import SwiftUI
 /// in the middle, and the weekly heatmap on the right. Laid out inside the same expanded
 /// footprint as the home and shelf pages.
 struct PomodoroPage: View {
-    @ObservedObject private var model = PomodoroModel.shared
+    @ObservedObject private var model: PomodoroModel
+    @Default(.pomodoroCountdownRingFills) private var countdownRingFills
     @Default(.pomodoroHeatmapPalette) private var paletteOption
     @State private var editingTopic = false
+    @State private var statsPeriod: PomodoroStatsPeriod = .week
+    @ObservedObject private var visibility = IslandVisibility.shared
+    @EnvironmentObject private var island: BoringViewModel
+
+    init(model: PomodoroModel? = nil) {
+        self.model = model ?? .shared
+    }
 
     var body: some View {
         // Column widths must fit the header's proposal (visibleWidth − 2×31 ≈ 578): a page
         // wider than that inflates the morphing group and drags the tab bar sideways.
-        HStack(alignment: .top, spacing: 12) {
-            leftColumn
-                .frame(width: 196)
-            centerColumn
-                .frame(width: 156)
-            PomodoroWeeklyHeatmap()
-                .frame(width: 168)
+        Group {
+            if statsPeriod == .week {
+                HStack(alignment: .top, spacing: 12) {
+                    leftColumn.frame(width: 196)
+                    centerColumn.frame(width: 156)
+                    PomodoroStatistics(model: model, period: $statsPeriod).frame(width: 168)
+                }
+            } else {
+                PomodoroStatistics(model: model, period: $statsPeriod)
+            }
         }
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onChange(of: island.notchState) { _, state in
+            if state != .open { statsPeriod = .week }
+        }
+        .onChange(of: visibility.isAvailable) { _, available in
+            if !available { statsPeriod = .week }
+        }
+        .onDisappear { statsPeriod = .week }
     }
 
     // MARK: - Left column
 
     private var leftColumn: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             topicRow.frame(height: 30)
-            middleZone.frame(height: 72)
+            middleZone.frame(height: 64)
             actionRow.frame(height: 30)
         }
     }
@@ -97,12 +115,12 @@ struct PomodoroPage: View {
             HStack(spacing: 10) {
                 PomodoroLoopingWheel(values: Array(0...PomodoroSessionCore.maximumHour),
                                      selection: hourBinding,
-                                     format: { String(format: L("%lld h"), $0) })
+                                     format: { String(format: L("%lld h"), $0) }, rowHeight: 20)
                 PomodoroLoopingWheel(values: Array(0...PomodoroSessionCore.maximumMinute),
                                      selection: minuteBinding,
-                                     format: { String(format: L("%lld m"), $0) })
+                                     format: { String(format: L("%lld m"), $0) }, rowHeight: 20)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 2)
         } else {
             HStack(spacing: 8) {
                 modeButton(.countdown, title: L("倒计时"))
@@ -188,8 +206,10 @@ struct PomodoroPage: View {
     // MARK: - Center column
 
     private var centerColumn: some View {
-        PomodoroRingView(fraction: model.ringFraction,
+        PomodoroRingView(presentation: model.ringPresentation,
                          baseRGB: paletteOption.core.baseRGB,
+                         countdownFills: countdownRingFills,
+                         isVisible: visibility.isAvailable && island.notchState == .open,
                          diameter: 128) {
             if model.isBusy {
                 Text(model.clockText)
