@@ -7,6 +7,7 @@ import SwiftUI
 /// outer copy, the position silently re-anchors to the middle copy with animations
 /// disabled, making the loop seamless.
 struct PomodoroLoopingWheel: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let values: [Int]
     @Binding var selection: Int
     var format: (Int) -> String
@@ -78,7 +79,7 @@ struct PomodoroLoopingWheel: View {
         } label: {
             Text(format(item.value))
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular, design: .rounded).monospacedDigit())
-                .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.4))
+                .foregroundStyle(isSelected ? islandAppearance.primary : islandAppearance.tertiary)
                 .frame(maxWidth: .infinity, minHeight: rowHeight)
                 .contentShape(Rectangle())
         }
@@ -100,6 +101,7 @@ struct PomodoroLoopingWheel: View {
 /// Flat (non-looping) vertical wheel for picking a past week to inspect. Future weeks
 /// have no data, so the list runs oldest → current with no wrap-around.
 struct PomodoroWeekWheel: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     /// Mondays, oldest first; the last entry is the current week.
     let weekStarts: [Date]
     @Binding var selection: Date
@@ -162,10 +164,10 @@ struct PomodoroWeekWheel: View {
                         .font(.system(size: 8, weight: .bold, design: .rounded))
                         .padding(.horizontal, 4).padding(.vertical, 1.5)
                         .background(Capsule().fill(PomodoroTheme.accent.opacity(0.85)))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(islandAppearance.primary)
                 }
             }
-            .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.4))
+            .foregroundStyle(isSelected ? islandAppearance.primary : islandAppearance.tertiary)
             .frame(maxWidth: .infinity, minHeight: rowHeight)
             .contentShape(Rectangle())
         }

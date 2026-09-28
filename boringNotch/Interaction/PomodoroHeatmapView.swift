@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Shared period selector. The full-page views keep the same shell proposal as the timer.
 struct PomodoroStatistics: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject var model: PomodoroModel
     @Binding var period: PomodoroStatsPeriod
     @Default(.pomodoroHeatmapPalette) private var paletteOption
@@ -35,7 +36,7 @@ struct PomodoroStatistics: View {
         VStack(spacing: 4) {
             if period == .week {
                 HStack {
-                    Text(L(label)).font(.system(size: 10)).foregroundStyle(.white.opacity(0.55))
+                    Text(L(label)).font(.system(size: 10)).foregroundStyle(islandAppearance.primary.opacity(0.55))
                     Spacer(minLength: 0)
                     selector
                 }.frame(height: 18)
@@ -47,10 +48,10 @@ struct PomodoroStatistics: View {
                         HStack(spacing: 4) {
                             Text(dateTitle(date)).font(.system(size: 12, weight: .semibold))
                             Image(systemName: "chevron.down").font(.system(size: 8))
-                        }.foregroundStyle(.white.opacity(0.9))
+                        }.foregroundStyle(islandAppearance.primary.opacity(0.9))
                     }.buttonStyle(.plain)
                     Spacer(minLength: 0)
-                    Text(L(label)).font(.system(size: 10)).foregroundStyle(.white.opacity(0.55))
+                    Text(L(label)).font(.system(size: 10)).foregroundStyle(islandAppearance.primary.opacity(0.55))
                     PomodoroTotalText(total: totals.reduce(0, +), palette: paletteOption.core)
                         .frame(maxWidth: 190)
                     selector
@@ -73,8 +74,8 @@ struct PomodoroStatistics: View {
                 Button { period = item } label: {
                     Text(L(item.titleKey)).font(.system(size: 10, weight: .semibold))
                         .frame(width: 22, height: 18)
-                        .foregroundStyle(.white.opacity(period == item ? 1 : 0.45))
-                        .background(RoundedRectangle(cornerRadius: 5).fill(.white.opacity(period == item ? 0.16 : 0)))
+                        .foregroundStyle(islandAppearance.primary.opacity(period == item ? 1 : 0.45))
+                        .background(RoundedRectangle(cornerRadius: 5).fill(islandAppearance.primary.opacity(period == item ? 0.16 : 0)))
                 }.buttonStyle(.plain)
                 .accessibilityLabel(L(item == .week ? "周视图" : item == .month ? "月视图" : "年视图"))
                 .accessibilityAddTraits(period == item ? .isSelected : [])
@@ -98,7 +99,7 @@ struct PomodoroStatistics: View {
                     ForEach(choices, id: \.self) { item in
                         Button { draft = item } label: {
                             Text(dateTitle(item)).font(.system(size: 13, weight: item == draft ? .semibold : .regular))
-                                .foregroundStyle(.white.opacity(item == draft ? 1 : 0.4))
+                                .foregroundStyle(islandAppearance.primary.opacity(item == draft ? 1 : 0.4))
                                 .frame(maxWidth: .infinity).frame(height: 24)
                         }.buttonStyle(.plain)
                     }

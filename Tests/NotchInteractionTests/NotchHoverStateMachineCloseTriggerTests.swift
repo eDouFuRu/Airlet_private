@@ -14,6 +14,22 @@ final class NotchHoverStateMachineCloseTriggerTests: XCTestCase {
                        closeTrigger: closeTrigger)
     }
 
+    func testConfigurableOpenDelayAndPointerExit() {
+        var machine = NotchHoverStateMachine(openDelay: 0.30)
+        XCTAssertNil(step(&machine, now: 10, trigger: true, expanded: false, closeTrigger: .hoverOut))
+        XCTAssertEqual(machine.pending?.deadline, 10.30)
+        XCTAssertNil(step(&machine, now: 10.29, trigger: true, expanded: false, closeTrigger: .hoverOut))
+        XCTAssertNil(step(&machine, now: 10.30, expanded: false, closeTrigger: .hoverOut))
+        XCTAssertNil(machine.pending, "Leaving the physical notch cancels the opening")
+        XCTAssertNil(step(&machine, now: 11, trigger: true, expanded: false, closeTrigger: .hoverOut))
+        XCTAssertEqual(step(&machine, now: 11.30, trigger: true, expanded: false, closeTrigger: .hoverOut), .open)
+    }
+
+    func testZeroDelayOpensImmediately() {
+        var machine = NotchHoverStateMachine(openDelay: 0)
+        XCTAssertEqual(step(&machine, now: 0, trigger: true, expanded: false, closeTrigger: .hoverOut), .open)
+    }
+
     func testExternalClickOnlyNeverSchedulesOrEmitsAutomaticClose() {
         var machine = NotchHoverStateMachine()
         for now in stride(from: 0.0, through: 5.0, by: 0.25) {

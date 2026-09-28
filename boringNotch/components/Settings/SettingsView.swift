@@ -146,13 +146,12 @@ struct GeneralSettings: View {
 
     @Default(.mirrorShape) var mirrorShape
     @Default(.showEmojis) var showEmojis
-    @Default(.nonNotchHeight) var nonNotchHeight
-    @Default(.nonNotchHeightMode) var nonNotchHeightMode
     @Default(.notchHeight) var notchHeight
     @Default(.notchHeightMode) var notchHeightMode
     @Default(.showOnAllDisplays) var showOnAllDisplays
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
     @Default(.openNotchOnHover) var openNotchOnHover
+    @Default(.minimumHoverDuration) var hoverDelay
     @Default(.notchCloseTriggerMode) var closeTriggerMode
     @Default(.notchCloseDelay) var closeDelay
     @Default(.tabSwitchOnHover) var switchOnHover
@@ -235,27 +234,17 @@ struct GeneralSettings: View {
                             name: Notification.Name.notchHeightChanged, object: nil)
                     }
                 }
-                Picker("Notch height on non-notch displays", selection: $nonNotchHeightMode) {
-                    Text("Match menubar height")
-                        .tag(WindowHeightMode.matchMenuBar)
-                    Text("Simulated notch (32 pt)")
-                        .tag(WindowHeightMode.matchRealNotchSize)
-                    Text("Custom height")
-                        .tag(WindowHeightMode.custom)
+                LabeledContent("Island on non-notch displays") {
+                    Text("Automatically matches the menu bar")
+                        .foregroundStyle(.secondary)
                 }
-                .onChange(of: nonNotchHeightMode) {
-                    NotificationCenter.default.post(
-                        name: Notification.Name.notchHeightChanged, object: nil)
+                Text("The floating glass capsule fits inside the menu bar with 3 pt above and below. Its full surface can display content.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Defaults.Toggle(key: .autoHideFloatingIsland) {
+                    Text("Auto-hide on non-notch displays")
                 }
-                if nonNotchHeightMode == .custom {
-                    Slider(value: $nonNotchHeight, in: 24...45, step: 1) {
-                        Text("Custom notch size - \(nonNotchHeight, specifier: "%.0f")")
-                    }
-                    .onChange(of: nonNotchHeight) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name.notchHeightChanged, object: nil)
-                    }
-                }
+                Text("Hover at the top center to reveal the island. Volume, brightness, charging, notifications, song changes and completed focus sessions can briefly reveal it. Pinned shelf, menus and dialogs keep it visible.")
+                    .font(.caption).foregroundStyle(.secondary)
             } header: {
                 Text("Notch sizing")
             }
@@ -273,7 +262,6 @@ struct GeneralSettings: View {
         .navigationTitle(Text(verbatim: L("General")))
         .onAppear {
             if notchHeightMode == .custom { notchHeight = min(45, max(24, notchHeight)) }
-            if nonNotchHeightMode == .custom { nonNotchHeight = min(45, max(24, nonNotchHeight)) }
         }
     }
 
@@ -288,7 +276,18 @@ struct GeneralSettings: View {
             }
             Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
             if openNotchOnHover {
-                Text("鼠标在摄像头所占用的刘海区域停留 150 毫秒后展开，两侧的状态展示不触发展开。无刘海屏幕使用顶部模拟胶囊。")
+                LabeledContent {
+                    HStack(spacing: 12) {
+                        Text(verbatim: String(format: L("%.1f s"), hoverDelay))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                            .frame(width: 40, alignment: .trailing)
+                        Slider(value: $hoverDelay, in: 0...1, step: 0.1)
+                            .accessibilityLabel(L("展开延迟"))
+                    }
+                } label: {
+                    Text("展开延迟")
+                }
+                Text("On notch displays, hover over the physical notch to expand; side status areas do not trigger expansion. On non-notch displays, hover anywhere on the floating capsule to expand after this delay.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -473,11 +472,10 @@ struct HUD: View {
                 Picker("Progressbar style", selection: $enableGradient) {
                     Text("Hierarchical").tag(false)
                     Text("Gradient").tag(true)
-                }.disabled(inlineHUD)
+                }
                 Defaults.Toggle(key: .systemEventIndicatorShadow) {
                     Text("Enable glowing effect")
-                }.disabled(inlineHUD)
-                if inlineHUD { Text("Gradient and glow are available in the default HUD style.").font(.caption).foregroundStyle(.secondary) }
+                }
                 Defaults.Toggle(key: .systemEventIndicatorUseAccent) {
                     Text("Tint progress bar with accent color")
                 }
@@ -870,6 +868,11 @@ func lighterColor(from nsColor: NSColor, amount: CGFloat = 0.14) -> Color {
 }
 
 struct About: View {
+    @Default(.automaticallyCheckAirletUpdates) private var autoCheck
+    @Default(.automaticallyDownloadAirletUpdates) private var autoDownload
+    @ObservedObject private var updates = AirletUpdateService.shared
+    @State private var showsUpdateResult = false
+
     var body: some View {
         Form {
             Section("Airlet") {
@@ -901,10 +904,54 @@ struct About: View {
                 Link("查看 GPL-3.0 许可证", destination: URL(string: "https://github.com/TheBoredTeam/boring.notch/blob/v2.7.3/LICENSE")!)
             }
 
-            Section {
-                Text("定制版不连接上游更新服务。后续版本通过本项目重新构建。")
-                    .foregroundStyle(.secondary)
+            Section("软件更新") {
+                Toggle("自动检查更新", isOn: $autoCheck)
+                    .onChange(of: autoCheck) { _, enabled in
+                        if !enabled { autoDownload = false }
+                        else { Task { await updates.check() } }
+                    }
+                Toggle("自动下载更新", isOn: $autoDownload)
+                    .disabled(!autoCheck)
+                    .onChange(of: autoDownload) { _, enabled in
+                        if enabled { Task { await updates.check() } }
+                    }
+                Button("检查更新") {
+                    Task {
+                        await updates.check()
+                        showsUpdateResult = true
+                    }
+                }
+                    .disabled(updates.isChecking)
+                if !updates.status.isEmpty {
+                    Text(updates.status).font(.caption).foregroundStyle(.secondary)
+                }
+                if let downloadedURL = updates.downloadedURL {
+                    Button("在访达中显示更新包") {
+                        NSWorkspace.shared.activateFileViewerSelecting([downloadedURL])
+                    }
+                }
+                Text("更新包下载后保存在本机，安装需要手动完成。")
+                    .font(.caption).foregroundStyle(.secondary)
             }
+
+            Section {
+                Link(destination: AirletUpdateService.repositoryURL) {
+                    HStack(spacing: 9) {
+                        Image("Github")
+                            .renderingMode(.template)
+                            .resizable()
+                            .foregroundStyle(.primary)
+                            .frame(width: 20, height: 20)
+                        Text("GitHub")
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 36)
+                }
+            }
+        }
+        .alert("检查更新结果", isPresented: $showsUpdateResult) {
+            Button("好", role: .cancel) {}
+        } message: {
+            Text(updates.status)
         }
         .navigationTitle(Text(verbatim: L("关于Airlet")))
     }
@@ -1190,9 +1237,16 @@ struct Shelf: View {
 //}
 
 struct Appearance: View {
+    private enum IdleInputSide: Hashable { case left, right }
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
     @Default(.sliderColor) var sliderColor
+    @Default(.showNotHumanFace) private var showIdleEmojis
+    // Keep marked IME text in local state. Writing every keystroke to Defaults
+    // rebuilds the Form row and dismisses the candidate window before selection.
+    @State private var idleLeftDraft = ""
+    @State private var idleRightDraft = ""
+    @FocusState private var focusedIdleInput: IdleInputSide?
     var body: some View {
         Form {
             Section {
@@ -1215,7 +1269,7 @@ struct Appearance: View {
                 Defaults.Toggle(key: .lightingEffect) {
                     Text("Album art glow")
                 }
-                Text("播放时在专辑封面周围叠一层随封面取色的柔光。此前叫「封面背后模糊」，但那个效果从未被绘制，名字与实际不符。")
+                Text("Glow follows album art colors while music plays and fades out when paused.")
                     .font(.caption).foregroundStyle(.secondary)
                 Picker("Slider color", selection: $sliderColor) {
                     ForEach(SliderColorEnum.allCases, id: \.self) { option in
@@ -1241,7 +1295,17 @@ struct Appearance: View {
                         .tag(MirrorShapeEnum.rectangle)
                 }
                 Defaults.Toggle(key: .showNotHumanFace) {
-                    Text("Show cool face animation while inactive")
+                    Text("Show emoji animation while inactive")
+                }
+                if showIdleEmojis {
+                    TextField("Left text or emojis", text: $idleLeftDraft)
+                        .focused($focusedIdleInput, equals: .left)
+                        .onSubmit { saveIdleInput(.left) }
+                    TextField("Right text or emojis", text: $idleRightDraft)
+                        .focused($focusedIdleInput, equals: .right)
+                        .onSubmit { saveIdleInput(.right) }
+                    Text("Up to three characters per side; combined emoji counts as one.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             } header: {
                 HStack {
@@ -1251,6 +1315,30 @@ struct Appearance: View {
         }
         .accentColor(.effectiveAccent)
         .navigationTitle(Text(verbatim: L("Appearance")))
+        .onAppear {
+            idleLeftDraft = Defaults[.idleLeftEmojis]
+            idleRightDraft = Defaults[.idleRightEmojis]
+        }
+        .onChange(of: focusedIdleInput) { oldSide, _ in
+            if let oldSide { saveIdleInput(oldSide) }
+        }
+        .onDisappear {
+            saveIdleInput(.left)
+            saveIdleInput(.right)
+        }
+    }
+
+    private func saveIdleInput(_ side: IdleInputSide) {
+        switch side {
+        case .left:
+            let value = IdleEmojiLayout.normalized(idleLeftDraft)
+            idleLeftDraft = value
+            Defaults[.idleLeftEmojis] = value
+        case .right:
+            let value = IdleEmojiLayout.normalized(idleRightDraft)
+            idleRightDraft = value
+            Defaults[.idleRightEmojis] = value
+        }
     }
 
     func checkVideoInput() -> Bool {

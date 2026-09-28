@@ -11,7 +11,8 @@ final class NotchPointerCoordinator: ObservableObject {
     private let keepsOpen: () -> Bool
     private let open: () -> Void
     private let close: () -> Void
-    private var machine = NotchHoverStateMachine(closeDelay: Defaults[.notchCloseDelay])
+    private var machine = NotchHoverStateMachine(openDelay: Defaults[.minimumHoverDuration],
+                                                 closeDelay: Defaults[.notchCloseDelay])
     private var closeTrigger = Defaults[.notchCloseTriggerMode].machineTrigger
     private var observations: Set<AnyCancellable> = []
     private var localMonitor: Any?
@@ -23,31 +24,39 @@ final class NotchPointerCoordinator: ObservableObject {
     private var scheduledDeadline: TimeInterval?
     private var commandGraceUntil: TimeInterval = 0
     private var enabled = false
+    private var surfaceVisible = true
+    @Published private(set) var isHoverPreparing = false
+    @Published private(set) var isPointerOverTrigger = false
+    @Published private(set) var isCompactPresentation = true
     private var briefRowTop: CGFloat?
     private var briefRowInteractive = false
     private var briefRowInset: CGFloat = 6
+    private var briefRowHeight: CGFloat = 28
     private var briefHoverCallback: ((Bool) -> Void)?
     private var lastBriefHovered = false
 
     /// Brief rows never contribute to the physical trigger rectangle.
     func configureBriefRow(topInset: CGFloat?, interactive: Bool, horizontalInset: CGFloat,
+                           height: CGFloat = 28,
                            onHover: @escaping (Bool) -> Void) {
         briefRowTop = topInset
         briefRowInteractive = interactive
         briefRowInset = horizontalInset
+        briefRowHeight = height
         briefHoverCallback = onHover
         reevaluate()
     }
 
     private func isInBriefRow(_ point: CGPoint, region: NotchHitRegion) -> Bool {
         guard let briefRowTop, region.containsVisible(point) else { return false }
-        let row = BriefInteractionRegion.rowRect(visibleRect: region.visibleFrame, rowTopInset: briefRowTop)
+        let row = BriefInteractionRegion.rowRect(visibleRect: region.visibleFrame,
+                                                rowTopInset: briefRowTop, height: briefRowHeight)
             .insetBy(dx: briefRowInset, dy: 0)
         return row.contains(point)
     }
 
     private func captures(_ point: CGPoint, region: NotchHitRegion, active: Bool) -> Bool {
-        guard active else { return false }
+        guard active, surfaceVisible else { return false }
         // The floating control sits outside the painted shape, so it is checked separately
         // or the window would stay click-through exactly where it is drawn.
         if region.containsAccessory(point) { return isExpanded() }
@@ -68,11 +77,10 @@ final class NotchPointerCoordinator: ObservableObject {
     private var presentationSize: CGSize = .zero
     private var topRadius: CGFloat = 6
     private var bottomRadius: CGFloat = 14
-    private var queuedPresentation: (CGSize, CGFloat, CGFloat)?
+    private var topInset: CGFloat = 0
+    private var contour: IslandContour = .notch
+    private var queuedPresentation: (CGSize, CGFloat, CGFloat, CGFloat, IslandContour)?
     private var presentationFlushScheduled = false
-    #if DEBUG
-    private var automaticHoverSuspendedForDiagnostics = false
-    #endif
 
     init(window: NSWindow, screen: NSScreen, isExpanded: @escaping () -> Bool,
          keepsOpen: @escaping () -> Bool = { false }, open: @escaping () -> Void,
@@ -83,7 +91,14 @@ final class NotchPointerCoordinator: ObservableObject {
         self.keepsOpen = keepsOpen
         self.open = open
         self.close = close
-        self.presentationSize = Self.triggerRect(for: screen).size
+        let profile = getIslandDisplayProfile(screen: screen)
+        self.presentationSize = profile.compactSize
+        self.topInset = profile.topInset
+        self.contour = profile.contour
+        if profile.isFloating {
+            self.topRadius = profile.compactHeight / 2
+            self.bottomRadius = profile.compactHeight / 2
+        }
         window.acceptsMouseMovedEvents = true
         window.ignoresMouseEvents = true
     }
@@ -105,6 +120,7 @@ final class NotchPointerCoordinator: ObservableObject {
             reevaluate()
         } else {
             stopObservers()
+            isHoverPreparing = false
             window?.ignoresMouseEvents = true
         }
     }
@@ -114,22 +130,37 @@ final class NotchPointerCoordinator: ObservableObject {
         reevaluate()
     }
 
+    /// Auto-hide suppresses input and brief hover without stopping wake-up observation.
+    func setSurfaceVisible(_ visible: Bool) {
+        guard surfaceVisible != visible else { return }
+        surfaceVisible = visible
+        reevaluate()
+    }
+
     /// Dimensions and radii must be the current animated presentation, not its final target.
     /// Coordinates are top-center anchored inside the fixed transparent carrier window.
-    func updatePresentation(size: CGSize, topRadius: CGFloat, bottomRadius: CGFloat) {
-        guard size.width.isFinite, size.height.isFinite, topRadius.isFinite, bottomRadius.isFinite else { return }
+    func updatePresentation(size: CGSize, topRadius: CGFloat, bottomRadius: CGFloat,
+                            topInset: CGFloat = 0, contour: IslandContour = .notch) {
+        guard size.width.isFinite, size.height.isFinite, topRadius.isFinite,
+              bottomRadius.isFinite, topInset.isFinite else { return }
         self.presentationSize = CGSize(width: max(0, size.width), height: max(0, size.height))
         self.topRadius = topRadius
         self.bottomRadius = bottomRadius
+        self.topInset = max(0, topInset)
+        self.contour = contour
+        let profile = getIslandDisplayProfile(screen: screen)
+        let compact = !profile.isFloating || presentationSize.height <= profile.compactHeight + 0.5
+        if isCompactPresentation != compact { isCompactPresentation = compact }
         reevaluate()
     }
 
     /// Coalesce render callbacks so an earlier queued frame cannot be applied after a newer one.
     /// This entry point can be called from an AnimatableModifier setter during rendering.
-    nonisolated func enqueuePresentation(size: CGSize, topRadius: CGFloat, bottomRadius: CGFloat) {
+    nonisolated func enqueuePresentation(size: CGSize, topRadius: CGFloat, bottomRadius: CGFloat,
+                                         topInset: CGFloat = 0, contour: IslandContour = .notch) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.queuedPresentation = (size, topRadius, bottomRadius)
+            self.queuedPresentation = (size, topRadius, bottomRadius, topInset, contour)
             guard !self.presentationFlushScheduled else { return }
             self.presentationFlushScheduled = true
             DispatchQueue.main.async { [weak self] in
@@ -138,7 +169,8 @@ final class NotchPointerCoordinator: ObservableObject {
                 guard let presentation = self.queuedPresentation else { return }
                 self.queuedPresentation = nil
                 self.updatePresentation(size: presentation.0, topRadius: presentation.1,
-                                        bottomRadius: presentation.2)
+                                        bottomRadius: presentation.2, topInset: presentation.3,
+                                        contour: presentation.4)
             }
         }
     }
@@ -165,14 +197,16 @@ final class NotchPointerCoordinator: ObservableObject {
         let region = currentRegion
         let expanded = isExpanded()
         let now = ProcessInfo.processInfo.systemUptime
+        let overTrigger = active && region.containsTrigger(point)
+        if isPointerOverTrigger != overTrigger { isPointerOverTrigger = overTrigger }
+        let preparing = active && !expanded && Defaults[.openNotchOnHover]
+            && region.containsTrigger(point)
+        if isHoverPreparing != preparing { isHoverPreparing = preparing }
         refreshInputRouting(point: point, region: region, active: active)
-        #if DEBUG
-        let automaticHoverEnabled = active && !automaticHoverSuspendedForDiagnostics
-        #else
         let automaticHoverEnabled = active
-        #endif
         let action = machine.update(
-            enabled: automaticHoverEnabled, expanded: expanded, inTrigger: region.containsTrigger(point),
+            enabled: automaticHoverEnabled && (expanded || Defaults[.openNotchOnHover]),
+            expanded: expanded, inTrigger: region.containsTrigger(point),
             // Reaching for the floating control means leaving the painted shape. Counting it
             // as content keeps the island up long enough to actually press it, while staying
             // out of `inTrigger` so it can never open the island by itself.
@@ -230,7 +264,7 @@ final class NotchPointerCoordinator: ObservableObject {
     private func refreshInputRouting(point: CGPoint, region: NotchHitRegion, active: Bool) {
         guard let window else { return }
         let acceptsInput = captures(point, region: region, active: active)
-        let hovered = active && briefRowInteractive && isInBriefRow(point, region: region)
+        let hovered = active && surfaceVisible && briefRowInteractive && isInBriefRow(point, region: region)
         if hovered != lastBriefHovered {
             lastBriefHovered = hovered
             briefHoverCallback?(hovered)
@@ -240,12 +274,19 @@ final class NotchPointerCoordinator: ObservableObject {
 
     private var currentRegion: NotchHitRegion {
         let frame = window?.frame ?? screen.frame
-        let visibleFrame = CGRect(x: frame.midX - presentationSize.width / 2,
-                                  y: frame.maxY - presentationSize.height,
-                                  width: presentationSize.width, height: presentationSize.height)
-        return NotchHitRegion(triggerRect: Self.triggerRect(for: screen), visibleFrame: visibleFrame,
+        let visibleFrame = NotchHitRegion.presentationFrame(carrierFrame: frame,
+                                                            size: presentationSize, topInset: topInset)
+        let profile = getIslandDisplayProfile(screen: screen)
+        let floating = profile.isFloating
+        let floatingTrigger = profile.floatingTrigger(in: screen.frame, visibleFrame: visibleFrame,
+                                                       cornerRadius: topRadius, expanded: isExpanded(),
+                                                       surfaceVisible: surfaceVisible)
+        let triggerFrame = floating ? floatingTrigger.frame : Self.triggerRect(for: screen)
+        return NotchHitRegion(triggerRect: triggerFrame, visibleFrame: visibleFrame,
                               topRadius: topRadius, bottomRadius: bottomRadius,
-                              accessoryRects: accessoryVisible
+                              contour: contour,
+                              triggerCornerRadius: floating ? floatingTrigger.cornerRadius : nil,
+                              accessoryRects: accessoryVisible && surfaceVisible
                                   ? NotchAccessorySlot.allCases.map {
                                       NotchAccessoryControl.rect(visibleFrame: visibleFrame, slot: $0)
                                   } : [])
@@ -333,7 +374,8 @@ final class NotchPointerCoordinator: ObservableObject {
     /// Shares `observations` with the hold subscription, so it must not clear the set;
     /// `stopObservers` owns tearing every subscription down together.
     private func observeSettings() {
-        Defaults.publisher(keys: .notchCloseDelay, .notchCloseTriggerMode)
+        Defaults.publisher(keys: .minimumHoverDuration, .openNotchOnHover,
+                           .notchCloseDelay, .notchCloseTriggerMode)
             .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 MainActor.assumeIsolated { self?.applySettings() }
@@ -342,11 +384,12 @@ final class NotchPointerCoordinator: ObservableObject {
     }
 
     private func applySettings() {
+        let openDelay = Defaults[.minimumHoverDuration]
         let delay = Defaults[.notchCloseDelay]
         let trigger = Defaults[.notchCloseTriggerMode].machineTrigger
         closeTrigger = trigger
-        if machine.closeDelay != delay {
-            machine = NotchHoverStateMachine(openDelay: machine.openDelay, closeDelay: delay)
+        if machine.openDelay != openDelay || machine.closeDelay != delay {
+            machine = NotchHoverStateMachine(openDelay: openDelay, closeDelay: delay)
             scheduledDeadline = nil
             pendingTask?.cancel()
             pendingTask = nil
@@ -363,6 +406,8 @@ final class NotchPointerCoordinator: ObservableObject {
         scheduledDeadline = nil
         commandGraceUntil = 0
         machine.cancel()
+        isHoverPreparing = false
+        isPointerOverTrigger = false
         if let localMonitor { NSEvent.removeMonitor(localMonitor) }
         if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
         localMonitor = nil
@@ -373,52 +418,4 @@ final class NotchPointerCoordinator: ObservableObject {
         if lastBriefHovered { lastBriefHovered = false; briefHoverCallback?(false) }
     }
 
-    #if DEBUG
-    struct DiagnosticSnapshot: Codable {
-        let uptime: TimeInterval
-        let windowFrame: CGRect
-        let visibleFrame: CGRect
-        let physicalTrigger: CGRect
-        let pointer: CGPoint
-        let topRadius: CGFloat
-        let bottomRadius: CGFloat
-        let expanded: Bool
-        let visible: Bool
-        let keyWindow: Bool
-        let mainWindow: Bool
-        let ignoresMouseEvents: Bool
-        let expectedIgnoresMouseEvents: Bool
-        let observersInstalled: Bool
-        let automaticHoverSuspended: Bool
-    }
-
-    /// Pauses automatic state changes during an explicit open/close diagnostic sequence.
-    /// No mouse input is created, and input routing continues to follow the actual pointer.
-    func setAutomaticHoverSuspendedForDiagnostics(_ suspended: Bool) {
-        automaticHoverSuspendedForDiagnostics = suspended
-        reevaluate()
-    }
-
-    func diagnosticSnapshot() -> DiagnosticSnapshot? {
-        guard let window else { return nil }
-        let region = currentRegion
-        let pointer = NSEvent.mouseLocation
-        return DiagnosticSnapshot(
-            uptime: ProcessInfo.processInfo.systemUptime,
-            windowFrame: window.frame, visibleFrame: region.visibleFrame, physicalTrigger: region.triggerRect,
-            pointer: pointer, topRadius: topRadius, bottomRadius: bottomRadius,
-            expanded: isExpanded(), visible: window.isVisible,
-            keyWindow: window.isKeyWindow, mainWindow: window.isMainWindow,
-            ignoresMouseEvents: window.ignoresMouseEvents,
-            expectedIgnoresMouseEvents: !captures(pointer, region: region, active: enabled && window.isVisible),
-            observersInstalled: localMonitor != nil && globalMonitor != nil,
-            automaticHoverSuspended: automaticHoverSuspendedForDiagnostics
-        )
-    }
-
-    /// Pure hit query for diagnostic sample points; does not move or synthesize the cursor.
-    func diagnosticCapturesPoint(_ point: CGPoint) -> Bool {
-        captures(point, region: currentRegion, active: enabled && window?.isVisible == true)
-    }
-    #endif
 }

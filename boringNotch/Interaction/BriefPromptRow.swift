@@ -3,14 +3,20 @@ import SwiftUI
 
 /// Compact shared row; text, shell and pointer geometry use the same height.
 struct BriefPromptRow: View {
+    @Environment(\.islandAppearance) private var appearance
     let text: String
     var symbol: String = "music.note"
     var applicationIcon: NSImage? = nil
-    var tint: Color = .white.opacity(0.85)
+    var tint: Color? = nil
+    var height: CGFloat = BriefPresentationLayout.rowHeight
     var scrolls = true
     /// Isolated preview override; production uses the system environment.
     var previewReduceMotion: Bool? = nil
     var action: (() -> Void)? = nil
+
+    private var color: Color { tint ?? appearance.primary.opacity(0.85) }
+    private var fontSize: CGFloat { min(13, max(1, height - 4)) }
+    private var iconSize: CGFloat { min(22, max(1, height - 4)) }
 
     var body: some View {
         Group {
@@ -23,28 +29,28 @@ struct BriefPromptRow: View {
                 row.allowsHitTesting(false)
             }
         }
-        .frame(height: BriefPresentationLayout.rowHeight)
+        .frame(height: height)
     }
     private var row: some View {
-        HStack(alignment: .center, spacing: 9) {
+        HStack(alignment: .center, spacing: height < 24 ? 6 : 9) {
             Group {
                 if let applicationIcon {
                     Image(nsImage: applicationIcon).resizable().scaledToFit()
                 } else {
-                    Image(systemName: symbol).font(.system(size: 15, weight: .medium))
+                    Image(systemName: symbol).font(.system(size: min(15, iconSize), weight: .medium))
                 }
             }
-            .foregroundStyle(tint)
-            .frame(width: 22, height: 22)
+            .foregroundStyle(color)
+            .frame(width: iconSize, height: iconSize)
             .accessibilityHidden(true)
             GeometryReader { geometry in
-                BriefMarquee(text: text, width: geometry.size.width, color: tint, scrolls: scrolls,
+                BriefMarquee(text: text, width: geometry.size.width, color: color, scrolls: scrolls, height: height, fontSize: fontSize,
                              previewReduceMotion: previewReduceMotion)
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
             }
         }
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, minHeight: BriefPresentationLayout.rowHeight, maxHeight: BriefPresentationLayout.rowHeight, alignment: .center)
+        .padding(.horizontal, height < 24 ? 4 : 12)
+        .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .center)
         .contentShape(Rectangle())
     }
 }
@@ -54,11 +60,13 @@ private struct BriefMarquee: View {
     let width: CGFloat
     let color: Color
     let scrolls: Bool
+    let height: CGFloat
+    let fontSize: CGFloat
     let previewReduceMotion: Bool?
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     private var reduceMotion: Bool { previewReduceMotion ?? systemReduceMotion }
     @State private var origin = Date()
-    private let font = NSFont.systemFont(ofSize: 13, weight: .medium)
+    private var font: NSFont { NSFont.systemFont(ofSize: fontSize, weight: .medium) }
     private var textWidth: CGFloat { (text as NSString).size(withAttributes: [.font: font]).width }
     private var moving: Bool { scrolls && !reduceMotion && textWidth > width }
 
@@ -79,11 +87,11 @@ private struct BriefMarquee: View {
                     .frame(width: max(0, width), alignment: .leading)
             }
         }
-        .frame(height: BriefPresentationLayout.rowHeight, alignment: .center)
+        .frame(height: height, alignment: .center)
         .clipped()
         .onChange(of: text) { origin = Date() }
         .onChange(of: width) { origin = Date() }
         .onChange(of: reduceMotion) { origin = Date() }
     }
-    private var label: some View { Text(verbatim: text).font(.system(size: 13, weight: .medium)).foregroundStyle(color) }
+    private var label: some View { Text(verbatim: text).font(.system(size: fontSize, weight: .medium)).foregroundStyle(color) }
 }

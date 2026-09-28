@@ -6,15 +6,18 @@ struct NotchPresentationReporter: AnimatableModifier {
     var height: CGFloat
     var topRadius: CGFloat
     var bottomRadius: CGFloat
+    var topInset: CGFloat = 0
+    var contour: IslandContour = .notch
     weak var coordinator: NotchPointerCoordinator?
 
-    var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, AnimatablePair<CGFloat, CGFloat>> {
-        get { .init(.init(width, height), .init(topRadius, bottomRadius)) }
+    var animatableData: AnimatablePair<AnimatablePair<AnimatablePair<CGFloat, CGFloat>, AnimatablePair<CGFloat, CGFloat>>, CGFloat> {
+        get { .init(.init(.init(width, height), .init(topRadius, bottomRadius)), topInset) }
         set {
-            width = newValue.first.first
-            height = newValue.first.second
-            topRadius = newValue.second.first
-            bottomRadius = newValue.second.second
+            width = newValue.first.first.first
+            height = newValue.first.first.second
+            topRadius = newValue.first.second.first
+            bottomRadius = newValue.first.second.second
+            topInset = newValue.second
             report()
         }
     }
@@ -22,7 +25,8 @@ struct NotchPresentationReporter: AnimatableModifier {
     func body(content: Content) -> some View {
         content.background {
             NonanimatedPresentationSeed(width: width, height: height, topRadius: topRadius,
-                                        bottomRadius: bottomRadius, pointerCoordinator: coordinator)
+                                        bottomRadius: bottomRadius, topInset: topInset, contour: contour,
+                                        pointerCoordinator: coordinator)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
@@ -30,7 +34,8 @@ struct NotchPresentationReporter: AnimatableModifier {
 
     private func report() {
         coordinator?.enqueuePresentation(size: CGSize(width: width, height: height),
-                                         topRadius: topRadius, bottomRadius: bottomRadius)
+                                         topRadius: topRadius, bottomRadius: bottomRadius,
+                                         topInset: topInset, contour: contour)
     }
 }
 
@@ -42,6 +47,8 @@ private struct NonanimatedPresentationSeed: NSViewRepresentable {
     let height: CGFloat
     let topRadius: CGFloat
     let bottomRadius: CGFloat
+    let topInset: CGFloat
+    let contour: IslandContour
     weak var pointerCoordinator: NotchPointerCoordinator?
 
     final class Coordinator { var seeded = false }
@@ -52,6 +59,7 @@ private struct NonanimatedPresentationSeed: NSViewRepresentable {
         context.coordinator.seeded = true
         guard initialLayout || context.transaction.animation == nil || context.transaction.disablesAnimations else { return }
         pointerCoordinator?.enqueuePresentation(size: CGSize(width: width, height: height),
-                                                topRadius: topRadius, bottomRadius: bottomRadius)
+                                                topRadius: topRadius, bottomRadius: bottomRadius,
+                                                topInset: topInset, contour: contour)
     }
 }

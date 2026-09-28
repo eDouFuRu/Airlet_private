@@ -128,6 +128,13 @@ class AudioSpectrum: NSView {
         }
     }
     
+    func setColor(_ color: NSColor) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for barLayer in barLayers { barLayer.fillColor = color.cgColor }
+        CATransaction.commit()
+    }
+
     func setPlaying(_ playing: Bool) {
         isPlaying = playing
         updateAnimationState()
@@ -135,16 +142,19 @@ class AudioSpectrum: NSView {
 }
 
 struct AudioSpectrumView: NSViewRepresentable {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Binding var isPlaying: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     func makeNSView(context: Context) -> AudioSpectrum {
         let spectrum = AudioSpectrum()
+        spectrum.setColor(NSColor(islandAppearance.primary))
         spectrum.setPlaying(isPlaying && !reduceMotion)
         return spectrum
     }
     
     func updateNSView(_ nsView: AudioSpectrum, context: Context) {
+        nsView.setColor(NSColor(islandAppearance.primary))
         nsView.setPlaying(isPlaying && !reduceMotion)
     }
 

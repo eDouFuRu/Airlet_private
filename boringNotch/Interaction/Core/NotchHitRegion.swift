@@ -61,6 +61,10 @@ struct NotchHitRegion: Equatable {
     var visibleFrame: CGRect
     var topRadius: CGFloat
     var bottomRadius: CGFloat
+    var contour: IslandContour = .notch
+    /// A floating wake-up target is a capsule, rather than its rectangular bounds.
+    /// Once visible and closed, its contour follows the entire animated shell.
+    var triggerCornerRadius: CGFloat? = nil
     /// Empty unless controls are floating outside the island. They sit beyond
     /// `visibleFrame`, so they need their own hit test — the painted shape does not
     /// contain them.
@@ -92,7 +96,11 @@ struct NotchHitRegion: Equatable {
     }
 
     func containsTrigger(_ point: CGPoint) -> Bool {
-        Self.containsIncludingEdges(triggerRect, point)
+        guard Self.containsIncludingEdges(triggerRect, point) else { return false }
+        guard let radius = triggerCornerRadius else { return true }
+        return Self.outline(size: triggerRect.size, topRadius: radius, bottomRadius: radius,
+                            contour: .floating).contains(CGPoint(x: point.x - triggerRect.minX,
+                                                                y: triggerRect.maxY - point.y))
     }
 
     /// Same quadratic contour as the upstream NotchShape, with AppKit's Y axis flipped.
@@ -102,7 +110,7 @@ struct NotchHitRegion: Equatable {
               Self.containsIncludingEdges(visibleFrame, point) else { return false }
         let local = CGPoint(x: point.x - visibleFrame.minX, y: visibleFrame.maxY - point.y)
         return Self.outline(size: visibleFrame.size, topRadius: topRadius,
-                            bottomRadius: bottomRadius).contains(local)
+                            bottomRadius: bottomRadius, contour: contour).contains(local)
     }
 
     /// The floating controls, if any are shown. Round, so a corner of a square frame is
@@ -129,8 +137,21 @@ struct NotchHitRegion: Equatable {
         containsVisible(point) || containsAccessory(point)
     }
 
-    static func outline(size: CGSize, topRadius: CGFloat, bottomRadius: CGFloat) -> CGPath {
+    /// Both drawing and AppKit routing anchor the presentation below the same top gap.
+    static func presentationFrame(carrierFrame: CGRect, size: CGSize, topInset: CGFloat) -> CGRect {
+        CGRect(x: carrierFrame.midX - size.width / 2,
+               y: carrierFrame.maxY - topInset - size.height,
+               width: size.width, height: size.height)
+    }
+
+    static func outline(size: CGSize, topRadius: CGFloat, bottomRadius: CGFloat,
+                        contour: IslandContour = .notch) -> CGPath {
         let width = max(0, size.width), height = max(0, size.height)
+        if contour == .floating {
+            let radius = min(max(0, topRadius), min(width, height) / 2)
+            return CGPath(roundedRect: CGRect(x: 0, y: 0, width: width, height: height),
+                          cornerWidth: radius, cornerHeight: radius, transform: nil)
+        }
         let top = min(max(0, topRadius), min(width / 2, height))
         let bottom = min(max(0, bottomRadius), min(max(0, width / 2 - top), max(0, height - top)))
         let path = CGMutablePath()

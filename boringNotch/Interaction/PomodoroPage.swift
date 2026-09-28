@@ -5,6 +5,7 @@ import SwiftUI
 /// in the middle, and the weekly heatmap on the right. Laid out inside the same expanded
 /// footprint as the home and shelf pages.
 struct PomodoroPage: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject private var model: PomodoroModel
     @Default(.pomodoroCountdownRingFills) private var countdownRingFills
     @Default(.pomodoroHeatmapPalette) private var paletteOption
@@ -33,13 +34,6 @@ struct PomodoroPage: View {
         }
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onChange(of: island.notchState) { _, state in
-            if state != .open { statsPeriod = .week }
-        }
-        .onChange(of: visibility.isAvailable) { _, available in
-            if !available { statsPeriod = .week }
-        }
-        .onDisappear { statsPeriod = .week }
     }
 
     // MARK: - Left column
@@ -60,18 +54,18 @@ struct PomodoroPage: View {
                 HStack(spacing: 6) {
                     Image(systemName: "pencil")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(model.topic.isEmpty ? 0.35 : 0.6))
+                        .foregroundStyle(islandAppearance.primary.opacity(model.topic.isEmpty ? 0.35 : 0.6))
                     Text(model.topic.isEmpty ? L("本次专注主题") : model.topic)
                         .font(.system(size: 12, design: .rounded))
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .foregroundStyle(model.topic.isEmpty ? .white.opacity(0.4) : .white.opacity(0.9))
+                        .foregroundStyle(model.topic.isEmpty ? islandAppearance.primary.opacity(0.4) : islandAppearance.primary.opacity(0.9))
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 10)
                 .frame(maxWidth: .infinity, minHeight: 30)
-                .background(RoundedRectangle(cornerRadius: 15).fill(.white.opacity(0.08)))
-                .overlay(RoundedRectangle(cornerRadius: 15).stroke(.white.opacity(0.12), lineWidth: 1))
+                .background(RoundedRectangle(cornerRadius: 15).fill(islandAppearance.controlFill))
+                .overlay(RoundedRectangle(cornerRadius: 15).stroke(islandAppearance.border, lineWidth: 1))
                 .contentShape(RoundedRectangle(cornerRadius: 15))
             }
             .buttonStyle(.plain)
@@ -88,7 +82,7 @@ struct PomodoroPage: View {
             } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(islandAppearance.primary.opacity(0.5))
                     .frame(width: 22, height: 30)
                     .contentShape(Rectangle())
             }
@@ -105,10 +99,10 @@ struct PomodoroPage: View {
             VStack(spacing: 3) {
                 Text(model.mode == .countup ? L("正计时") : L("倒计时"))
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(islandAppearance.primary.opacity(0.9))
                 Text(busyDurationText)
                     .font(.system(size: 11, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(islandAppearance.primary.opacity(0.55))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if model.mode == .countdown {
@@ -152,15 +146,15 @@ struct PomodoroPage: View {
         } label: {
             Text(title)
                 .font(.system(size: 13, weight: isSelected ? .semibold : .medium, design: .rounded))
-                .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.65))
+                .foregroundStyle(isSelected ? Color.white : islandAppearance.secondary)
                 .frame(maxWidth: .infinity, minHeight: 30)
                 .background(
                     RoundedRectangle(cornerRadius: 15)
-                        .fill(isSelected ? PomodoroTheme.accent.opacity(0.85) : .white.opacity(0.08))
+                        .fill(isSelected ? PomodoroTheme.accent.opacity(0.85) : islandAppearance.controlFill)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 15)
-                        .strokeBorder(.white.opacity(isSelected ? 0 : 0.12), lineWidth: 1)
+                        .strokeBorder(islandAppearance.primary.opacity(isSelected ? 0 : 0.12), lineWidth: 1)
                 )
                 .contentShape(RoundedRectangle(cornerRadius: 15))
         }
@@ -190,12 +184,12 @@ struct PomodoroPage: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(enabled ? Color.white : Color.white.opacity(0.35))
+                .foregroundStyle((filled ? Color.white : islandAppearance.primary).opacity(enabled ? 1 : 0.35))
                 .frame(maxWidth: .infinity, minHeight: 30)
                 .background(
                     RoundedRectangle(cornerRadius: 15)
                         .fill(filled ? PomodoroTheme.accent.opacity(enabled ? 0.9 : 0.4)
-                                     : .white.opacity(0.08))
+                                     : islandAppearance.controlFill)
                 )
                 .contentShape(RoundedRectangle(cornerRadius: 15))
         }
@@ -214,7 +208,7 @@ struct PomodoroPage: View {
             if model.isBusy {
                 Text(model.clockText)
                     .font(.system(size: model.clockText.count > 5 ? 15 : 19, weight: .medium, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white.opacity(model.phase == .paused ? 0.45 : 0.95))
+                    .foregroundStyle(islandAppearance.primary.opacity(model.phase == .paused ? 0.45 : 0.95))
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
                     .padding(.horizontal, 14)

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct BoringLargeButtons: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     var action: () -> Void
     var icon: Image
     var title: String
@@ -16,18 +17,21 @@ struct BoringLargeButtons: View {
             action:action,
             label: {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12.0).fill(.black).frame(width: 70, height: 70)
+                    RoundedRectangle(cornerRadius: 12.0).fill(islandAppearance.isFloating ? islandAppearance.controlFill : .black).frame(width: 70, height: 70)
                     VStack(spacing: 8) {
                         icon.resizable()
                             .aspectRatio(contentMode: .fit).frame(width:20)
                         Text(L(title)).font(.body)
                     }
                 }
-            }).buttonStyle(PlainButtonStyle()).shadow(color: .black.opacity(0.5), radius: 10)
+            }).buttonStyle(PlainButtonStyle())
+        .foregroundStyle(islandAppearance.primary)
+        .shadow(color: .black.opacity(islandAppearance.isFloating ? 0.1 : 0.5), radius: 10)
     }
 }
 
 struct BoringExtrasMenu : View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject var vm: BoringViewModel
     
     var body: some View {
@@ -65,7 +69,7 @@ struct BoringExtrasMenu : View {
             SettingsWindowController.shared.showWindow()
         }) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12.0).fill(.black).frame(width: 70, height: 70)
+                RoundedRectangle(cornerRadius: 12.0).fill(islandAppearance.isFloating ? islandAppearance.controlFill : .black).frame(width: 70, height: 70)
                 VStack(spacing: 8) {
                     Image(systemName: "gear").resizable()
                         .aspectRatio(contentMode: .fit).frame(width:20)
@@ -73,7 +77,9 @@ struct BoringExtrasMenu : View {
                 }
             }
         }
-        .buttonStyle(PlainButtonStyle()).shadow(color: .black.opacity(0.5), radius: 10)
+        .buttonStyle(PlainButtonStyle())
+        .foregroundStyle(islandAppearance.primary)
+        .shadow(color: .black.opacity(islandAppearance.isFloating ? 0.1 : 0.5), radius: 10)
     }
     
     var hide: some View {

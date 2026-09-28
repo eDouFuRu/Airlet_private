@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Value-driven statistics, shared by the live page and isolated visual fixtures.
 struct PomodoroWeekStats: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let weekStart: Date
     let dailyTotals: [Double]
     let palette: PomodoroHeatmapPalette
@@ -39,7 +40,7 @@ struct PomodoroWeekStats: View {
                         .lineLimit(1).minimumScaleFactor(0.8)
                     Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
                 }
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(islandAppearance.primary.opacity(0.85))
                 .frame(maxWidth: .infinity, minHeight: 22)
                 .contentShape(Rectangle())
             }
@@ -52,7 +53,7 @@ struct PomodoroWeekStats: View {
         VStack(spacing: 0) {
             Text(L(isCurrentWeek ? "本周总计" : "该周总计"))
                 .font(.system(size: 10, design: .rounded))
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(islandAppearance.primary.opacity(0.55))
                 .padding(.top, 7)
             (
                 Text("\(total / 3600)").font(.system(size: 24, weight: .semibold, design: .rounded))
@@ -91,14 +92,14 @@ struct PomodoroWeekStats: View {
         let x: CGFloat = min(max(0, cellCenter - width / 2), max(0, columnWidth - width))
         return VStack(spacing: 3) {
             Text(dateLabel(index)).font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(islandAppearance.primary.opacity(0.7))
             Text(duration(seconds(index))).font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(islandAppearance.primary)
         }
         .lineLimit(1).minimumScaleFactor(0.7)
         .frame(width: width, height: 42)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color(white: 0.15)))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.18), lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 8).fill(islandAppearance.popoverFill))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(islandAppearance.primary.opacity(0.18), lineWidth: 1))
         .offset(x: x, y: -48)
     }
 
@@ -109,11 +110,11 @@ struct PomodoroWeekStats: View {
             RoundedRectangle(cornerRadius: 5)
                 .fill(color.rgb.swiftUIColor.opacity(color.alpha))
                 .overlay(RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(.white.opacity(activeDay == index ? 0.85 : 0.1), lineWidth: activeDay == index ? 1 : 0.5))
+                    .strokeBorder(islandAppearance.primary.opacity(activeDay == index ? 0.85 : 0.1), lineWidth: activeDay == index ? 1 : 0.5))
                 .frame(width: 20, height: 20)
             Text(L(["周一", "周二", "周三", "周四", "周五", "周六", "周日"][index]))
                 .font(.system(size: 9, design: .rounded))
-                .foregroundStyle(.white.opacity(calendar.isDate(day, inSameDayAs: today) ? 0.95 : 0.55))
+                .foregroundStyle(islandAppearance.primary.opacity(calendar.isDate(day, inSameDayAs: today) ? 0.95 : 0.55))
         }
         .contentShape(Rectangle())
         .onHover { inside in
@@ -161,6 +162,7 @@ private struct PomodoroBarFrames: PreferenceKey {
 }
 
 struct PomodoroBarChart: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let dates: [Date]
     let totals: [Double]
     let period: PomodoroStatsPeriod
@@ -187,21 +189,24 @@ struct PomodoroBarChart: View {
             }
             .coordinateSpace(name: viewport)
             .onPreferenceChange(PomodoroBarFrames.self) { newFrames in
+                guard period == .month, newFrames != frames else { return }
                 if let hovered, frames[hovered] != newFrames[hovered] { self.hovered = nil }
                 frames = newFrames
             }
             .overlay(alignment: .topLeading) {
                 if let index = hovered, dates.indices.contains(index) {
                     let tooltipWidth = min(width, 165.0)
-                    let center = frames[index]?.midX ?? width / 2
+                    let center = period == .month
+                        ? (frames[index]?.midX ?? width / 2)
+                        : (CGFloat(index) + 0.5) * cellWidth
                     VStack(spacing: 2) {
-                        Text(dateTitle(index)).font(.system(size: 10)).foregroundStyle(.white.opacity(0.7))
-                        Text(duration(index)).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white)
+                        Text(dateTitle(index)).font(.system(size: 10)).foregroundStyle(islandAppearance.primary.opacity(0.7))
+                        Text(duration(index)).font(.system(size: 11, weight: .semibold)).foregroundStyle(islandAppearance.primary)
                     }
                     .lineLimit(1).minimumScaleFactor(0.7)
                     .frame(width: tooltipWidth, height: 36)
-                    .background(RoundedRectangle(cornerRadius: 7).fill(Color(white: 0.14)))
-                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.white.opacity(0.18)))
+                    .background(RoundedRectangle(cornerRadius: 7).fill(islandAppearance.popoverFill))
+                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(islandAppearance.primary.opacity(0.18)))
                     .offset(x: min(max(0, center - tooltipWidth / 2), max(0, width - tooltipWidth)))
                     .allowsHitTesting(false).accessibilityHidden(true)
                 }
@@ -223,18 +228,23 @@ struct PomodoroBarChart: View {
                             RoundedRectangle(cornerRadius: period == .year ? 4 : 2)
                                 .fill(palette.baseRGB.swiftUIColor.opacity(0.22 + 0.78 * ratio))
                                 .frame(width: max(1, cellWidth * (period == .year ? 0.55 : 0.68)), height: max(0, height - 17) * ratio)
-                                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(.white.opacity(hovered == index ? 0.8 : 0), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(islandAppearance.primary.opacity(hovered == index ? 0.8 : 0), lineWidth: 1))
                         }
                     }.frame(height: max(0, height - 17))
                     Text(label(index)).font(.system(size: 9, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.65)).frame(height: 14)
+                        .foregroundStyle(islandAppearance.primary.opacity(0.65)).frame(height: 14)
                 }
                 .frame(width: cellWidth, height: height)
                 .opacity(edge ? 0.35 : 1)
                 .contentShape(Rectangle())
-                .background(GeometryReader { geometry in
-                    Color.clear.preference(key: PomodoroBarFrames.self, value: [index: geometry.frame(in: .named(viewport))])
-                })
+                .background {
+                    if period == .month {
+                        GeometryReader { geometry in
+                            Color.clear.preference(key: PomodoroBarFrames.self,
+                                                   value: [index: geometry.frame(in: .named(viewport))])
+                        }
+                    }
+                }
                 .onHover { inside in if inside { hovered = index } else if hovered == index { hovered = nil } }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(dateTitle(index)), \(duration(index))")

@@ -9,6 +9,7 @@ import SwiftUI
 import Defaults
 
 struct SystemEventIndicatorModifier: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @EnvironmentObject var vm: BoringViewModel
     @Binding var eventType: SneakContentType
     @Binding var value: CGFloat {
@@ -43,18 +44,18 @@ struct SystemEventIndicatorModifier: View {
                     Image(systemName: "sun.max.fill")
                         .contentTransition(.symbolEffect)
                         .frame(width: 20, height: 15)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(islandAppearance.primary)
                 case .backlight:
                     Image(systemName: value > 0.5 ? "light.max" : "light.min")
                         .contentTransition(.interpolate)
                         .frame(width: 20, height: 15)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(islandAppearance.primary)
                 case .mic:
                     Image(systemName: "mic")
                         .symbolVariant(value > 0 ? .none : .slash)
                         .contentTransition(.interpolate)
                         .frame(width: 20, height: 15)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(islandAppearance.primary)
                 default:
                     EmptyView()
             }
@@ -62,7 +63,7 @@ struct SystemEventIndicatorModifier: View {
                 DraggableProgressBar(value: $value)
             } else {
                 Text(String(format: L("Mic %@"), L(value > 0 ? "unmuted" : "muted")))
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(islandAppearance.secondary)
                     .lineLimit(1)
                     .allowsTightening(true)
             }
@@ -89,6 +90,7 @@ struct SystemEventIndicatorModifier: View {
 }
 
 struct DraggableProgressBar: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @EnvironmentObject var vm: BoringViewModel
     @Binding var value: CGFloat
     @Default(.enableGradient) private var enableGradient
@@ -105,24 +107,24 @@ struct DraggableProgressBar: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(.tertiary)
+                        .fill(islandAppearance.track)
                     Capsule()
                         .fill(
                             enableGradient ?
                                 AnyShapeStyle(LinearGradient(
                                     colors: systemEventIndicatorUseAccent ?
                                         [Color.effectiveAccent, Color.effectiveAccent.ensureMinimumBrightness(factor: 0.2)] :
-                                        [Color.white, Color.white.opacity(0.2)],
+                                        [islandAppearance.primary, islandAppearance.primary.opacity(0.2)],
                                     startPoint: .trailing,
                                     endPoint: .leading
                                 )) :
-                                AnyShapeStyle(systemEventIndicatorUseAccent ? Color.effectiveAccent : Color.white)
+                                AnyShapeStyle(systemEventIndicatorUseAccent ? Color.effectiveAccent : islandAppearance.primary)
                         )
                         .frame(width: max(0, min(geo.size.width * value, geo.size.width)))
                         .shadow(color: systemEventIndicatorShadow ?
                             (systemEventIndicatorUseAccent ?
                                 Color.effectiveAccent.ensureMinimumBrightness(factor: 0.7) :
-                                Color.white) :
+                                islandAppearance.primary) :
                             Color.clear,
                             radius: 8, x: 3)
                         .opacity(value.isZero ? 0 : 1)

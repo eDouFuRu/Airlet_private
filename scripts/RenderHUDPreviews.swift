@@ -1,5 +1,5 @@
-// Offline QA harness: actual HUD, progress bar, notch shape and IslandPage views.
-// Only models/settings/hardware controls are isolated stubs; no window is shown.
+// Offline QA compiles the real compact HUD, brief row, colors and glass surface.
+// Models/settings are isolated; hardware writes abort immediately.
 import AppKit
 import Defaults
 import ImageIO
@@ -8,6 +8,16 @@ import UniformTypeIdentifiers
 
 enum SneakContentType { case volume, brightness, backlight, mic, music }
 extension Color { static var effectiveAccent: Color { Color(red: 0.96, green: 0.67, blue: 0.30) } }
+enum PreviewLanguage { static var current = "en" }
+func L(_ text: String) -> String {
+    guard let path = Bundle.main.path(forResource: PreviewLanguage.current, ofType: "lproj"),
+          let bundle = Bundle(path: path) else { return text }
+    return bundle.localizedString(forKey: text, value: text, table: nil)
+}
+final class BoringViewModel: ObservableObject {
+    enum NotchState { case open, closed }
+    @Published var notchState = NotchState.closed
+}
 @MainActor final class VolumeManager {
     static let shared = VolumeManager()
     func setAbsolute(_ value: Float) { fatalError("Offline QA forbids hardware writes") }
@@ -20,60 +30,87 @@ extension Color { static var effectiveAccent: Color { Color(red: 0.96, green: 0.
     static let shared = KeyboardBacklightManager()
     func setAbsolute(value: Float) { fatalError("Offline QA forbids hardware writes") }
 }
+// Compile-time stubs for the separate charging row, which is not rendered here.
+final class BatteryStatusViewModel: ObservableObject {
+    static let shared = BatteryStatusViewModel()
+    var statusText = "Charging"
+    var isPluggedIn = true
+    var isCharging = true
+    var isInLowPowerMode = false
+    var levelBattery: Float = 62
+}
+struct BoringBatteryView: View {
+    var batteryWidth: CGFloat
+    var isCharging: Bool
+    var isInLowPowerMode: Bool
+    var isPluggedIn: Bool
+    var levelBattery: Float
+    var isForNotification: Bool
+    var body: some View { EmptyView() }
+}
 
-@MainActor private struct HUDPreviewShell: View {
+private struct HUDPreviewShell: View {
     let state: SystemHUDState
     let layout: SystemHUDLayout
     let expanded: Bool
-    let baseExpandedHeight: CGFloat
+    let floating: Bool
+    let scheme: ColorScheme
     let language: String
-    let guides: Bool
+    let scenario: String
+    let width: CGFloat
+    let height: CGFloat
+    let header: CGFloat
 
+    private var appearance: IslandAppearance { .init(isFloating: floating, colorScheme: scheme) }
     var body: some View {
         VStack(spacing: 0) {
-            if layout.showsInline {
-                InlineHUD(state: state, layout: layout)
+            if scenario == "lyrics" || scenario == "notification" {
+                BriefPromptRow(text: scenario == "lyrics"
+                    ? (language == "en" ? "A gentle breeze carries the melody" : "微风轻轻吹过，歌声慢慢流淌")
+                    : (language == "en" ? "Example team · A synthetic preview notification" : "示例项目群 · 这是一条排版测试通知"),
+                    symbol: scenario == "lyrics" ? "text.quote" : "message.fill",
+                    height: header, scrolls: false)
+            } else if floating && !expanded {
+                FloatingSystemHUD(state: state, height: header).padding(.horizontal, 10)
             } else {
-                // The default HUD leaves the page header in place. This header
-                // is a geometry fixture; the HUD row and page below are actual views.
-                HStack {
-                    Image(systemName: "leaf").foregroundStyle(.green)
-                    Spacer(minLength: 0)
-                    Color.clear.frame(width: layout.physicalGapWidth)
-                    Spacer(minLength: 0)
-                    Image(systemName: "gearshape").foregroundStyle(.gray)
-                }.padding(.horizontal, 10).frame(height: layout.headerHeight)
+                InlineHUD(state: state, layout: layout)
+                    .padding(.horizontal, expanded ? SystemHUDLayout.openInset : SystemHUDLayout.closedInset)
             }
-            if layout.showsRow { SystemHUDRow(state: state) }
             if expanded {
-                IslandPage(presentationID: UUID())
-                    .padding(.top, 8)
-                    .frame(height: max(0, baseExpandedHeight - layout.headerHeight - 12), alignment: .top)
+                // Deliberately labeled geometry fixture; no claim of page coverage.
+                VStack(spacing: 14) {
+                    Text(language == "en" ? "Expanded surface fixture" : "展开外壳排版预览")
+                        .font(.system(size: 18, weight: .semibold))
+                    Text(language == "en" ? "Production HUD and contour · isolated content" : "实际 HUD 与外壳轮廓 · 隔离内容")
+                        .font(.system(size: 12)).foregroundStyle(appearance.secondary)
+                    HStack(spacing: 12) {
+                        ForEach(["timer", "calendar", "folder"], id: \.self) { symbol in
+                            Image(systemName: symbol).frame(width: 90, height: 48)
+                                .background(appearance.controlFill, in: RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                }
+                .foregroundStyle(appearance.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .padding(.horizontal, expanded ? 31 : 6)
-        .padding(.bottom, expanded ? 12 : 0)
-        .frame(width: layout.size.width, height: layout.size.height, alignment: .top)
-        .background(.black)
-        .clipShape(NotchShape(topCornerRadius: expanded ? 19 : 6, bottomCornerRadius: expanded ? 24 : 14))
-        .overlay(alignment: .top) {
-            if guides {
-                Rectangle().stroke(Color.orange.opacity(0.7), style: StrokeStyle(lineWidth: 0.6, dash: [3, 3]))
-                    .frame(width: layout.physicalGapWidth, height: layout.headerHeight)
-                    .allowsHitTesting(false)
-            }
-        }
+        .frame(width: width, height: height, alignment: .top)
+        // Native glass is compiled separately below; ImageRenderer cannot
+        // capture its WindowServer-backed layer, so content QA uses a backdrop.
+        .background(floating ? (scheme == .light ? Color(white: 0.94) : Color(white: 0.12)) : .black)
+        .clipShape(IslandSurfaceShape(
+            topRadius: floating ? (expanded ? 24 : header / 2) : (expanded ? 19 : 6),
+            bottomRadius: floating ? (expanded ? 24 : header / 2) : (expanded ? 24 : 14),
+            contour: floating ? .floating : .notch))
+        .environment(\.islandAppearance, appearance)
         .environment(\.locale, Locale(identifier: language))
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(scheme)
         .transaction { $0.disablesAnimations = true }
     }
 }
 
 @main @MainActor struct RenderHUDPreviews {
     static func png<V: View>(_ view: V, to url: URL, scale: CGFloat = 2) throws -> CGImage {
-        // A fresh offline process can rasterize its first use of an SF Symbol
-        // before that symbol's font/image finishes loading. Warm the same view,
-        // then allow the main run loop to service that read-only asset work.
         let warmup = ImageRenderer(content: view)
         warmup.scale = scale
         _ = warmup.cgImage
@@ -90,125 +127,77 @@ extension Color { static var effectiveAccent: Color { Color(red: 0.96, green: 0.
     }
 
     static func main() throws {
+        NSApplication.shared.setActivationPolicy(.prohibited)
         let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
-        let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main
-        let safeTop = screen?.safeAreaInsets.top ?? 0
-        let left = screen?.auxiliaryTopLeftArea?.width
-        let right = screen?.auxiliaryTopRightArea?.width
-        let hasRealNotch = safeTop > 0 && left != nil && right != nil
-        let gap: CGFloat = hasRealNotch ? max(0, screen!.frame.width - left! - right!) : 120
-        let headerHeight = max(24, hasRealNotch ? safeTop : 32)
-        let baseExpandedHeight = max(250, headerHeight + 214)
-        let model = IslandRestModel.shared
-        model.phase = .idle; model.mode = .rest; model.potatoCount = 3
-        model.elapsedSeconds = 0; model.durationMinutes = 1
         var records: [[String: Any]] = []
-        var imageNames: [String: [String]] = [:]
         for language in ["zh-Hans", "en"] {
             PreviewLanguage.current = language
-            imageNames[language] = []
-            for expanded in [false, true] {
-                for inline in [true, false] {
-                    PreviewHUDDefaults.inlineHUD = inline
-                    for scenario in ["volume", "brightness", "error", "backlight", "mic"] {
+            for style in ["attached-dark", "glass-light", "glass-dark"] {
+                let floating = style != "attached-dark"
+                let scheme: ColorScheme = style == "glass-light" ? .light : .dark
+                var imageNames: [String] = []
+                for expanded in [false, true] {
+                    for compactHeight in floating && !expanded ? [CGFloat(18), 24] : [CGFloat(18)] {
+                    for scenario in ["volume", "brightness", "error", "backlight", "mic", "lyrics", "notification"] {
+                        if !floating && (scenario == "lyrics" || scenario == "notification") { continue }
                         var state = SystemHUDState()
                         state.setApplicationAvailable(true)
                         let kind: SystemHUDKind = scenario == "brightness" || scenario == "error" ? .brightness : scenario == "backlight" ? .backlight : scenario == "mic" ? .mic : .volume
                         state.show(kind: kind, value: scenario == "mic" ? 0 : 0.625,
-                                   error: scenario == "error" ? "Unable to read brightness after changing it." : nil, now: 0)
-                        let layout = SystemHUDLayout(active: true, inline: inline, expanded: expanded,
-                            notchWidth: gap, headerHeight: headerHeight,
-                            baseClosedSize: CGSize(width: gap + 88, height: headerHeight),
-                            baseExpandedHeight: baseExpandedHeight)
+                            error: scenario == "error" ? "Unable to read brightness after changing it." : nil, now: 0)
+                        let header: CGFloat = floating ? (expanded ? 36 : compactHeight) : 32
+                        let width: CGFloat = expanded ? 640 : floating ? 320 : 400
+                        let height: CGFloat = expanded ? 250 : header
+                        let gap: CGFloat = floating ? 0 : 180
+                        let layout = SystemHUDLayout(active: true, inline: true, expanded: expanded,
+                            notchWidth: gap, headerHeight: header,
+                            baseClosedSize: CGSize(width: width, height: header), baseExpandedHeight: height)
                         let vm = BoringViewModel(); vm.notchState = expanded ? .open : .closed
-                        let name = "\(language)-\(expanded ? "open" : "closed")-\(inline ? "inline" : "default")-\(scenario)"
+                        let name = "\(language)-\(style)-\(expanded ? "open" : "closed")-\(scenario)" + (floating && !expanded ? "-h\(Int(header))" : "")
                         let view = HUDPreviewShell(state: state, layout: layout, expanded: expanded,
-                            baseExpandedHeight: baseExpandedHeight, language: language, guides: false)
-                            .environmentObject(vm).environmentObject(NotchPointerCoordinator())
-                        _ = try png(view, to: output.appendingPathComponent(name + ".png"))
-                        imageNames[language]!.append(name)
-                        records.append(["name": name, "width": layout.size.width, "height": layout.size.height,
-                            "physicalGapWidth": gap, "headerHeight": headerHeight,
-                            "rowHeight": SystemHUDLayout.rowHeight,
-                            "pageBodyHeight": expanded ? baseExpandedHeight - headerHeight - 12 : 0,
-                            "pageBodyTop": expanded ? headerHeight + (inline ? 0 : SystemHUDLayout.rowHeight) : 0])
-                        if scenario == "volume" {
-                            let guided = HUDPreviewShell(state: state, layout: layout, expanded: expanded,
-                                baseExpandedHeight: baseExpandedHeight, language: language, guides: true)
-                                .environmentObject(vm).environmentObject(NotchPointerCoordinator())
-                                .padding(.bottom, 16).background(Color(white: 0.19))
-                            _ = try png(guided, to: output.appendingPathComponent(name + "-camera-guide.png"))
-                        }
+                            floating: floating, scheme: scheme, language: language, scenario: scenario,
+                            width: width, height: height, header: header).environmentObject(vm)
+                        let bitmap = try png(view, to: output.appendingPathComponent(name + ".png"))
+                        precondition(bitmap.width == Int(width * 2) && bitmap.height == Int(height * 2))
+                        imageNames.append(name)
+                        records.append(["name": name, "width": width, "height": height,
+                            "physicalGapWidth": gap, "headerHeight": header,
+                            "floating": floating, "expanded": expanded,
+                            "colorScheme": scheme == .light ? "light" : "dark", "scenario": scenario,
+                            "language": language, "topInset": floating ? 3 : 0])
                     }
                 }
-            }
-            let comparisonVM = BoringViewModel()
-            comparisonVM.notchState = .closed
-            let rowWidth: CGFloat = 320
-            let comparison = HStack(alignment: .top, spacing: 16) {
-                ForEach(["volume", "brightness", "lyrics"], id: \.self) { kind in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("\(kind) · \(Int(kind == "lyrics" ? BriefPresentationLayout.rowHeight : SystemHUDLayout.rowHeight)) pt")
-                            .font(.system(size: 13, weight: .medium))
-                        VStack(spacing: 0) {
-                            Color.clear.frame(height: headerHeight)
-                            if kind == "lyrics" {
-                                BriefPromptRow(text: language == "en" ? "A gentle breeze carries the melody" : "微风轻轻吹过，歌声慢慢流淌",
-                                               symbol: "text.quote", scrolls: false)
-                            } else {
-                                SystemHUDRow(state: Self.comparisonState(kind: kind))
-                            }
-                        }
-                        .padding(.horizontal, 6)
-                        .frame(width: rowWidth)
-                        .background(.black)
-                        .clipShape(NotchShape(topCornerRadius: 6, bottomCornerRadius: 14))
-                    }
                 }
-            }
-            .padding(20)
-            .foregroundStyle(.white)
-            .background(Color(white: 0.14))
-            .environmentObject(comparisonVM)
-            .environment(\.locale, Locale(identifier: language))
-            .preferredColorScheme(.dark)
-            .transaction { $0.disablesAnimations = true }
-            _ = try png(comparison, to: output.appendingPathComponent("compact-rows-\(language).png"))
-            let sheet = VStack(alignment: .leading, spacing: 16) {
-                Text("Production HUD components · \(language) · static QA").font(.system(size: 22, weight: .bold))
-                Text("Actual camera gap \(gap, specifier: "%.1f") pt · header \(headerHeight, specifier: "%.1f") pt · models and hardware isolated")
-                    .font(.system(size: 12))
-                LazyVGrid(columns: [GridItem(.fixed(640)), GridItem(.fixed(640))], spacing: 18) {
-                    ForEach(imageNames[language]!, id: \.self) { name in
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text(name).font(.system(size: 12, weight: .medium))
-                            if let source = CGImageSourceCreateWithURL(output.appendingPathComponent(name + ".png") as CFURL, nil),
-                               let image = CGImageSourceCreateImageAtIndex(source, 0, nil) {
-                                Image(decorative: image, scale: 2).frame(width: 640, alignment: .center)
+                let sheet = VStack(alignment: .leading, spacing: 12) {
+                    Text("Production HUD / brief / contour · \(language) · \(style)").font(.system(size: 20, weight: .bold))
+                    Text("18 / 24 pt floating capsules · 36 pt expanded headers · isolated static fixtures")
+                        .font(.system(size: 12))
+                    Text("Deterministic backdrops · materialEvidence=false · native glass not captured")
+                        .font(.system(size: 12))
+                    LazyVGrid(columns: [GridItem(.fixed(640)), GridItem(.fixed(640))], spacing: 16) {
+                        ForEach(imageNames, id: \.self) { name in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(name).font(.system(size: 11))
+                                if let source = CGImageSourceCreateWithURL(output.appendingPathComponent(name + ".png") as CFURL, nil),
+                                   let image = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+                                    Image(decorative: image, scale: 2).frame(width: 640)
+                                }
                             }
                         }
                     }
-                }
-            }.padding(24).foregroundStyle(.white).background(Color(white: 0.14))
-            _ = try png(sheet, to: output.appendingPathComponent("overview-\(language).png"), scale: 1)
+                }.padding(24)
+                    .foregroundStyle(scheme == .light ? Color.black : Color.white)
+                    .background(scheme == .light ? Color(white: 0.9) : Color(white: 0.14))
+                _ = try png(sheet, to: output.appendingPathComponent("overview-\(language)-\(style).png"), scale: 1)
+            }
         }
         let report: [String: Any] = [
-            "staticOnly": true, "hardwareCallsAllowed": false, "usesActualIslandPage": true,
-            "usesActualHUDComponents": true, "usesActualContentView": false,
-            "screenName": screen?.localizedName ?? "No screen", "hasRealNotch": hasRealNotch,
-            "screenWidth": screen?.frame.width ?? 0, "safeAreaTop": safeTop,
-            "auxiliaryLeftWidth": left ?? 0, "auxiliaryRightWidth": right ?? 0,
-            "physicalGapWidth": gap, "scenarios": records,
-            "limitations": "ImageRenderer frames, isolated settings/models, representative default header. Does not test actual keys, event taps, hardware writes, hover, focus, native windows or animation."]
+            "staticOnly": true, "hardwareCallsAllowed": false,
+            "usesActualHUDComponents": true, "usesActualOutline": true, "nativeGlassVisualVerified": false, "materialEvidence": false, "usesActualContentView": false,
+            "scenarios": records,
+            "limitations": "ImageRenderer omits native glass layers, so these content snapshots use deterministic backdrops and production outlines. They cannot verify desktop glass refraction, native pointer routing or all application pages. Expanded body uses explicitly labeled geometry fixtures."]
         try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
             .write(to: output.appendingPathComponent("geometry.json"))
-        print("Rendered \(records.count) HUD states, 8 camera guides and 2 contact sheets. Gap=\(gap), safeTop=\(safeTop), realNotch=\(hasRealNotch)")
-    }
-
-    private static func comparisonState(kind: String) -> SystemHUDState {
-        var state = SystemHUDState()
-        state.setApplicationAvailable(true)
-        state.show(kind: kind == "brightness" ? .brightness : .volume, value: 0.625, now: 0)
-        return state
+        print("Rendered \(records.count) production component states and 6 contact sheets; no hardware calls.")
     }
 }

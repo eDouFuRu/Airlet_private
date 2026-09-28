@@ -40,7 +40,12 @@ struct AlbumArtView: View {
             ZStack(alignment: .bottomTrailing) {
                 artwork(cornerRadius: cornerRadius)
                     .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
-                    .overlay(glowOverlay(cornerRadius: cornerRadius))
+                    .background { glowBackground(cornerRadius: cornerRadius) }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(.black.opacity(musicManager.isPlaying ? 0 : 0.22))
+                            .animation(.easeInOut(duration: 0.28), value: musicManager.isPlaying)
+                    }
                     .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
                 appIconOverlay
@@ -69,20 +74,28 @@ struct AlbumArtView: View {
         .drawingGroup(opaque: false)
     }
 
-    private func glowOverlay(cornerRadius: CGFloat) -> some View {
-        Group {
-            if lightingEffect {
+    private func glowBackground(cornerRadius: CGFloat) -> some View {
+        GeometryReader { geometry in
+            ZStack {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color(nsColor: musicManager.avgColor).opacity(musicManager.isPlaying ? 0.25 : 0.0))
-                    .blur(radius: 24)
-                    .scaleEffect(1.06)
-                    .allowsHitTesting(false)
-                    .animation(.easeInOut(duration: 0.25), value: musicManager.isPlaying)
-            } else {
-                EmptyView()
+                    .fill(Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.4))
+                    .blur(radius: 18)
+                    .scaleEffect(1.18)
+                Image(nsImage: musicManager.albumArt)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    .blur(radius: 22)
+                    .scaleEffect(1.13)
+                    .saturation(1.25)
             }
+            .opacity(lightingEffect && musicManager.isPlaying ? 0.64 : 0)
+            .animation(.easeInOut(duration: 0.28), value: musicManager.isPlaying)
+            .animation(.easeInOut(duration: 0.28), value: lightingEffect)
+            .allowsHitTesting(false)
         }
-            }
+    }
 
     private var albumArtButton: some View {
         ZStack {
@@ -139,6 +152,7 @@ struct AlbumArtView: View {
 }
 
 struct MusicControlsView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject var musicManager = MusicManager.shared
         @EnvironmentObject var vm: BoringViewModel
         @ObservedObject var webcamManager = WebcamManager.shared
@@ -179,15 +193,14 @@ struct MusicControlsView: View {
     private func songInfo(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             MarqueeText(
-                $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: .white,
+                $musicManager.songTitle, font: .headline, nsFont: .headline, textColor: islandAppearance.primary,
                 frameWidth: width)
             MarqueeText(
                 $musicManager.artistName,
                 font: .headline,
                 nsFont: .headline,
                 textColor: playerColorTinting
-                    ? Color(nsColor: musicManager.avgColor)
-                        .ensureMinimumBrightness(factor: 0.6) : .gray,
+                    ? islandAppearance.artworkTint(Color(nsColor: musicManager.avgColor)) : islandAppearance.secondary,
                 frameWidth: width
             )
             .fontWeight(.medium)
@@ -255,7 +268,7 @@ struct MusicControlsView: View {
     private func slotView(for slot: MusicControlButton) -> some View {
         switch slot {
         case .shuffle:
-            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? .red : .white, scale: .medium) {
+            HoverButton(icon: "shuffle", iconColor: musicManager.isShuffled ? .red : islandAppearance.primary, scale: .medium) {
                 MusicManager.shared.toggleShuffle()
             }
         case .previous:
@@ -305,7 +318,7 @@ struct MusicControlsView: View {
     private var repeatIconColor: Color {
         switch musicManager.repeatMode {
         case .off:
-            return .white
+            return islandAppearance.primary
         case .all, .one:
             return .red
         }
@@ -313,6 +326,7 @@ struct MusicControlsView: View {
 }
 
 struct FavoriteControlButton: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject var musicManager = MusicManager.shared
 
     var body: some View {
@@ -328,7 +342,7 @@ struct FavoriteControlButton: View {
     }
 
     private var iconColor: Color {
-        musicManager.isFavoriteTrack ? .red : .white
+        musicManager.isFavoriteTrack ? .red : islandAppearance.primary
     }
 }
 
@@ -342,6 +356,7 @@ private extension Array where Element == MusicControlButton {
 // MARK: - Volume Control View
 
 struct VolumeControlView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject var musicManager = MusicManager.shared
     @State private var volumeSliderValue: Double = 0.5
     @State private var dragging: Bool = false
@@ -361,7 +376,7 @@ struct VolumeControlView: View {
             }) {
                 Image(systemName: volumeIcon)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(musicManager.volumeControlSupported ? .white : .gray)
+                    .foregroundColor(musicManager.volumeControlSupported ? islandAppearance.primary : islandAppearance.tertiary)
             }
             .buttonStyle(PlainButtonStyle())
             .disabled(!musicManager.volumeControlSupported)
@@ -371,7 +386,7 @@ struct VolumeControlView: View {
                 CustomSlider(
                     value: $volumeSliderValue,
                     range: 0.0...1.0,
-                    color: .white,
+                    color: islandAppearance.primary,
                     dragging: $dragging,
                     lastDragged: .constant(Date.distantPast),
                     onValueChange: { newValue in
@@ -482,6 +497,7 @@ struct NotchHomeView: View {
 }
 
 struct MusicSliderView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Default(.sliderColor) private var sliderColor
     @Default(.playerColorTinting) private var playerColorTinting
     @Binding var sliderValue: Double
@@ -503,8 +519,8 @@ struct MusicSliderView: View {
                 value: $sliderValue,
                 range: 0...duration,
                 color: sliderColor == SliderColorEnum.albumArt
-                    ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.8)
-                    : sliderColor == SliderColorEnum.accent ? .effectiveAccent : .white,
+                    ? islandAppearance.artworkTint(Color(nsColor: color), minimumBrightness: 0.8)
+                    : sliderColor == SliderColorEnum.accent ? .effectiveAccent : islandAppearance.primary,
                 dragging: $dragging,
                 lastDragged: $lastDragged,
                 onValueChange: onValueChange
@@ -519,7 +535,7 @@ struct MusicSliderView: View {
             .fontWeight(.medium)
             .foregroundColor(
                 playerColorTinting
-                    ? Color(nsColor: color).ensureMinimumBrightness(factor: 0.6) : .gray
+                    ? islandAppearance.artworkTint(Color(nsColor: color)) : islandAppearance.secondary
             )
             .font(.caption)
         }
@@ -544,9 +560,10 @@ struct MusicSliderView: View {
 }
 
 struct CustomSlider: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Binding var value: Double
     var range: ClosedRange<Double>
-    var color: Color = .white
+    var color: Color? = nil
     @Binding var dragging: Bool
     @Binding var lastDragged: Date
     var onValueChange: ((Double) -> Void)?
@@ -563,11 +580,11 @@ struct CustomSlider: View {
 
             ZStack(alignment: .leading) {
                 Rectangle()
-                    .fill(.gray.opacity(0.3))
+                    .fill(islandAppearance.track)
                     .frame(height: height)
 
                 Rectangle()
-                    .fill(color)
+                    .fill(color ?? islandAppearance.primary)
                     .frame(width: filledTrackWidth, height: height)
             }
             .cornerRadius(height / 2)

@@ -13,21 +13,20 @@ SOURCES = [ROOT / name for name in [
     "scripts/RenderHUDPreviews.swift",
     "boringNotch/Interaction/Core/SystemHUDState.swift",
     "boringNotch/Interaction/Core/BriefPresentation.swift",
+    "boringNotch/Interaction/Core/FloatingIslandPresentation.swift",
+    "boringNotch/Interaction/Core/NotchHitRegion.swift",
+    "boringNotch/Interaction/Core/IslandDisplayProfile.swift",
+    "boringNotch/Interaction/IslandAppearance.swift",
+    "boringNotch/Interaction/IslandSurface.swift",
+    "boringNotch/Interaction/FloatingSystemHUD.swift",
     "boringNotch/Interaction/BriefPromptRow.swift",
     "boringNotch/components/Live activities/InlineHUD.swift",
     "boringNotch/components/Live activities/SystemEventIndicatorModifier.swift",
-    "boringNotch/components/Notch/NotchShape.swift",
-    "boringNotch/components/Island/CaptainShuArtwork.swift",
-    "boringNotch/components/Island/IslandPage.swift",
-    "boringNotch/components/Island/Shu25DAssets.swift",
-    "boringNotch/components/Island/Shu25DScene.swift",
-    "boringNotch/components/Island/Core/ShuAnimationTimeline.swift",
-    "boringNotch/components/Island/Core/ShuAnimationRig.swift",
 ]]
 INPUTS = [ROOT / name for name in [
-    "scripts/render-hud-previews.py", "scripts/RenderShuPreviews.swift", "scripts/VerifyHUDPreviews.swift",
+    "scripts/render-hud-previews.py", "scripts/VerifyHUDPreviews.swift",
     "boringNotch/extensions/NSImage+Extensions.swift", "boringNotch/Localizable.xcstrings",
-    "boringNotch/components/Island/Shu25DAssets.json", "boringNotch/ContentView.swift",
+    "boringNotch/ContentView.swift",
 ]]
 
 
@@ -36,6 +35,8 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "build/validation/hud25d/hud-previews")
     parser.add_argument("--baseline-hud-ref", help="Read the two HUD sources from a Git ref into isolated preview copies; never alters production files")
     args = parser.parse_args()
+    source_hashes = {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in SOURCES}
+    input_hashes = {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in INPUTS}
     OUTPUT = args.output.resolve()
     BUNDLE = OUTPUT / "RenderHUDPreviews.app/Contents"
     GENERATED = OUTPUT / "generated"
@@ -55,18 +56,9 @@ def main():
         values = {key: entry["localizations"][language]["stringUnit"]["value"]
                   for key, entry in catalog.items() if key and language in entry.get("localizations", {})}
         (target / "Localizable.strings").write_bytes(plistlib.dumps(values, fmt=plistlib.FMT_BINARY))
-    # Reuse the existing renderer's isolated business models, never the real
-    # UserDefaults or camera/calendar/media service singletons.
-    model_source = (ROOT / "scripts/RenderShuPreviews.swift").read_text()
-    (GENERATED / "PreviewModels.swift").write_text(model_source.split("@main @MainActor struct RenderShuPreviews")[0])
     color_source = (ROOT / "boringNotch/extensions/NSImage+Extensions.swift").read_text()
     (GENERATED / "PreviewColor.swift").write_text("import AppKit\nimport SwiftUI\n" + color_source[color_source.index("extension Color {"):])
-    shape_source = ROOT / "boringNotch/components/Notch/NotchShape.swift"
-    # Keep the production Shape verbatim, omitting only the Xcode #Preview
-    # declaration whose compiler plugin requires an unavailable nested sandbox.
-    shape_copy = GENERATED / "ProductionNotchShape.swift"
-    shape_copy.write_text(shape_source.read_text().split("#Preview")[0])
-    compile_sources = [shape_copy if source == shape_source else source for source in SOURCES]
+    compile_sources = list(SOURCES)
     hud_overrides = {}
     if args.baseline_hud_ref:
         for relative in ["boringNotch/Interaction/Core/SystemHUDState.swift",
@@ -74,6 +66,9 @@ def main():
             contents = subprocess.run(["git", "show", f"{args.baseline_hud_ref}:{relative}"],
                                       cwd=ROOT, check=True, capture_output=True).stdout
             isolated_copy = GENERATED / ("Baseline-" + Path(relative).name)
+            if relative.endswith("InlineHUD.swift"):
+                # Visibility alone is widened for the compact view that shares these labels.
+                contents = contents.replace(b"private extension SystemHUDState", b"extension SystemHUDState")
             isolated_copy.write_bytes(contents)
             compile_sources = [isolated_copy if source == ROOT / relative else source for source in compile_sources]
             hud_overrides[relative] = hashlib.sha256(contents).hexdigest()
@@ -94,16 +89,6 @@ public enum PreviewHUDDefaults { public static var inlineHUD = false }
     }
 }
 ''')
-    asset_manifest = ROOT / "boringNotch/components/Island/Shu25DAssets.json"
-    (resources / asset_manifest.name).write_bytes(asset_manifest.read_bytes())
-    assets = {}
-    for image_set in (ROOT / "boringNotch/Assets.xcassets").glob("Shu25D-*.imageset"):
-        contents = json.loads((image_set / "Contents.json").read_text())
-        filename = next((item.get("filename") for item in contents.get("images", []) if item.get("filename")), None)
-        if filename:
-            source = image_set / filename
-            (resources / (image_set.stem + ".png")).write_bytes(source.read_bytes())
-            assets[str(source.relative_to(ROOT))] = hashlib.sha256(source.read_bytes()).hexdigest()
     module_cache = str(OUTPUT / "ModuleCache")
     subprocess.run(["xcrun", "swiftc", "-swift-version", "5", "-parse-as-library", "-emit-module", "-emit-object",
                     "-module-name", "Defaults", "-module-cache-path", module_cache,
@@ -111,17 +96,20 @@ public enum PreviewHUDDefaults { public static var inlineHUD = false }
                     "-emit-module-path", str(GENERATED / "Defaults.swiftmodule")], cwd=ROOT, check=True)
     executable = BUNDLE / "MacOS/RenderHUDPreviews"
     subprocess.run(["xcrun", "swiftc", "-swift-version", "5", "-parse-as-library", "-module-cache-path", module_cache,
-                    "-I", str(GENERATED), str(GENERATED / "Defaults.o"), str(GENERATED / "PreviewModels.swift"),
+                    "-I", str(GENERATED), str(GENERATED / "Defaults.o"),
                     str(GENERATED / "PreviewColor.swift"), *map(str, compile_sources), "-o", str(executable)], cwd=ROOT, check=True)
     subprocess.run([str(executable), str(OUTPUT)], cwd=ROOT, check=True)
+    for name, digest in {**source_hashes, **input_hashes}.items():
+        if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != digest:
+            raise RuntimeError("Source changed during rendering: " + name)
     manifest = {
         "generatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "staticOnly": True, "productionUserDefaultsAccess": False, "hardwareCallsAllowed": False,
+        "staticOnly": True, "materialEvidence": False, "nativeGlassVisualVerified": False, "productionUserDefaultsAccess": False, "hardwareCallsAllowed": False,
         "baselineHUDRef": args.baseline_hud_ref, "isolatedHUDSourceOverrides": hud_overrides,
-        "sources": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in SOURCES},
-        "renderInputs": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in INPUTS},
-        "rasterAssets": assets, "snapshots": sorted(path.name for path in OUTPUT.glob("*.png")),
-        "limitations": "Actual HUD/progress/shape/IslandPage; isolated models/settings, copied shell geometry and representative default header. No actual ContentView lifecycle or native input test.",
+        "sources": source_hashes,
+        "renderInputs": input_hashes,
+        "snapshots": sorted(path.name for path in OUTPUT.glob("*.png")),
+        "limitations": "Actual HUD, brief rows and production contours over deterministic backdrops; native glass compiles but is omitted by ImageRenderer. Isolated models and settings. Expanded content is a geometry fixture, not actual app pages. Offscreen snapshots do not establish live desktop refraction, ContentView lifecycle or native input behavior.",
     }
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     verifier = GENERATED / "VerifyHUDPreviews"

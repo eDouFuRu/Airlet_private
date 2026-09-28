@@ -3,6 +3,7 @@ import Defaults
 
 /// A view that displays the battery status with an icon and charging indicator.
 struct BatteryView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
 
     @Default(.showPowerStatusIcons) private var showPowerStatusIcons
 
@@ -37,7 +38,7 @@ struct BatteryView: View {
         } else if isCharging || isPluggedIn || levelBattery == 100 {
             return .green
         } else {
-            return .white
+            return islandAppearance.primary
         }
     }
 
@@ -48,7 +49,7 @@ struct BatteryView: View {
                 .resizable()
                 .fontWeight(.thin)
                 .aspectRatio(contentMode: .fit)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(islandAppearance.secondary)
                 .frame(
                     width: batteryWidth + 1
                 )
@@ -66,7 +67,7 @@ struct BatteryView: View {
                     Image(iconStatus)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .foregroundColor(.white)
+                        .foregroundColor(islandAppearance.primary)
                         .frame(
                             width: 17,
                             height: 17
@@ -88,6 +89,7 @@ struct ScaleButtonStyle: ButtonStyle {
 
 /// A view that displays detailed battery information and settings.
 struct BatteryMenuView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     
     var isPluggedIn: Bool
     var isCharging: Bool
@@ -145,7 +147,7 @@ struct BatteryMenuView: View {
             }
             .padding(.vertical, 8)
 
-            Divider().background(Color.white)
+            Divider().background(islandAppearance.border)
 
             Button(action: openBatteryPreferences) {
                 Label("Battery Settings", systemImage: "gearshape")
@@ -157,7 +159,7 @@ struct BatteryMenuView: View {
         }
         .padding()
         .frame(width: 280)
-        .foregroundColor(.white)
+        .foregroundColor(islandAppearance.primary)
     }
 
     private func openBatteryPreferences() {
@@ -170,6 +172,7 @@ struct BatteryMenuView: View {
 
 /// A view that displays the battery status and allows interaction to show detailed information.
 struct BoringBatteryView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
 
     @Default(.showBatteryPercentage) private var showBatteryPercentage
     
@@ -200,7 +203,7 @@ struct BoringBatteryView: View {
                 if showBatteryPercentage {
                     Text("\(Int32(levelBattery))%")
                         .font(.callout)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(islandAppearance.primary)
                 }
                 BatteryView(
                     levelBattery: levelBattery,

@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct HoverButton: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     var icon: String
-    var iconColor: Color = .white;
+    var iconColor: Color? = nil;
     var scale: Image.Scale = .medium
     var action: () -> Void
     var contentTransition: ContentTransition = .symbolEffect;
@@ -26,11 +27,11 @@ struct HoverButton: View {
                 .frame(width: size, height: size)
                 .overlay {
                     Capsule()
-                        .fill(isHovering ? Color.gray.opacity(0.2) : .clear)
+                        .fill(isHovering ? islandAppearance.controlFill : .clear)
                         .frame(width: size, height: size)
                         .overlay {
                             Image(systemName: icon)
-                                .foregroundColor(iconColor)
+                                .foregroundColor(iconColor ?? islandAppearance.primary)
                                 .contentTransition(contentTransition)
                                 .font(scale == .large ? .largeTitle : .body)
                         }

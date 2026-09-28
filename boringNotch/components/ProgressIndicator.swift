@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 
 struct CircularProgressView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let progress: Double
     let color: Color
     
@@ -16,7 +17,7 @@ struct CircularProgressView: View {
         ZStack {
             Circle()
                 .stroke(
-                    Color.white.opacity(0.2),
+                    islandAppearance.track,
                     lineWidth: 6
                 )
             Circle()

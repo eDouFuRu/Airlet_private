@@ -77,6 +77,40 @@ struct RenderBrief {
                     height: legacyHeight, name: "legacy-reconstructed-\(fixture.name)-w\(Int(width))", output: output)
             }
         }
+        // Real compact rows and production outline, with a deterministic backing.
+        // Native glass requires WindowServer composition and cannot be captured
+        // reliably by cacheDisplay; these snapshots establish layout/ink only.
+        for scheme in [ColorScheme.light, .dark] {
+            let appearance = scheme == .light ? "light" : "dark"
+            for compactHeight in [CGFloat(18), 24] {
+            for width in [120.0, 320.0, 640.0] {
+                for fixture in fixtures {
+                    for reduced in [false, true] {
+                        let name = "glass-\(appearance)-\(fixture.name)-h\(Int(compactHeight))-w\(Int(width))-\(reduced ? "reduced" : "normal")"
+                        let actual = BriefPromptRow(text: fixture.text, symbol: fixture.symbol,
+                            applicationIcon: fixture.hi ? hiIcon : nil, height: compactHeight,
+                            previewReduceMotion: reduced, action: fixture.hi ? {} : nil)
+                            .frame(width: width, height: compactHeight)
+                            .background(scheme == .light ? Color(white: 0.94) : Color(white: 0.12))
+                            .clipShape(IslandSurfaceShape(topRadius: compactHeight / 2, bottomRadius: compactHeight / 2, contour: .floating))
+                            .environment(\.islandAppearance, IslandAppearance(isFloating: true, colorScheme: scheme))
+                            .environment(\.locale, Locale(identifier: fixture.language))
+                        // cacheDisplay can retain the first appearance of an SF
+                        // symbol across isolated hosts. ImageRenderer resolves
+                        // the same production view's semantic ink consistently.
+                        for scale in [1, 2] {
+                            try rendered(actual.preferredColorScheme(scheme),
+                                to: output.appendingPathComponent("\(name)-\(scale)x.png"), scale: CGFloat(scale))
+                        }
+                        results.append(["name": name, "widthPoints": width, "heightPoints": compactHeight,
+                            "language": fixture.language, "reduceMotion": reduced,
+                            "floating": true, "colorScheme": appearance,
+                            "source": "BriefPromptRow.swift", "renderer": "SwiftUI.ImageRenderer", "hiIcon": fixture.hi && hiInstalled])
+                    }
+                }
+            }
+        }
+        }
         for width in [257, 578] {
             for language in ["zh", "en"] {
                 let old = output.appendingPathComponent("legacy-reconstructed-music-\(language)-w\(width)-2x.png")
@@ -96,7 +130,7 @@ struct RenderBrief {
             let sheet = VStack(alignment: .leading, spacing: 10) {
                 Text("Actual BriefPromptRow · \(width) × \(Int(rowHeight)) points").font(.system(size: 15, weight: .semibold))
                 Text("Synthetic fixtures · macOS NSHostingView · static initial layout").font(.system(size: 10))
-                ForEach(results.filter { ($0["widthPoints"] as? Double) == Double(width) }, id: \.description) { result in
+                ForEach(results.filter { ($0["widthPoints"] as? Double) == Double(width) && ($0["floating"] as? Bool) != true }, id: \.description) { result in
                     let name = result["name"] as! String
                     VStack(alignment: .leading, spacing: 3) {
                         Text(name).font(.system(size: 9, design: .monospaced))
@@ -106,22 +140,56 @@ struct RenderBrief {
             }.padding(16).foregroundStyle(.white).background(Color(white: 0.12))
             try rendered(sheet, to: output.appendingPathComponent("overview-w\(width).png"), scale: 1)
         }
+        for height in [18, 24] {
+            let sheet = VStack(alignment: .leading, spacing: 10) {
+                Text("Production brief content · \(height) pt capsules · 320 pt width")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("Deterministic backdrops · materialEvidence=false · native glass not captured")
+                    .font(.system(size: 10))
+                HStack(spacing: 20) {
+                    ForEach(["light", "dark"], id: \.self) { appearance in
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(appearance.capitalized).font(.system(size: 12, weight: .semibold))
+                            ForEach(fixtures, id: \.name) { fixture in
+                                let name = "glass-\(appearance)-\(fixture.name)-h\(height)-w320-normal"
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(fixture.name).font(.system(size: 10, design: .monospaced))
+                                    Image(nsImage: NSImage(contentsOf: output.appendingPathComponent(name + "-2x.png"))!)
+                                        .resizable().frame(width: 320, height: CGFloat(height))
+                                }
+                            }
+                        }
+                    }
+                }
+            }.padding(20).foregroundStyle(.black).background(Color(white: 0.82))
+            try rendered(sheet, to: output.appendingPathComponent("overview-floating-h\(height).png"), scale: 2)
+        }
         let summary: [String: Any] = ["actualSourceFixtures": results, "legacyReconstructedRows": 4,
             "actualRowHeightPoints": rowHeight, "legacyRowHeightPoints": legacyHeight,
             "hiIconLoadedViaNSWorkspace": hiInstalled, "hiIconApplicationPath": hiPath,
             "windowsOrderedFront": false, "applicationActivated": false,
             "privateNotificationContentRead": false, "productionPreferencesRead": false,
+            "nativeGlassVisualVerified": false, "materialEvidence": false,
+            "surfaceEvidence": "Production contour and content with deterministic backdrop. Native glass is compiled but cannot be captured correctly in an offscreen window.",
             "reduceMotionEvidence": "Explicit view preview override; actual macOS accessibility preference switching is not tested"]
         try JSONSerialization.data(withJSONObject: summary, options: [.prettyPrinted, .sortedKeys])
             .write(to: output.appendingPathComponent("render-summary.json"))
-        print("Rendered 32 actual rows and 4 reconstructed legacy rows at 1x/2x; application never activated.")
+        print("Rendered \(results.count) actual rows and 4 reconstructed legacy rows at 1x/2x; application never activated.")
     }
 
-    private static func hosted<V: View>(_ view: V, width: Double, height: CGFloat, name: String, output: URL) throws {
-        let content = view.frame(width: width, height: height).background(Color.black).preferredColorScheme(.dark)
+    private static func hosted<V: View>(_ view: V, width: Double, height: CGFloat, name: String, output: URL,
+                                         scheme: ColorScheme = .dark, floating: Bool = false) throws {
+        let content = view.frame(width: width, height: height)
+            .background(floating ? Color.clear : .black)
+            .preferredColorScheme(scheme)
         let host = NSHostingView(rootView: content)
+        let nativeAppearance = NSAppearance(named: scheme == .light ? .aqua : .darkAqua)!
+        host.appearance = nativeAppearance
         let window = NSWindow(contentRect: CGRect(x: -20_000, y: -20_000, width: width, height: height),
                               styleMask: .borderless, backing: .buffered, defer: false)
+        window.appearance = nativeAppearance
+        window.isOpaque = !floating
+        window.backgroundColor = floating ? .clear : .black
         window.isReleasedWhenClosed = false
         window.contentView = host
         host.frame = CGRect(x: 0, y: 0, width: width, height: height)
@@ -138,7 +206,9 @@ struct RenderBrief {
                 throw NSError(domain: "BriefPreview", code: 1)
             }
             bitmap.size = CGSize(width: width, height: height)
-            host.cacheDisplay(in: host.bounds, to: bitmap)
+            nativeAppearance.performAsCurrentDrawingAppearance {
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+            }
             guard let data = bitmap.representation(using: .png, properties: [:]) else {
                 throw NSError(domain: "BriefPreview", code: 2)
             }

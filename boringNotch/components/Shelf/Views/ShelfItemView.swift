@@ -12,6 +12,7 @@ import Defaults
 import QuickLook
 
 struct ShelfItemView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let item: ShelfItem
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject var selection = ShelfSelectionModel.shared
@@ -106,7 +107,7 @@ struct ShelfItemView: View {
     private var textView: some View {
         Text(item.displayName)
             .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.primary)
+            .foregroundStyle(islandAppearance.primary)
             .lineLimit(2)
             .truncationMode(.middle)
             .multilineTextAlignment(.center)

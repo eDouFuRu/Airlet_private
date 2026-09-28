@@ -1,12 +1,46 @@
-//
-//  AnimatedFace.swift
-//
-// Created by Harsh Vardhan  Goswami  on  04/08/24.
-//
-
 import SwiftUI
 
+/// Keeps user input and the closed-island geometry in agreement.
+enum IdleEmojiLayout {
+    static func characters(in text: String) -> [String] {
+        Array(text.prefix(3)).map(String.init)
+    }
+
+    static func normalized(_ text: String) -> String { characters(in: text).joined() }
+
+    static func wingWidth(for text: String) -> CGFloat {
+        let count = characters(in: text).count
+        return count == 0 ? 0 : 16 + CGFloat(count * 22 + (count - 1) * 2)
+    }
+}
+
+struct IdleEmojiWing: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var raised = false
+    let characters: [String]
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(Array(characters.enumerated()), id: \.offset) { _, character in
+                Text(character)
+                    .font(.system(size: 17))
+                    .frame(width: 22, height: 24)
+            }
+        }
+        .offset(y: raised && !reduceMotion ? -1.5 : 0)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                raised = true
+            }
+        }
+        .onDisappear { raised = false }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct MinimalFaceFeatures: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @State private var isBlinking = false
     @State var height:CGFloat = 20;
     @State var width:CGFloat = 30;
@@ -23,7 +57,7 @@ struct MinimalFaceFeatures: View {
             VStack(spacing: 2) { // Adjusted spacing to fit within 30x30
                 // Nose
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.white)
+                    .fill(islandAppearance.primary)
                     .frame(width: 3, height: 4)
                 
                 // Mouth (happy)
@@ -34,7 +68,7 @@ struct MinimalFaceFeatures: View {
                         path.move(to: CGPoint(x: 0, y: height / 2))
                         path.addQuadCurve(to: CGPoint(x: width, y: height / 2), control: CGPoint(x: width / 2, y: height))
                     }
-                    .stroke(Color.white, lineWidth: 2)
+                    .stroke(islandAppearance.primary, lineWidth: 2)
                 }
                 .frame(width: 14, height: 10)
             }
@@ -60,23 +94,14 @@ struct MinimalFaceFeatures: View {
 }
 
 struct Eye: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Binding var isBlinking: Bool
     
     var body: some View {
         RoundedRectangle(cornerRadius: 10)
-            .fill(Color.white)
+            .fill(islandAppearance.primary)
             .frame(width: 4, height: isBlinking ? 1 : 4)
             .frame(maxWidth: 15, maxHeight: 15) // Adjusted max size
             .animation(.easeInOut(duration: 0.1), value: isBlinking)
-    }
-}
-
-struct MinimalFaceFeatures_Previews: PreviewProvider {
-    static var previews: some View {
-        ZStack {
-            Color.black
-            MinimalFaceFeatures()
-        }
-        .previewLayout(.fixed(width: 60, height: 60)) // Adjusted preview size for better visibility
     }
 }

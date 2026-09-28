@@ -102,6 +102,13 @@ ISLAND_NOTES="$ISLAND_DISTRIBUTION/RELEASE-NOTES-$ISLAND_SHORT_VERSION.md"
 cat >"$ISLAND_NOTES" <<NOTES
 ## Airlet v${ISLAND_SHORT_VERSION}（build ${ISLAND_BUILD_VERSION}）
 
+### 本版本更新
+
+- 无刘海显示器使用悬浮灵动岛，支持悬停唤出、延迟展开和自动隐藏。
+- macOS 26 及以上采用原生 Liquid Glass；macOS 15–25 使用系统材质回退。
+- 优化音乐歌词、日历、番茄钟、系统提示与快捷工具在紧凑布局中的显示。
+- macOS 27 的系统材质改进尚未在实机验证。
+
 macOS 15.0 及以上，Apple Silicon。下载 \`$(basename "$ISLAND_IMAGE")\`，打开后把「Airlet」拖进「应用程序」。
 
 ### 首次打开需要手动放行

@@ -34,6 +34,8 @@ class BoringViewModel: NSObject, ObservableObject {
 
     @Published var screenUUID: String?
 
+    var displayProfile: IslandDisplayProfile { getIslandDisplayProfile(screenUUID: screenUUID) }
+
     @Published var notchSize: CGSize = getClosedNotchSize()
     @Published var closedNotchSize: CGSize = getClosedNotchSize()
     
@@ -110,6 +112,7 @@ class BoringViewModel: NSObject, ObservableObject {
     }
 
     var chinHeight: CGFloat {
+        guard !displayProfile.isFloating else { return 0 }
         if !Defaults[.hideTitleBar] {
             return 0
         }
@@ -177,16 +180,14 @@ class BoringViewModel: NSObject, ObservableObject {
     }
     
     func isMouseHovering(position: NSPoint = NSEvent.mouseLocation) -> Bool {
-        let screenFrame = getScreenFrame(screenUUID)
-        if let frame = screenFrame {
-            
-            let baseY = frame.maxY - notchSize.height
-            let baseX = frame.midX - notchSize.width / 2
-            
-            return position.y >= baseY && position.x >= baseX && position.x <= baseX + notchSize.width
-        }
-        
-        return false
+        guard let frame = getScreenFrame(screenUUID) else { return false }
+        let profile = displayProfile
+        let rect = NotchHitRegion.presentationFrame(carrierFrame: frame, size: notchSize,
+                                                   topInset: profile.topInset)
+        let radii = notchState == .open ? cornerRadiusInsets.opened : cornerRadiusInsets.closed
+        let radius = profile.isFloating ? (notchState == .open ? 24 : notchSize.height / 2) : radii.top
+        return NotchHitRegion(triggerRect: rect, visibleFrame: rect, topRadius: radius,
+                              bottomRadius: radii.bottom, contour: profile.contour).containsVisible(position)
     }
 
     /// Whether the pointer is currently carrying files from a drag.
@@ -218,7 +219,8 @@ class BoringViewModel: NSObject, ObservableObject {
                 coordinator.currentView = .home
             }
         }
-        self.notchSize = openNotchSize
+        self.notchSize = CGSize(width: min(openNotchSize.width, displayProfile.maximumWidth),
+                                height: openNotchSize.height)
         self.notchState = .open
         
         // Force music information update when notch is opened

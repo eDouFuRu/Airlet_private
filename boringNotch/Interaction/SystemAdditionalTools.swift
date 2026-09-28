@@ -452,6 +452,7 @@ struct SystemToolPickerDisclosure<Content: View>: View {
 }
 
 private struct SystemToolStateLabel: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let tool: SystemToolDefinition
     let status: String
     let hasError: Bool
@@ -461,10 +462,10 @@ private struct SystemToolStateLabel: View {
             SystemToolGlyph(tool: tool).font(.system(size: 18, weight: .medium)).frame(height: 22)
             Text(L(tool.titleKey)).font(.system(size: 11, weight: .medium)).lineLimit(1)
             Text(verbatim: status).font(.system(size: 8)).lineLimit(1).minimumScaleFactor(0.8)
-                .foregroundStyle(hasError ? Color.orange : Color.white.opacity(0.6))
+                .foregroundStyle(hasError ? Color.orange : islandAppearance.primary.opacity(0.6))
         }
-        .foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
-        .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
+        .foregroundStyle(islandAppearance.primary.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
+        .background(RoundedRectangle(cornerRadius: 12).fill(islandAppearance.controlFill))
         .contentShape(RoundedRectangle(cornerRadius: 12))
     }
 }

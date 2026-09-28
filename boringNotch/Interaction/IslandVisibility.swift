@@ -10,7 +10,6 @@ final class IslandVisibility: ObservableObject {
         didSet { UserDefaults.standard.set(isHidden, forKey: Self.hiddenKey) }
     }
     @Published var screenUnavailable = false
-    @Published var isChecking = false
     @Published var captureInProgress = false
     var isAvailable: Bool { !isHidden && !screenUnavailable && !captureInProgress }
     private init() { isHidden = UserDefaults.standard.bool(forKey: Self.hiddenKey) }

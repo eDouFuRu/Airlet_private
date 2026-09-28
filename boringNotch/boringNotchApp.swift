@@ -45,12 +45,6 @@ struct DynamicNotchApp: App {
         Button(visibility.isHidden ? L("Show island") : L("Hide island")) { visibility.isHidden.toggle() }
         Divider()
         Button(L("Settings…")) { SettingsWindowController.shared.showWindow() }
-        #if DEBUG
-        Button(L("Animation diagnostics (20 + 10 cycles)")) { appDelegate.runInteractionCheck() }
-            .disabled(visibility.isChecking)
-        Button(L("Debug: switch to Pomodoro tab")) { appDelegate.switchTab(to: .pomodoro) }
-        Button(L("Debug: switch to Home tab")) { appDelegate.switchTab(to: .home) }
-        #endif
         Divider()
         Button(L("Quit Recharge Island")) { NSApplication.shared.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
@@ -84,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AirletUpdateService.shared.start()
         let showSettingsOnLaunch = !Defaults[.menubarIcon] && !LaunchAtLogin.wasLaunchedAtLogin
         // Tools request their own permissions when opened, not during the island's first launch.
         coordinator.firstLaunch = false
@@ -154,16 +149,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !Defaults[.menubarIcon] { SettingsWindowController.shared.showWindow() }
         return true
     }
-
-    #if DEBUG
-    /// Frame-capture aid: reproduces a TabSelectionView tab switch (same `.smooth`
-    /// transaction) so the page-change animation can be recorded programmatically.
-    func switchTab(to view: NotchViews) {
-        guard visibility.isAvailable, let entry = preferredEntry else { return }
-        entry.pointer.keepExpandedForUserCommand()
-        withAnimation(.smooth) { coordinator.currentView = view }
-    }
-    #endif
 
     func expandIsland() {
         guard !visibility.screenUnavailable else { return }
@@ -363,62 +348,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MusicManager.shared.destroy()
     }
 
-    #if DEBUG
-    func runInteractionCheck() {
-        guard !visibility.isChecking, !visibility.screenUnavailable else { return }
-        visibility.isHidden = false
-        applyVisibility()
-        guard let entry = preferredEntry else { return }
-        visibility.isChecking = true
-        entry.pointer.setAutomaticHoverSuspendedForDiagnostics(true)
-        let initialFrame = entry.window.frame
-        let initialApp = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        Task { @MainActor in
-            var samples: [NotchPointerCoordinator.DiagnosticSnapshot] = []
-            @MainActor func sample(for duration: TimeInterval) async {
-                let end = ProcessInfo.processInfo.systemUptime + duration
-                while ProcessInfo.processInfo.systemUptime < end {
-                    if let snapshot = entry.pointer.diagnosticSnapshot() { samples.append(snapshot) }
-                    try? await Task.sleep(for: .milliseconds(16))
-                }
-            }
-            // Same transaction as the real open paths, so frame captures taken from this
-            // harness stay representative of what hovering produces.
-            let openTransaction = Animation.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)
-            for _ in 0..<20 {
-                withAnimation(openTransaction) { entry.model.open(preferredPage: .home) }; await sample(for: 0.60)
-                entry.model.close(force: true); await sample(for: 0.65)
-            }
-            for _ in 0..<10 {
-                withAnimation(openTransaction) { entry.model.open(preferredPage: .home) }; await sample(for: 0.14)
-                entry.model.close(force: true); await sample(for: 0.12)
-                withAnimation(openTransaction) { entry.model.open(preferredPage: .home) }; await sample(for: 0.16)
-                entry.model.close(force: true); await sample(for: 0.60)
-            }
-            var failures: [String] = []
-            if entry.window.frame != initialFrame { failures.append(L("Carrier window position changed")) }
-            if entry.window.isKeyWindow || entry.window.isMainWindow { failures.append(L("The panel became the keyboard window")) }
-            if NSWorkspace.shared.frontmostApplication?.processIdentifier != initialApp {
-                failures.append(L("Frontmost app changed (exclude manual switching)"))
-            }
-            let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("com.dongfengrui.Airlet", isDirectory: true)
-            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let url = folder.appendingPathComponent("interaction-diagnostics.json")
-            do { try encoder.encode(samples).write(to: url, options: .atomic) }
-            catch { failures.append(String(format: L("Could not save diagnostics: %@"), error.localizedDescription)) }
-            visibility.isChecking = false
-            entry.pointer.setAutomaticHoverSuspendedForDiagnostics(false)
-            let alert = NSAlert()
-            alert.messageText = L("Animation and window diagnostics")
-            alert.informativeText = String(format: L("Ran 20 open/close cycles and 10 mid-animation reversals.\nCaptured %lld geometry and mouse-routing samples.\n%@\nSamples: %@\nReview the samples and real hovering separately; this check does not synthesize mouse input."),
-                samples.count, failures.isEmpty ? L("Window position and nonactivation checks passed.") : failures.joined(separator: "\n"), url.path)
-            alert.addButton(withTitle: L("Done"))
-            alert.runModal()
-        }
-    }
-    #endif
 }
 
 private final class IslandHostingView<Content: View>: NSHostingView<Content> {

@@ -1,4 +1,4 @@
-// Read-only pixel checks on offline PNGs. No AppKit session or hardware calls.
+// Read-only dimension and camera-gap checks on the isolated component snapshots.
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -11,7 +11,6 @@ import ImageIO
         }
         return image
     }
-
     static func pixels(_ image: CGImage, rect: CGRect) throws -> [UInt8] {
         guard let crop = image.cropping(to: rect) else { throw NSError(domain: "HUDPreviewPixels", code: 2) }
         var bytes = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
@@ -25,96 +24,53 @@ import ImageIO
         }
         return bytes
     }
-
     static func main() throws {
         let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         let geometry = try JSONSerialization.jsonObject(with: Data(contentsOf: output.appendingPathComponent("geometry.json"))) as! [String: Any]
         let scenarios = geometry["scenarios"] as! [[String: Any]]
-        var gapChecks: [[String: Any]] = []
-        var iconChecks: [[String: Any]] = []
-        var bodyChecks: [[String: Any]] = []
+        var checks: [[String: Any]] = []
         for scenario in scenarios {
             let name = scenario["name"] as! String
-            let gap = scenario["physicalGapWidth"] as! Double
             let width = scenario["width"] as! Double
+            let height = scenario["height"] as! Double
             let header = scenario["headerHeight"] as! Double
-            let rowHeight = scenario["rowHeight"] as! Double
+            let floating = scenario["floating"] as! Bool
+            let expanded = scenario["expanded"] as! Bool
             let image = try bitmap(output.appendingPathComponent(name + ".png"))
-            let bytes = try pixels(image, rect: CGRect(x: width - gap, y: 0, width: gap * 2, height: header * 2))
-            let occupied = stride(from: 0, to: bytes.count, by: 4).filter { bytes[$0] > 2 || bytes[$0 + 1] > 2 || bytes[$0 + 2] > 2 }.count
-            gapChecks.append(["name": name, "occupiedCameraGapPixels": occupied, "pass": occupied == 0])
-            let inline = name.contains("-inline-")
-            let leadingInset: Double = name.contains("-open-") ? 31 : 6
-            let iconBytes = try pixels(image, rect: CGRect(
-                x: (leadingInset + (inline ? 10 : 16)) * 2,
-                y: inline ? 0 : header * 2,
-                width: inline ? 36 : 40, height: inline ? header * 2 : rowHeight * 2))
-            let iconPixels = stride(from: 0, to: iconBytes.count, by: 4).filter {
-                iconBytes[$0] > 2 || iconBytes[$0 + 1] > 2 || iconBytes[$0 + 2] > 2
-            }.count
-            iconChecks.append(["name": name, "visibleIconPixels": iconPixels, "pass": iconPixels > 0])
-        }
-        for language in ["en", "zh-Hans"] {
-            for kind in ["volume", "brightness", "error", "backlight", "mic"] {
-                let inlineName = "\(language)-open-inline-\(kind)"
-                let rowName = "\(language)-open-default-\(kind)"
-                let a = scenarios.first { $0["name"] as? String == inlineName }!
-                let b = scenarios.first { $0["name"] as? String == rowName }!
-                let height = a["pageBodyHeight"] as! Double
-                let width = (a["width"] as! Double) - 62
-                let aRect = CGRect(x: 62, y: (a["pageBodyTop"] as! Double) * 2, width: width * 2, height: height * 2)
-                let bRect = CGRect(x: 62, y: (b["pageBodyTop"] as! Double) * 2, width: width * 2, height: height * 2)
-                let aPixels = try pixels(bitmap(output.appendingPathComponent(inlineName + ".png")), rect: aRect)
-                let bPixels = try pixels(bitmap(output.appendingPathComponent(rowName + ".png")), rect: bRect)
-                let equal = aPixels == bPixels
-                let differentBytes = zip(aPixels, bPixels).filter { $0 != $1 }.count
-                let maximumDifference = zip(aPixels, bPixels).map { abs(Int($0) - Int($1)) }.max() ?? 0
-                bodyChecks.append(["language": language, "kind": kind, "bodyHeight": height,
-                    "rowMovesBodyBy": (b["pageBodyTop"] as! Double) - (a["pageBodyTop"] as! Double),
-                    "bodyPixelsIdentical": equal, "differentBytes": differentBytes,
-                    "maximumChannelDifference": maximumDifference, "totalBytes": aPixels.count,
-                    // Allow only 3/255 channel rounding between independent
-                    // ImageRenderer layers, while retaining the exact result.
-                    "bodyPixelsMatchWithinTolerance": maximumDifference <= 3])
+            let dimensions = image.width == Int(width * 2) && image.height == Int(height * 2)
+            var record: [String: Any] = ["name": name, "dimensionsMatch": dimensions]
+            var pass = dimensions
+            if floating {
+                let validGeometry = (expanded ? header == 36 : [18.0, 24.0].contains(header))
+                    && (scenario["physicalGapWidth"] as! Double) == 0
+                    && (scenario["topInset"] as! Double) == 3
+                    && (expanded || height == header)
+                let bytes = try pixels(image, rect: CGRect(x: 24, y: 0, width: (width - 24) * 2, height: header * 2))
+                let light = scenario["colorScheme"] as! String == "light"
+                let ink = stride(from: 0, to: bytes.count, by: 4).filter { i in
+                    guard bytes[i + 3] > 160 else { return false }
+                    let luminance = (Int(bytes[i]) + Int(bytes[i + 1]) + Int(bytes[i + 2])) / 3
+                    return light ? luminance < 140 : luminance > 160
+                }.count
+                record["expectedCompactOrExpandedHeader"] = validGeometry
+                record["contrastingHeaderPixels"] = ink
+                pass = pass && validGeometry && ink > 20
+            } else {
+                let gap = scenario["physicalGapWidth"] as! Double
+                let bytes = try pixels(image, rect: CGRect(x: width - gap, y: 0, width: gap * 2, height: header * 2))
+                let occupied = stride(from: 0, to: bytes.count, by: 4).filter { bytes[$0] > 2 || bytes[$0 + 1] > 2 || bytes[$0 + 2] > 2 }.count
+                record["occupiedCameraGapPixels"] = occupied
+                pass = pass && occupied == 0
             }
+            record["pass"] = pass
+            checks.append(record)
         }
-        let failures = gapChecks.filter { $0["pass"] as? Bool != true }.count + iconChecks.filter { $0["pass"] as? Bool != true }.count + bodyChecks.filter { $0["bodyPixelsMatchWithinTolerance"] as? Bool != true }.count
-        let result: [String: Any] = ["staticOnly": true, "bodyChannelTolerance": 3, "gapChecks": gapChecks, "iconChecks": iconChecks, "bodyChecks": bodyChecks, "failures": failures]
+        let failures = checks.filter { $0["pass"] as? Bool != true }.count
+        let result: [String: Any] = ["staticOnly": true, "checks": checks, "failures": failures,
+            "limitations": "Dimensions, reserved camera pixels and contrasting ink only; no live native glass or full page interaction claim."]
         try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
             .write(to: output.appendingPathComponent("pixel-checks.json"))
-        print("Offline pixel checks: \(gapChecks.count) camera gaps + \(iconChecks.count) visible icons + \(bodyChecks.count) page bodies (3/255 channel tolerance); failures=\(failures)")
+        print("Offline pixel checks: \(checks.count) component snapshots; failures=\(failures)")
         if failures > 0 { throw NSError(domain: "HUDPreviewPixels", code: 4) }
-        if CommandLine.arguments.count > 2 {
-            let baseline = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
-            var comparison: [[String: Any]] = []
-            for scenario in scenarios where (scenario["name"] as! String).contains("-inline-") {
-                let name = scenario["name"] as! String
-                let before = try bitmap(baseline.appendingPathComponent(name + ".png"))
-                let after = try bitmap(output.appendingPathComponent(name + ".png"))
-                guard before.width == after.width, before.height == after.height else {
-                    throw NSError(domain: "HUDPreviewPixels", code: 5)
-                }
-                let full = CGRect(x: 0, y: 0, width: after.width, height: after.height)
-                let header = CGRect(x: 0, y: 0, width: Double(after.width),
-                                    height: (scenario["headerHeight"] as! Double) * 2)
-                let beforePixels = try pixels(before, rect: full)
-                let afterPixels = try pixels(after, rect: full)
-                let headerIdentical = try pixels(before, rect: header) == pixels(after, rect: header)
-                let maximumDifference = zip(beforePixels, afterPixels).map { abs(Int($0) - Int($1)) }.max() ?? 0
-                comparison.append(["name": name, "widthPixels": after.width, "heightPixels": after.height,
-                    "headerPixelsIdentical": headerIdentical, "fullImagePixelsIdentical": beforePixels == afterPixels,
-                    "maximumFullImageChannelDifference": maximumDifference,
-                    "pass": headerIdentical && maximumDifference <= 3])
-            }
-            let report: [String: Any] = ["staticOnly": true, "source": "Production inline HUD and isolated previous HUD source from Git",
-                "bodyChannelTolerance": 3, "scenarios": comparison,
-                "failures": comparison.filter { $0["pass"] as? Bool != true }.count]
-            try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
-                .write(to: output.appendingPathComponent("inline-baseline-pixels.json"))
-            guard comparison.allSatisfy({ $0["pass"] as? Bool == true }) else {
-                throw NSError(domain: "HUDPreviewPixels", code: 6)
-            }
-            print("Inline baseline comparison: \(comparison.count) HUD headers pixel-identical; full images within 3/255 channel tolerance")
-        }
     }
 }

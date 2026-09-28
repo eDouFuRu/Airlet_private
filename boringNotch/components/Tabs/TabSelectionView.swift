@@ -29,6 +29,7 @@ private let tabs = [
 ]
 
 struct TabSelectionView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     var compact = false
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @Default(.boringShelf) private var shelfEnabled
@@ -90,7 +91,7 @@ struct TabSelectionView: View {
                         hover.hover(tab.view, isHovering: isHovering, current: coordinator.currentView)
                     }
                     .frame(height: 26)
-                    .foregroundStyle(tab.view == coordinator.currentView ? .white : .gray)
+                    .foregroundStyle(tab.view == coordinator.currentView ? islandAppearance.primary : islandAppearance.secondary)
                     .background {
                         if tab.view == coordinator.currentView {
                             Capsule()

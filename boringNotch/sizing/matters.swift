@@ -40,24 +40,29 @@ enum MusicPlayerImageSizes {
     return nil
 }
 
-@MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
-    // Default notch size, to avoid using optionals
-    var notchHeight: CGFloat = Defaults[.nonNotchHeight]
+@MainActor private var menuBarHeightCache = IslandMenuBarHeightCache()
+
+/// visibleFrame reports no top reservation while the menu bar is automatically hidden.
+/// Keep the last usable height for this screen instead of collapsing the wake-up target.
+@MainActor private func menuBarHeight(for screen: NSScreen) -> CGFloat {
+    let key = screen.displayUUID ?? screen.localizedName
+    let measured = screen.frame.maxY - screen.visibleFrame.maxY
+    return menuBarHeightCache.height(for: key, measured: measured,
+                                    systemHeight: NSStatusBar.system.thickness)
+}
+
+@MainActor func getIslandDisplayProfile(screen: NSScreen?) -> IslandDisplayProfile {
+    var notchHeight: CGFloat = Defaults[.notchHeight]
     var notchWidth: CGFloat = 120
-
-    var selectedScreen = NSScreen.main
-
-    if let uuid = screenUUID {
-        selectedScreen = NSScreen.screen(withUUID: uuid)
-    }
-
-    // Check if the screen is available
-    if let screen = selectedScreen {
+    var menuHeight: CGFloat = 24
+    if let screen {
+        menuHeight = menuBarHeight(for: screen)
         // Calculate and set the exact width of the notch
         if let topLeftNotchpadding: CGFloat = screen.auxiliaryTopLeftArea?.width,
            let topRightNotchpadding: CGFloat = screen.auxiliaryTopRightArea?.width
         {
-            notchWidth = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
+            let width = screen.frame.width - topLeftNotchpadding - topRightNotchpadding
+            if width > 0 { notchWidth = width }
         }
 
         // Check if the Mac has a notch
@@ -67,20 +72,21 @@ enum MusicPlayerImageSizes {
             if Defaults[.notchHeightMode] == .matchRealNotchSize {
                 notchHeight = screen.safeAreaInsets.top
             } else if Defaults[.notchHeightMode] == .matchMenuBar {
-                notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
-            }
-        } else {
-            // This is a display WITHOUT a notch - use non-notch height settings
-            notchHeight = Defaults[.nonNotchHeight]
-            if Defaults[.nonNotchHeightMode] == .matchMenuBar {
-                notchHeight = screen.frame.maxY - screen.visibleFrame.maxY
-            } else if Defaults[.nonNotchHeightMode] == .matchRealNotchSize {
-                notchHeight = 32 // A display without a camera cutout uses the documented capsule size.
+                notchHeight = menuHeight
             }
         }
     }
+    return IslandDisplayProfile(screenWidth: screen?.frame.width ?? 1440,
+                                safeTop: screen?.safeAreaInsets.top ?? 0,
+                                cameraWidth: notchWidth, nativeClosedHeight: notchHeight,
+                                menuBarHeight: menuHeight)
+}
 
-    // Custom geometry never advertises a height that the shell silently clamps away.
-    notchHeight = max(24, min(60, notchHeight))
-    return .init(width: notchWidth, height: notchHeight)
+@MainActor func getIslandDisplayProfile(screenUUID: String? = nil) -> IslandDisplayProfile {
+    let screen = screenUUID.flatMap { NSScreen.screen(withUUID: $0) } ?? NSScreen.main
+    return getIslandDisplayProfile(screen: screen)
+}
+
+@MainActor func getClosedNotchSize(screenUUID: String? = nil) -> CGSize {
+    getIslandDisplayProfile(screenUUID: screenUUID).compactSize
 }

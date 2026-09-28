@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Two symmetric wings around the exact camera gap, in both closed and open shells.
 struct InlineHUD: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @EnvironmentObject private var vm: BoringViewModel
     let state: SystemHUDState
     let layout: SystemHUDLayout
@@ -27,7 +28,7 @@ struct InlineHUD: View {
                 .padding(.horizontal, 10)
                 .frame(width: layout.wingWidth)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(islandAppearance.primary)
         .frame(height: layout.headerHeight)
         .accessibilityElement(children: .combine)
     }
@@ -35,6 +36,7 @@ struct InlineHUD: View {
 
 /// Default HUD adds one row below the header; the page body keeps its own height.
 struct SystemHUDRow: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let state: SystemHUDState
 
     var body: some View {
@@ -46,7 +48,7 @@ struct SystemHUDRow: View {
             SystemHUDValue(state: state, inline: false)
         }
         .padding(.horizontal, 16)
-        .foregroundStyle(.white)
+        .foregroundStyle(islandAppearance.primary)
         .frame(height: SystemHUDLayout.rowHeight)
         .accessibilityElement(children: .combine)
     }
@@ -60,6 +62,7 @@ struct SystemHUDRow: View {
 /// Only the *layout* is shared — the notice is driven by `expandingView`, not by
 /// `HUDStateManager`, so it never depends on accessibility authorisation.
 struct PowerNoticeRow: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject private var battery = BatteryStatusViewModel.shared
     let inline: Bool
     let layout: SystemHUDLayout
@@ -83,7 +86,7 @@ struct PowerNoticeRow: View {
                     .padding(.horizontal, 10)
                     .frame(width: layout.wingWidth, alignment: .trailing)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(islandAppearance.primary)
             .frame(height: layout.headerHeight)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text(L(battery.statusText)))
@@ -97,7 +100,7 @@ struct PowerNoticeRow: View {
                 glyph
             }
             .padding(.horizontal, 16)
-            .foregroundStyle(.white)
+            .foregroundStyle(islandAppearance.primary)
             .frame(height: SystemHUDLayout.rowHeight)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text(L(battery.statusText)))
@@ -119,7 +122,6 @@ struct PowerNoticeRow: View {
 
 private struct SystemHUDValue: View {
     @EnvironmentObject private var vm: BoringViewModel
-    @Default(.systemEventIndicatorUseAccent) private var useAccent
     let state: SystemHUDState
     let inline: Bool
 
@@ -138,26 +140,9 @@ private struct SystemHUDValue: View {
                     .font(.caption).lineLimit(1).frame(maxWidth: .infinity, alignment: .trailing)
             } else {
                 HStack(spacing: 6) {
-                    if inline {
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(.white.opacity(0.18))
-                                Capsule().fill(useAccent ? Color.effectiveAccent : .white)
-                                    .frame(width: geometry.size.width * state.value)
-                            }
-                            .contentShape(Rectangle())
-                            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                                guard geometry.size.width > 0 else { return }
-                                updateValue(drag.location.x / geometry.size.width)
-                            })
-                            .allowsHitTesting(vm.notchState == .open)
-                        }
-                        .frame(height: 6)
-                    } else {
-                        DraggableProgressBar(value: Binding(get: { CGFloat(state.value) }, set: updateValue))
-                            .frame(height: 9)
-                            .allowsHitTesting(vm.notchState == .open)
-                    }
+                    DraggableProgressBar(value: Binding(get: { CGFloat(state.value) }, set: updateValue))
+                        .frame(height: inline ? 6 : 9)
+                        .allowsHitTesting(vm.notchState == .open)
                     Text("\(Int((state.value * 100).rounded()))%")
                         .font(.system(size: 10, design: .rounded).monospacedDigit())
                         .fixedSize()
@@ -178,7 +163,7 @@ private struct SystemHUDValue: View {
     }
 }
 
-private extension SystemHUDState {
+extension SystemHUDState {
     var titleKey: String {
         switch activeKind {
         case .volume: return "Volume"

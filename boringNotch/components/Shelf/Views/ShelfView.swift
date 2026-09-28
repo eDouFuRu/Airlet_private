@@ -9,6 +9,7 @@ import SwiftUI
 import AppKit
 
 struct ShelfView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @EnvironmentObject var vm: BoringViewModel
     @StateObject var tvm = ShelfStateViewModel.shared
     @StateObject var selection = ShelfSelectionModel.shared
@@ -63,7 +64,7 @@ struct ShelfView: View {
             .stroke(
                 vm.dragDetectorTargeting
                     ? Color.accentColor.opacity(0.9)
-                    : Color.white.opacity(0.1),
+                    : islandAppearance.border,
                 style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [10])
             )
             .overlay {
@@ -91,11 +92,11 @@ struct ShelfView: View {
                 Text(undoChipTitle)
             }
             .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.white)
+            .foregroundStyle(islandAppearance.primary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Capsule().fill(Color.black.opacity(0.55)))
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.18)))
+            .background(Capsule().fill(islandAppearance.isFloating ? islandAppearance.popoverFill : Color.black.opacity(0.55)))
+            .overlay(Capsule().strokeBorder(islandAppearance.border))
         }
         .buttonStyle(.plain)
         .padding(8)
@@ -117,11 +118,11 @@ struct ShelfView: View {
                     Image(systemName: "tray.and.arrow.down")
                         .symbolVariant(.fill)
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white, .gray)
+                        .foregroundStyle(islandAppearance.primary, islandAppearance.secondary)
                         .imageScale(.large)
                     
                     Text("Drop files here")
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(islandAppearance.secondary)
                         .font(.system(.title3, design: .rounded))
                         .fontWeight(.medium)
                 }

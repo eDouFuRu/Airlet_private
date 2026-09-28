@@ -79,7 +79,7 @@ NotchLayout()
    - **快速重开是对的、隔一段时间（冷）展开就"从上滑下来"** —— 用户实测给出的分界线，机制如下：
      - 冷开启：没有任何在飞的动画事务时，`if isOpen` 新插入的页面按**最终提案**瞬间布局（帧实测：壳 424×119 时内容已是最终尺寸、整体上移 ~63pt 被上下裁切、与 header 重叠）→ 壳的生长退化成遮罩扫出；
      - 快速重开：上一次关闭弹簧还在飞行中，open 的变更并入在飞事务 → 内容按插值提案逐帧重排 = morph。
-   - **因此每一条打开路径都必须包 `withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8))`**（上游 `doOpen()` 正是这么写的）。已覆盖：悬停打开闭包、菜单「展开小岛」(`expandIsland`)、拖拽打开、DEBUG 诊断入口。**新增任何 open() 调用点必须同样包裹**，否则该路径冷开启必滑。
+   - **因此每一条打开路径都必须包 `withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8))`**（上游 `doOpen()` 正是这么写的）。已覆盖：悬停打开闭包、菜单「展开小岛」(`expandIsland`)、拖拽打开。**新增任何 open() 调用点必须同样包裹**，否则该路径冷开启必滑。
    - 关闭路径不包事务（与上游一致）：移除内容不需要提案插值，壳收缩由 `.animation(value:)` 驱动即可。
 3. **每个页面必须能纵向撑满提案**，否则壳会塌到内容理想高度（岛变矮）。四个页面当前的"弹性来源"：home 靠 MusicControlsView 的 GeometryReader、shelf 靠 RoundedRectangle 形状、tools 靠 ScrollView、pomodoro 自带 `.frame(maxWidth:.infinity, maxHeight:.infinity)`。页面区**不要加包装 frame**（上游就是裸挂）。
 4. **闭合态两翼宽度不能交给内容自然宽**：`.frame(width: visibleWidth)` 留在形状内侧是刻意的（闭合态 header 自然宽 ≠ `baseClosedWidth` 公式，去掉会让黑壳比物理刘海窄）。动这块前先理解 `baseClosedWidth`/`computedChinWidth` 两条平行链（见仓库根 README-Island.md）。
@@ -119,28 +119,15 @@ NotchLayout()
 3. 窗口永不抢键盘焦点（key/main 保持 false）；透明区域靠 `window.ignoresMouseEvents` 按光标位置动态穿透——新增动画元素不得破坏 `NotchPointerCoordinator` 的命中协商（`NotchPresentationReporter` 上报的几何就是命中区依据）。
 4. 悬停/命中改动要并入状态机 `inVisibleContent` 判定，否则"画得出来点不着"。
 5. HUD/brief 行插入只加高不压缩页面控件。
-6. 合成 HID 点击无法触发小岛悬停、弹不出菜单——**自动化验证只能靠 §7 的诊断入口**，不要用合成点击做对照实验后误判自己改坏了。
+6. 合成 HID 点击无法可靠触发小岛悬停；动画验证请结合真实悬停录屏，不要用无效的合成点击误判实现。
 7. 改用户可见文案要同步 `Localizable.xcstrings`（原位改，**严禁全表 sorted()**），跑 `python3 scripts/audit-localization.py`；纯逻辑改动进 `Interaction/Core/` 并配单测。
 8. 不要主动 `git commit`（用户明确开口才提交）。
 
 ## 7. 自验工具（不需要用户配合）
 
-### 7.1 程序化触发开合循环（DEBUG 构建才有）
+### 7.1 触发入口
 
-菜单栏图标右键 →「动画检查（20 次开合＋10 次反向）」→ 程序化跑 20 次 open/close + 10 次中途反向。
-代码入口：`boringNotch/boringNotchApp.swift` 的 `runInteractionCheck()`（菜单按钮在同一文件 `#if DEBUG` 段）。它调用 `entry.model.open(preferredPage: .home)` / `close(force: true)`，与悬停路径同动画管线（开已包 `withAnimation` 事务，与真实路径一致）。
-
-**程序化切 tab（DEBUG）**：菜单项「调试：切换到主页」/「调试：切换到番茄钟」，代码入口同一文件的 `switchTab(to:)`——它走 `keepExpandedForUserCommand()` + `withAnimation(.smooth) { coordinator.currentView = view }`，与真实 tab 点击同管线，用于连拍 tab 切换帧（§4.5 的 `.transition(.identity)` 瞬时就位就是用它帧验证的）。
-
-菜单也可用 AX 脚本点击（系统已授权辅助功能）：
-
-```applescript
-tell application "System Events" to tell process "Airlet"
-  click menu bar item 1 of menu bar 2
-  delay 0.5
-  click menu item "动画检查（20 次开合＋10 次反向）" of menu 1 of menu bar item 1 of menu bar 2
-end tell
-```
+菜单栏保留「展开小岛」用于手动冷开启。开发诊断与切页测试不再出现在菜单中；悬停路径需用真实鼠标动作和录屏观察。
 
 ### 7.2 帧连拍 + 逐帧分析
 
@@ -153,7 +140,7 @@ osascript -e 'tell application "System Events" to tell process "Airlet" to get {
 rm -rf /tmp/airlet-frames && mkdir -p /tmp/airlet-frames
 ( for i in $(seq -w 1 60); do screencapture -x -R583,1080,750,320 /tmp/airlet-frames/f_$i.png; done ) &
 sleep 0.6
-# 3) 触发动画（AX 点菜单「动画检查」，或请用户悬停）
+# 3) 触发动画（菜单「展开小岛」，或真实鼠标悬停）
 # 4) 分析：
 swift /tmp/frame-profile.swift   # 逐帧输出黑色壳 宽×高 + 亮色内容行分布
 swift /tmp/art-profile.swift     # 逐帧追踪专辑图（饱和红块）尺寸/位置 → 判定内容是 morph 还是被遮罩扫出
@@ -165,11 +152,11 @@ swift /tmp/art-profile.swift     # 逐帧追踪专辑图（饱和红块）尺寸
 
 ### 7.3.1 冷开启协议（必须遵守，否则测不出用户抱怨的场景）
 
-触发前让岛**静置 ≥10 秒**（确保所有弹簧完全收敛、无在飞事务），再触发一次打开。快速连开合时上一次动画还在飞行，即使代码有缺陷也会"看起来对"——这正是第 3 轮修复前漏判的原因。菜单路径用 §7.1 的「展开小岛」；悬停路径请用户配合触发。
+触发前让岛**静置 ≥10 秒**（确保所有弹簧完全收敛、无在飞事务），再触发一次打开。快速连开合时上一次动画还在飞行，即使代码有缺陷也会"看起来对"——这正是第 3 轮修复前漏判的原因。菜单路径用 §7.1 的「展开小岛」；悬停路径用真实鼠标动作触发。
 
 ### 7.4 同构建 A/B 法（归因利器）
 
-同一个二进制上，用**不同触发路径**对比同一动画阶段（例如：菜单「展开小岛」= 包事务路径 vs DEBUG「动画检查」旧版 = 裸调用路径）。若两条路径表现不同，差异就在路径代码里；若表现相同，差异在共享代码里。第 3 轮定位冷开启根因时就是用本法（裸路径冷开启钉住 vs 包事务路径冷开启 morph）。
+同一个二进制上，用**菜单「展开小岛」和真实悬停**对比同一动画阶段。若两条路径表现不同，差异就在路径代码里；若表现相同，差异在共享代码里。
 
 ### 7.3 逐帧分析脚本（当前放在 /tmp，会丢；建议收进仓库后使用）
 

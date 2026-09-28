@@ -23,6 +23,7 @@ struct MeasureSizeModifier: ViewModifier {
 }
 
 struct MarqueeText: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var text: String
     let font: Font
     let nsFont: NSFont.TextStyle
@@ -50,6 +51,21 @@ struct MarqueeText: View {
     }
     
     var body: some View {
+        if reduceMotion {
+            Text(text)
+                .font(font)
+                .foregroundStyle(textColor)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(width: frameWidth,
+                       height: NSFont.preferredFont(forTextStyle: nsFont).pointSize * 1.3,
+                       alignment: .leading)
+        } else {
+            scrollingContent
+        }
+    }
+
+    private var scrollingContent: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 HStack(spacing: 20) {
@@ -76,7 +92,7 @@ struct MarqueeText: View {
                     self.animate = false
                     self.offset = 0
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.01){
-                        if needsScrolling {
+                        if needsScrolling && !reduceMotion {
                             self.animate = true
                             self.offset = -(textSize.width + 10)
                             

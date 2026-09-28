@@ -1,7 +1,8 @@
 # Actual brief-row layout preview
 
 This isolated macOS fixture compiles the production `BriefPromptRow.swift` and
-captures it through `NSHostingView.cacheDisplay`. Its borderless hosting windows
+captures attached rows through `NSHostingView.cacheDisplay` and floating rows
+through SwiftUI `ImageRenderer`. Its borderless hosting windows
 are never ordered front, and the application uses activation policy `prohibited`.
 It does not launch the main application, read production defaults, read
 notifications, or change an accessibility preference.
@@ -34,12 +35,44 @@ and `layout-narrow` evidence is preserved separately:
   `NSWorkspace.icon(forFile:)` from `/Applications/hi.app` when installed.
 - `manifest.json`, `render-summary.json`, and `layout-audit.json`: source hashes,
   scope, and pixel measurements. Source hashes are checked again after rendering
-  so concurrent production edits cannot silently mix into one evidence set.
+  so concurrent production edits cannot silently mix into one evidence set. The
+  renderer and audit script are hashed too; the audit rejects stale inputs.
+- `overview-floating-h18.png` and `overview-floating-h24.png`: side-by-side light
+  and dark semantic-content contact sheets at 320-point width, with all eight
+  Chinese/English synthetic fixtures. Their labels explicitly exclude native
+  material evidence.
 
-The compact audit requires 32 actual fixtures, verifies all 1x/2x dimensions
+The compact audit now requires 224 actual fixtures (32 attached rows and 192 floating rows), verifies all 1x/2x dimensions
 against the shared height recorded by the renderer, confirms the requested
 28-point row and unchanged 40-point legacy row, and measures visible text
 against each row's own center. It also checks that text has top/bottom margins.
+
+The floating fixtures add 18- and 24-point compact rows in light and dark appearances,
+at 120-, 320- and 640-point widths, in Chinese and English, with normal and reduced
+motion. They use the actual production row, semantic palette and shared contour.
+Native `glassEffect` compiles in this harness but cannot be captured correctly by
+`NSHostingView.cacheDisplay` in a never-shown window: it produces a diagnostic
+material image instead of real content. The fixture therefore uses a deterministic
+backdrop, and manifests explicitly set `materialEvidence` and
+`nativeGlassVisualVerified` to `false`. These previews establish layout and ink
+contrast; native glass must be reviewed in a real application window.
+
+The floating rows use `ImageRenderer` because `cacheDisplay` also retained the
+first appearance of some SF Symbols across successive isolated hosts, producing
+white lyric icons on light backdrops even with an explicit AppKit appearance.
+The alternative renderer uses the same unmodified production view and semantic
+palette; no pixels are recolored or substituted after rendering.
+
+The current Liquid Glass validation artifacts are in
+`build/validation/liquid-glass/final-brief`; see the manifest for generation time
+and the exact source hashes. A complete run has 448 actual-row PNGs (224 fixtures
+at two scales), 8 reconstructed legacy PNGs, and 8 overview/comparison sheets.
+`../final-hud` contains 104 actual HUD and brief component snapshots plus 6 contact
+sheets, covering both languages, attached dark appearance and floating light/dark
+appearances, 18/24-point compact heights and 36-point expanded headers. Its expanded
+body is a labeled geometry fixture rather than a claim of actual page coverage.
+Both sets explicitly record `materialEvidence=false`; native glass, all actual
+pages, hover/click routing and multiple-display interaction require live review.
 
 The 2026-09-06 23:11 compact run passed once through rendering and once through
 the audit: all 64 actual PNGs have the requested dimensions; the 8 legacy PNGs

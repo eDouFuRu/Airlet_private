@@ -9,6 +9,7 @@ import Defaults
 import SwiftUI
 
 struct BoringHeader: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Default(.showBatteryIndicator) private var showBatteryIndicator
     @Default(.showMirror) private var showMirror
     @Default(.settingsIconInNotch) private var settingsIconInNotch
@@ -27,10 +28,10 @@ struct BoringHeader: View {
             .blur(radius: vm.notchState == .closed ? 20 : 0)
             .zIndex(2)
 
-            if vm.notchState == .open {
+            if vm.notchState == .open && vm.displayProfile.cameraExclusionWidth > 0 {
                 Rectangle()
-                    .fill(NSScreen.screen(withUUID: coordinator.selectedScreenUUID)?.safeAreaInsets.top ?? 0 > 0 ? .black : .clear)
-                    .frame(width: vm.closedNotchSize.width)
+                    .fill(.black)
+                    .frame(width: vm.displayProfile.cameraExclusionWidth)
                     .mask {
                         NotchShape()
                     }
@@ -44,11 +45,11 @@ struct BoringHeader: View {
                             vm.toggleCameraPreview()
                         }) {
                             Capsule()
-                                .fill(.black)
+                                .fill(islandAppearance.isFloating ? islandAppearance.controlFill : .black)
                                 .frame(width: 30, height: 30)
                                 .overlay {
                                     Image(systemName: "web.camera")
-                                        .foregroundColor(.white)
+                                        .foregroundColor(islandAppearance.primary)
                                         .padding()
                                         .imageScale(.medium)
                                 }
@@ -60,11 +61,11 @@ struct BoringHeader: View {
                             SettingsWindowController.shared.showWindow()
                         }) {
                             Capsule()
-                                .fill(.black)
+                                .fill(islandAppearance.isFloating ? islandAppearance.controlFill : .black)
                                 .frame(width: 30, height: 30)
                                 .overlay {
                                     Image(systemName: "gear")
-                                        .foregroundColor(.white)
+                                        .foregroundColor(islandAppearance.primary)
                                         .padding()
                                         .imageScale(.medium)
                                 }
@@ -91,7 +92,7 @@ struct BoringHeader: View {
             .blur(radius: vm.notchState == .closed ? 20 : 0)
             .zIndex(2)
         }
-        .foregroundColor(.gray)
+        .foregroundColor(islandAppearance.secondary)
         .environmentObject(vm)
     }
 }

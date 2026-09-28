@@ -45,6 +45,7 @@ import SwiftUI
 }
 
 struct SystemToolsPage: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @EnvironmentObject private var vm: BoringViewModel
     @ObservedObject private var configuration = SystemToolConfigurationStore.shared
     @ObservedObject private var capture = CaptureTools.shared
@@ -55,13 +56,13 @@ struct SystemToolsPage: View {
             HStack {
                 Label(L("Quick tools"), systemImage: "square.grid.2x2.fill").font(.system(size: 12, weight: .semibold))
                 Label(L("Drag handles to reorder"), systemImage: "line.3.horizontal")
-                    .font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.62))
+                    .font(.system(size: 10, weight: .medium)).foregroundStyle(islandAppearance.primary.opacity(0.62))
                     .help(L("Hold a handle and drag to reorder. Changes are saved immediately."))
                 Spacer()
                 Button { capture.importClipboardFiles() } label: { Label(L("Save clipboard files"), systemImage: "doc.on.clipboard") }
                     .help(L("Save whatever was copied by hi, WeChat, Finder or another app to the shelf, keeping the original file format."))
                 Button { SettingsWindowController.shared.showToolsSettings() } label: { Label(L("Customize"), systemImage: "slider.horizontal.3") }
-            }.font(.system(size: 11)).buttonStyle(.plain).foregroundStyle(.white.opacity(0.8))
+            }.font(.system(size: 11)).buttonStyle(.plain).foregroundStyle(islandAppearance.primary.opacity(0.8))
                 .frame(height: SystemToolGridMetrics.pageHeaderHeight)
             ScrollView {
                 if configuration.selectedTools.isEmpty {
@@ -122,9 +123,9 @@ struct SystemToolsPage: View {
             VStack(spacing: 4) {
                 SystemToolGlyph(tool: tool).font(.system(size: 18, weight: .medium)).frame(height: 22)
                 Text(L(tool.titleKey)).font(.system(size: 11, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
-                Text(L(installed ? actionLabel : "Not installed")).font(.system(size: 8)).foregroundStyle(.white.opacity(0.5))
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
+                Text(L(installed ? actionLabel : "Not installed")).font(.system(size: 8)).foregroundStyle(islandAppearance.primary.opacity(0.5))
+            }.foregroundStyle(islandAppearance.primary.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
+                .background(RoundedRectangle(cornerRadius: 12).fill(islandAppearance.controlFill))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain).help(L(tool.titleKey) + " · " + L(helpLabel))
             .accessibilityLabel(L(tool.titleKey)).accessibilityHint(L(tool.id == .recordCustom ? "Choose a screen or window. Video only; no system audio or microphone." : tool.behavior.labelKey))
@@ -160,6 +161,7 @@ struct SystemToolsPage: View {
 }
 
 private struct SystemToolTimeMachineTile: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject private var backup = SystemTimeMachineControl.shared
     private var status: String {
         if backup.isBusy { return L("Checking backup status…") }
@@ -181,9 +183,9 @@ private struct SystemToolTimeMachineTile: View {
                 Image(systemName: "clock.arrow.circlepath").font(.system(size: 18, weight: .medium)).frame(height: 22)
                 Text(L("Time Machine")).font(.system(size: 11, weight: .medium))
                 Text(status).font(.system(size: 8))
-                    .foregroundStyle(backup.errorKey == nil ? Color.white.opacity(0.5) : .orange)
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
+                    .foregroundStyle(backup.errorKey == nil ? islandAppearance.primary.opacity(0.5) : .orange)
+            }.foregroundStyle(islandAppearance.primary.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
+                .background(RoundedRectangle(cornerRadius: 12).fill(islandAppearance.controlFill))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain).disabled(backup.isBusy)
             .help(L(backup.errorKey ?? "Starts or stops the configured backup. Controls are unavailable when macOS backup status cannot be read."))
@@ -193,6 +195,7 @@ private struct SystemToolTimeMachineTile: View {
 }
 
 private struct SystemToolAppearanceTile: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject private var appearance = SystemAppearanceControl.shared
     private var status: String {
         if appearance.isBusy { return L("Changing appearance…") }
@@ -205,9 +208,9 @@ private struct SystemToolAppearanceTile: View {
             VStack(spacing: 4) {
                 Image(systemName: "moon").font(.system(size: 18, weight: .medium)).frame(height: 22)
                 Text(L("Dark Mode")).font(.system(size: 11, weight: .medium))
-                Text(status).font(.system(size: 8)).foregroundStyle(appearance.errorKey == nil ? Color.white.opacity(0.5) : .orange)
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
+                Text(status).font(.system(size: 8)).foregroundStyle(appearance.errorKey == nil ? islandAppearance.primary.opacity(0.5) : .orange)
+            }.foregroundStyle(islandAppearance.primary.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
+                .background(RoundedRectangle(cornerRadius: 12).fill(islandAppearance.controlFill))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain).disabled(appearance.isBusy)
             .help(L(appearance.errorKey ?? "Toggle Dark Mode"))
@@ -217,6 +220,7 @@ private struct SystemToolAppearanceTile: View {
 }
 
 private struct SystemToolWifiTile: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @ObservedObject private var wifi = SystemWifiControl.shared
     private var status: String {
         if wifi.isBusy { return L("Reading hardware…") }
@@ -236,9 +240,9 @@ private struct SystemToolWifiTile: View {
                 Image(systemName: wifi.enabled == false ? "wifi.slash" : "wifi")
                     .font(.system(size: 18, weight: .medium)).frame(height: 22)
                 Text(L("Wi-Fi")).font(.system(size: 11, weight: .medium))
-                Text(status).font(.system(size: 8)).foregroundStyle(wifi.errorKey == nil ? Color.white.opacity(0.5) : .orange)
-            }.foregroundStyle(.white.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
+                Text(status).font(.system(size: 8)).foregroundStyle(wifi.errorKey == nil ? islandAppearance.primary.opacity(0.5) : .orange)
+            }.foregroundStyle(islandAppearance.primary.opacity(0.92)).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
+                .background(RoundedRectangle(cornerRadius: 12).fill(islandAppearance.controlFill))
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain)
             .help(L(wifi.errorKey ?? "Open Wi-Fi settings"))
@@ -257,6 +261,7 @@ private struct SystemToolWifiTile: View {
 }
 
 private struct SystemToolSliderTile: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let tool: SystemToolDefinition
     let kind: SystemToolSlider
     @ObservedObject private var volume = VolumeManager.shared
@@ -293,7 +298,7 @@ private struct SystemToolSliderTile: View {
                 Text("\(Int((actual * 100).rounded()))%").monospacedDigit().font(.system(size: 9)).foregroundStyle(.secondary)
             }
         }.padding(.horizontal, 9).frame(maxWidth: .infinity).frame(height: SystemToolGridMetrics.cardHeight)
-            .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.08)))
+            .background(RoundedRectangle(cornerRadius: 12).fill(islandAppearance.controlFill))
             .onAppear { refresh() }
     }
     private func refresh() {

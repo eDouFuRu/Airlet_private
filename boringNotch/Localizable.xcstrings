@@ -2795,40 +2795,6 @@
         }
       }
     },
-    "Animation and window diagnostics": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Animation and window diagnostics"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "动画与窗口检查"
-          }
-        }
-      }
-    },
-    "Animation diagnostics (20 + 10 cycles)": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Animation diagnostics (20 + 10 cycles)"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "动画检查（20 次开合＋10 次反向）"
-          }
-        }
-      }
-    },
     "App icon": {
       "localizations": {
         "ar": {
@@ -5280,23 +5246,6 @@
         }
       }
     },
-    "Carrier window position changed": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carrier window position changed"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "承载窗口位置发生变化"
-          }
-        }
-      }
-    },
     "Change media with horizontal gestures": {
       "localizations": {
         "ar": {
@@ -7737,23 +7686,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "圆角随展开缩放"
-          }
-        }
-      }
-    },
-    "Could not save diagnostics: %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Could not save diagnostics: %@"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法保存诊断记录：%@"
           }
         }
       }
@@ -12211,23 +12143,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "前进 15 秒"
-          }
-        }
-      }
-    },
-    "Frontmost app changed (exclude manual switching)": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Frontmost app changed (exclude manual switching)"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前台应用发生变化（需排除主动切换）"
           }
         }
       }
@@ -21431,23 +21346,6 @@
         }
       }
     },
-    "Ran 20 open/close cycles and 10 mid-animation reversals.\nCaptured %lld geometry and mouse-routing samples.\n%@\nSamples: %@\nReview the samples and real hovering separately; this check does not synthesize mouse input.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ran 20 open/close cycles and 10 mid-animation reversals.\nCaptured %lld geometry and mouse-routing samples.\n%@\nSamples: %@\nReview the samples and real hovering separately; this check does not synthesize mouse input."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已运行 20 次展开收起和 10 次动画中途反向。\n采集 %lld 帧几何与鼠标路由记录。\n%@\n逐帧记录：%@\n请结合记录和真人悬停单独评估手感；本检查没有合成鼠标输入。"
-          }
-        }
-      }
-    },
     "Read-only technical details about this application, its permissions, and the most recent media key event.": {
       "extractionState": "manual",
       "localizations": {
@@ -24226,6 +24124,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "显示日历"
+          }
+        }
+      }
+    },
+    "Show emoji animation while inactive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show emoji animation while inactive"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "闲置时显示表情动画"
+          }
+        }
+      }
+    },
+    "Left text or emojis": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left text or emojis"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左侧文字或表情"
+          }
+        }
+      }
+    },
+    "Right text or emojis": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right text or emojis"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右侧文字或表情"
+          }
+        }
+      }
+    },
+    "Up to three characters per side; combined emoji counts as one.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to three characters per side; combined emoji counts as one."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每侧最多三个字符；组合表情算一个字符。"
           }
         }
       }
@@ -27275,23 +27241,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已请求切换输入法，但无法确认当前状态。"
-          }
-        }
-      }
-    },
-    "The panel became the keyboard window": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The panel became the keyboard window"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "面板取得了键盘焦点"
           }
         }
       }
@@ -30425,23 +30374,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "窗口截屏"
-          }
-        }
-      }
-    },
-    "Window position and nonactivation checks passed.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Window position and nonactivation checks passed."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "窗口位置与非激活属性检查通过。"
           }
         }
       }
@@ -33690,19 +33622,19 @@
         }
       }
     },
-    "播放时在专辑封面周围叠一层随封面取色的柔光。此前叫「封面背后模糊」，但那个效果从未被绘制，名字与实际不符。": {
+    "Glow follows album art colors while music plays and fades out when paused.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lays a soft glow, tinted from the artwork, around the album art while playing. This was previously labelled “blur behind album art”, but that effect was never drawn — the name did not match what happened."
+            "value": "Glow follows album art colors while music plays and fades out when paused."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "播放时在专辑封面周围叠一层随封面取色的柔光。此前叫「封面背后模糊」，但那个效果从未被绘制，名字与实际不符。"
+            "value": "播放时显示随专辑封面配色变化的辉光，暂停时淡出。"
           }
         }
       }
@@ -34625,40 +34557,6 @@
         }
       }
     },
-    "Debug: switch to Pomodoro tab": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Debug: switch to Pomodoro tab"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "调试：切换到番茄钟"
-          }
-        }
-      }
-    },
-    "Debug: switch to Home tab": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Debug: switch to Home tab"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "调试：切换到主页"
-          }
-        }
-      }
-    },
     "h": {
       "extractionState": "manual",
       "localizations": {
@@ -34795,278 +34693,646 @@
         }
       }
     },
-  "圆环方向": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Ring direction"
+    "圆环方向": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ring direction"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圆环方向"
+          }
         }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "圆环方向"
+      }
+    },
+    "从空到满": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty to full"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从空到满"
+          }
+        }
+      }
+    },
+    "从满到空": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full to empty"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从满到空"
+          }
+        }
+      }
+    },
+    "倒计时圆环": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Countdown ring"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "倒计时圆环"
+          }
+        }
+      }
+    },
+    "仅影响倒计时圆环，正计时仍每小时累积一圈。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only affects the countdown ring. Count-up still adds one lap per hour."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅影响倒计时圆环，正计时仍每小时累积一圈。"
+          }
+        }
+      }
+    },
+    "周": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "W"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周"
+          }
+        }
+      }
+    },
+    "月": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月"
+          }
+        }
+      }
+    },
+    "年": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Y"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年"
+          }
+        }
+      }
+    },
+    "周视图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Week view"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周视图"
+          }
+        }
+      }
+    },
+    "月视图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Month view"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月视图"
+          }
+        }
+      }
+    },
+    "年视图": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Year view"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年视图"
+          }
+        }
+      }
+    },
+    "本月总计": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月总计"
+          }
+        }
+      }
+    },
+    "该月总计": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Month total"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该月总计"
+          }
+        }
+      }
+    },
+    "本年总计": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This year"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本年总计"
+          }
+        }
+      }
+    },
+    "该年总计": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Year total"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该年总计"
+          }
+        }
+      }
+    },
+    "返回本月": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回本月"
+          }
+        }
+      }
+    },
+    "返回本年": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This year"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回本年"
+          }
+        }
+      }
+    },
+    "展开延迟": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hover delay"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开延迟"
+          }
+        }
+      }
+    },
+    "%.1f s": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%.1f s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%.1f s"
+          }
+        }
+      }
+    },
+    "鼠标停留在物理刘海区域时先显示阴影，达到设定时间后展开。两侧状态展示不会触发展开。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hover over the physical notch to show its shadow. The island opens after the chosen delay. Side indicators do not trigger it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鼠标停留在物理刘海区域时先显示阴影，达到设定时间后展开。两侧状态展示不会触发展开。"
+          }
+        }
+      }
+    },
+    "软件更新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Software updates"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "软件更新"
+          }
+        }
+      }
+    },
+    "自动检查更新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically check for updates"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动检查更新"
+          }
+        }
+      }
+    },
+    "自动下载更新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically download updates"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动下载更新"
+          }
+        }
+      }
+    },
+    "检查更新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for updates"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新"
+          }
+        }
+      }
+    },
+    "更新包下载后保存在本机，安装需要手动完成。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded updates are saved on this Mac. Install them manually."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新包下载后保存在本机，安装需要手动完成。"
+          }
+        }
+      }
+    },
+    "暂无可用的 Airlet 发布版本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Airlet release is available yet"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无可用的 Airlet 发布版本"
+          }
+        }
+      }
+    },
+    "当前已是最新版本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Airlet is up to date"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前已是最新版本"
+          }
+        }
+      }
+    },
+    "已下载 Airlet %@，请手动安装": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Airlet %@ downloaded. Install it manually."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已下载 Airlet %@，请手动安装"
+          }
+        }
+      }
+    },
+    "发现 Airlet %@ 新版本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Airlet %@ is available"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发现 Airlet %@ 新版本"
+          }
+        }
+      }
+    },
+    "检查更新失败，请稍后重试": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not check for updates. Try again later."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新失败，请稍后重试"
+          }
+        }
+      }
+    },
+    "在访达中显示更新包": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show update in Finder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示更新包"
+          }
+        }
+      }
+    },
+    "检查更新结果": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update check result"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新结果"
+          }
+        }
+      }
+    },
+    "好": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        }
+      }
+    },
+    "Island on non-notch displays": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Island on non-notch displays"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无刘海屏幕上的灵动岛"
+          }
+        }
+      }
+    },
+    "Automatically matches the menu bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically matches the menu bar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动匹配菜单栏高度"
+          }
+        }
+      }
+    },
+    "The floating glass capsule fits inside the menu bar with 3 pt above and below. Its full surface can display content.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The floating glass capsule fits inside the menu bar with 3 pt above and below. Its full surface can display content."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "悬浮玻璃胶囊位于菜单栏内，上下各留 3 pt 间隙，整个胶囊区域均可显示内容。"
+          }
+        }
+      }
+    },
+    "Auto-hide on non-notch displays": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-hide on non-notch displays"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无刘海屏幕自动隐藏"
+          }
+        }
+      }
+    },
+    "Hover at the top center to reveal the island. Volume, brightness, charging, notifications, song changes and completed focus sessions can briefly reveal it. Pinned shelf, menus and dialogs keep it visible.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hover at the top center to reveal the island. Volume, brightness, charging, notifications, song changes and completed focus sessions can briefly reveal it. Pinned shelf, menus and dialogs keep it visible."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鼠标移至屏幕顶部中央即可显示小岛。音量、亮度、充电、通知、歌曲切换及专注完成时会短暂显示。暂存区固定展开、菜单及弹窗使用期间保持可见。"
+          }
+        }
+      }
+    },
+    "On notch displays, hover over the physical notch to expand; side status areas do not trigger expansion. On non-notch displays, hover anywhere on the floating capsule to expand after this delay.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On notch displays, hover over the physical notch to expand; side status areas do not trigger expansion. On non-notch displays, hover anywhere on the floating capsule to expand after this delay."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刘海屏：鼠标停留在物理刘海区域达到设定时间后展开，两侧状态区域不会触发展开。无刘海屏：鼠标停留在整个悬浮胶囊内均可延迟展开。"
+          }
+        }
+      }
+    },
+    "Pomodoro completed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pomodoro completed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番茄钟已完成"
+          }
         }
       }
     }
-  },
-  "从空到满": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Empty to full"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "从空到满"
-        }
-      }
-    }
-  },
-  "从满到空": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Full to empty"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "从满到空"
-        }
-      }
-    }
-  },
-  "倒计时圆环": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Countdown ring"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "倒计时圆环"
-        }
-      }
-    }
-  },
-  "仅影响倒计时圆环，正计时仍每小时累积一圈。": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Only affects the countdown ring. Count-up still adds one lap per hour."
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "仅影响倒计时圆环，正计时仍每小时累积一圈。"
-        }
-      }
-    }
-  },
-  "周": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "W"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "周"
-        }
-      }
-    }
-  },
-  "月": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "M"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "月"
-        }
-      }
-    }
-  },
-  "年": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Y"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "年"
-        }
-      }
-    }
-  },
-  "周视图": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Week view"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "周视图"
-        }
-      }
-    }
-  },
-  "月视图": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Month view"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "月视图"
-        }
-      }
-    }
-  },
-  "年视图": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Year view"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "年视图"
-        }
-      }
-    }
-  },
-  "本月总计": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "This month"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "本月总计"
-        }
-      }
-    }
-  },
-  "该月总计": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Month total"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "该月总计"
-        }
-      }
-    }
-  },
-  "本年总计": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "This year"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "本年总计"
-        }
-      }
-    }
-  },
-  "该年总计": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "Year total"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "该年总计"
-        }
-      }
-    }
-  },
-  "返回本月": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "This month"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "返回本月"
-        }
-      }
-    }
-  },
-  "返回本年": {
-    "localizations": {
-      "en": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "This year"
-        }
-      },
-      "zh-Hans": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "返回本年"
-        }
-      }
-    }
-  }
   },
   "version": "1.0"
 }

@@ -20,12 +20,14 @@ struct Config: Equatable {
 }
 
 struct WheelPicker: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Environment(\.locale) private var locale
     @EnvironmentObject var vm: BoringViewModel
     @Binding var selectedDate: Date
     @State private var scrollPosition: Int?
     @State private var haptics: Bool = false
-    @State private var byClick: Bool = false
+    @State private var isPositioned = false
+    @State private var isUserScrolling = false
     let config: Config
 
     var body: some View {
@@ -44,11 +46,10 @@ struct WheelPicker: View {
                         let date = dateForItemIndex(index: index, spacerNum: spacerNum)
                         let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
                         dateButton(date: date, isSelected: isSelected, id: index) {
-                            selectedDate = date
-                            byClick = true
                             withAnimation {
                                 scrollPosition = index
                             }
+                            selectedDate = date
                             if Defaults[.enableHaptics] {
                                 haptics.toggle()
                             }
@@ -60,30 +61,53 @@ struct WheelPicker: View {
             .scrollTargetLayout()
         }
         .scrollIndicators(.never)
-        .scrollPosition(id: $scrollPosition, anchor: .center)
-        .scrollTargetBehavior(.viewAligned)  // Ensures scroll view snaps the centered view
+        // In Airlet's wider calendar column, a centered target makes today the third
+        // complete cell. Align it slightly left so yesterday is first and today second.
+        .scrollPosition(id: $scrollPosition, anchor: UnitPoint(x: 0.4, y: 0.5))
+        .scrollTargetBehavior(.viewAligned)
         .safeAreaPadding(.horizontal)
         .sensoryFeedback(.alignment, trigger: haptics)
-        .onChange(of: scrollPosition) { oldValue, newValue in
-            if !byClick {
+        .opacity(isPositioned ? 1 : 0)
+        .onChange(of: scrollPosition) { _, newValue in
+            // Match upstream: update on every day crossed, so each step can emit its
+            // alignment haptic. Ignore the scroll view's initial layout write-back.
+            if isPositioned && isUserScrolling {
                 handleScrollChange(newValue: newValue, config: config)
-            } else {
-                byClick = false
+            }
+        }
+        .onScrollPhaseChange { _, phase in
+            if phase == .interacting || phase == .decelerating {
+                isUserScrolling = true
+            } else if phase == .idle, isUserScrolling {
+                isUserScrolling = false
+                handleScrollChange(newValue: scrollPosition, config: config)
             }
         }
         .onAppear {
-            scrollToToday(config: config)
-        }
-        // When parent updates the bound selectedDate (e.g., view reopen), center the wheel on it
-        .onChange(of: selectedDate) { _, newValue in
-            let targetIndex = indexForDate(newValue)
-            if scrollPosition != targetIndex {
-                byClick = true
-                withAnimation {
-                    scrollPosition = targetIndex
+            // The scroll view writes its first visible ID back during layout. Do not treat
+            // that ID as a user selection; position it after mounting, before revealing it.
+            isPositioned = false
+            DispatchQueue.main.async {
+                positionWithoutAnimation(on: selectedDate)
+                DispatchQueue.main.async {
+                    positionWithoutAnimation(on: selectedDate)
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) { isPositioned = true }
                 }
             }
         }
+        .onChange(of: selectedDate) { _, newValue in
+            if !isUserScrolling { positionWithoutAnimation(on: newValue) }
+        }
+    }
+
+    private func positionWithoutAnimation(on date: Date) {
+        let targetIndex = indexForDate(date)
+        guard scrollPosition != targetIndex else { return }
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { scrollPosition = targetIndex }
     }
 
     private func dateButton(
@@ -107,7 +131,7 @@ struct WheelPicker: View {
     private func dayText(date: String, isToday: Bool, isSelected: Bool) -> some View {
         Text(date)
             .font(.caption)
-            .foregroundColor(isSelected ? .white : Color(white: 0.65))
+            .foregroundColor(isSelected ? .white : islandAppearance.secondary)
     }
 
     private func dateCircle(date: Date, isToday: Bool, isSelected: Bool) -> some View {
@@ -122,7 +146,7 @@ struct WheelPicker: View {
             Text("\(date.date)")
                 .font(.body)
                 .fontWeight(.medium)
-                .foregroundColor(isSelected ? .white : Color(white: isToday ? 0.9 : 0.65))
+                .foregroundColor(isSelected || isToday ? .white : islandAppearance.secondary)
         }
     }
 
@@ -138,13 +162,6 @@ struct WheelPicker: View {
                 haptics.toggle()
             }
         }
-    }
-
-    private func scrollToToday(config: Config) {
-        let today = Date()
-        byClick = true
-        scrollPosition = indexForDate(today)
-        selectedDate = today
     }
 
     // MARK: - Index/Date mapping with steps and spacers
@@ -182,6 +199,7 @@ struct WheelPicker: View {
 }
 
 struct CalendarView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Environment(\.locale) private var locale
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject private var calendarManager = CalendarManager.shared
@@ -197,27 +215,25 @@ struct CalendarView: View {
                         Text(selectedDate.formatted(.dateTime.month(.abbreviated).locale(locale)))
                             .font(.title3)
                             .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                            .foregroundColor(islandAppearance.primary)
                         Text(selectedDate.formatted(.dateTime.year().locale(locale)))
                             .font(.title3)
                             .fontWeight(.light)
-                            .foregroundColor(Color(white: 0.65))
+                            .foregroundColor(islandAppearance.secondary)
                     }
 
-                    ZStack(alignment: .top) {
-                        WheelPicker(selectedDate: $selectedDate, config: Config())
-                        HStack(alignment: .top) {
-                            LinearGradient(
-                                colors: [Color.black, .clear], startPoint: .leading, endPoint: .trailing
-                            )
-                            .frame(width: 20)
-                            Spacer()
-                            LinearGradient(
-                                colors: [.clear, Color.black], startPoint: .leading, endPoint: .trailing
-                            )
-                            .frame(width: 20)
+                    WheelPicker(selectedDate: $selectedDate, config: Config())
+                        .mask {
+                            // Fade the content itself: opaque black edge overlays would
+                            // paint bars on top of the floating glass surface.
+                            HStack(spacing: 0) {
+                                LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+                                    .frame(width: 20)
+                                Color.black
+                                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                                    .frame(width: 20)
+                            }
                         }
-                    }
                 }
             }
 
@@ -251,17 +267,15 @@ struct CalendarView: View {
                 await calendarManager.updateCurrentDate(selectedDate)
             }
         }
-        .onChange(of: vm.notchState) { _, _ in
-            Task {
-                await calendarManager.updateCurrentDate(Date.now)
-                selectedDate = Date.now
-            }
-        }
         .onAppear {
+            if !Calendar.current.isDateInToday(selectedDate) {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { selectedDate = Date.now }
+            }
             Task {
                 await calendarManager.reloadCalendarAndReminderLists()
                 await calendarManager.updateCurrentDate(Date.now)
-                selectedDate = Date.now
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -315,24 +329,26 @@ struct CalendarView: View {
 }
 
 struct EmptyEventsView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     let selectedDate: Date
     
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: "calendar.badge.checkmark")
                 .font(.title)
-                .foregroundColor(Color(white: 0.65))
+                .foregroundColor(islandAppearance.secondary)
             Text(L(Calendar.current.isDateInToday(selectedDate) ? "No events today" : "No events"))
                 .font(.subheadline)
-                .foregroundColor(.white)
+                .foregroundColor(islandAppearance.primary)
             Text(L("Enjoy your free time!"))
                 .font(.caption)
-                .foregroundColor(Color(white: 0.65))
+                .foregroundColor(islandAppearance.secondary)
         }
     }
 }
 
 struct EventListView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @Environment(\.openURL) private var openURL
     @ObservedObject private var calendarManager = CalendarManager.shared
     let events: [EventModel]
@@ -449,7 +465,7 @@ struct EventListView: View {
                     HStack {
                         Text(event.title)
                             .font(.callout)
-                            .foregroundColor(.white)
+                            .foregroundColor(islandAppearance.primary)
                             .lineLimit(showFullEventTitles ? nil : 1)
                         Spacer(minLength: 0)
                         VStack(alignment: .trailing, spacing: 4) {
@@ -457,11 +473,11 @@ struct EventListView: View {
                                 Text(L("All-day"))
                                     .font(.caption)
                                     .fontWeight(.medium)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(islandAppearance.primary)
                                     .lineLimit(1)
                             } else {
                                 Text(event.start, style: .time)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(islandAppearance.primary)
                                     .font(.caption)
                             }
                         }
@@ -487,13 +503,13 @@ struct EventListView: View {
                         Text(event.title)
                             .font(.callout)
                             .fontWeight(.medium)
-                            .foregroundColor(.white)
+                            .foregroundColor(islandAppearance.primary)
                             .lineLimit(showFullEventTitles ? nil : 2)
 
                         if let location = event.location, !location.isEmpty {
                             Text(location)
                                 .font(.caption)
-                                .foregroundColor(Color(white: 0.65))
+                                .foregroundColor(islandAppearance.secondary)
                                 .lineLimit(1)
                         }
                     }
@@ -503,13 +519,13 @@ struct EventListView: View {
                             Text(L("All-day"))
                                 .font(.caption)
                                 .fontWeight(.medium)
-                                .foregroundColor(.white)
+                                .foregroundColor(islandAppearance.primary)
                                 .lineLimit(1)
                         } else {
                             Text(event.start, style: .time)
-                                .foregroundColor(.white)
+                                .foregroundColor(islandAppearance.primary)
                             Text(event.end, style: .time)
-                                .foregroundColor(Color(white: 0.65))
+                                .foregroundColor(islandAppearance.secondary)
                         }
                     }
                     .font(.caption)

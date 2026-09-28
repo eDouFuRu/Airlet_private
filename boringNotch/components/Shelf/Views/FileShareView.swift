@@ -11,6 +11,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct FileShareView: View {
+    @Environment(\.islandAppearance) private var islandAppearance
     @EnvironmentObject private var vm: BoringViewModel
     @StateObject private var quickShare = QuickShareService.shared
     @Default(.quickShareProvider) var quickShareProvider: String
@@ -47,24 +48,27 @@ struct FileShareView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(
-                    LinearGradient(colors: [Color.black.opacity(0.35), Color.black.opacity(0.20)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    LinearGradient(colors: islandAppearance.isFloating
+                        ? [islandAppearance.controlFill, islandAppearance.controlFill.opacity(0.6)]
+                        : [Color.black.opacity(0.35), Color.black.opacity(0.20)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(
                             vm.dropZoneTargeting
                                 ? Color.accentColor.opacity(0.9)
-                                : Color.white.opacity(0.1),
+                                : islandAppearance.border,
                             style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [10])
                         )
                 )
-                .shadow(color: Color.black.opacity(0.6), radius: 6, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(islandAppearance.isFloating ? 0.08 : 0.6), radius: 6, x: 0, y: 2)
 
             // Content
             VStack(spacing: 5) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(
+                        .fill(islandAppearance.primary.opacity(
                             vm.dropZoneTargeting ? 0.11 : 0.09
                         ))
                         .frame(width: 55, height: 55)
@@ -80,7 +84,7 @@ struct FileShareView: View {
                     }
                     .frame(width: 34, height: 34)
                         .foregroundStyle(
-                            vm.dropZoneTargeting ? Color.accentColor : Color.gray
+                            vm.dropZoneTargeting ? Color.accentColor : islandAppearance.secondary
                         )
                         .scaleEffect(
                             vm.dropZoneTargeting ? 1.06 : 1.0
@@ -90,7 +94,7 @@ struct FileShareView: View {
 
                 Text(selectedProvider.id)
                     .font(.system(.headline, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(islandAppearance.primary.opacity(0.8))
 
             }
             .padding(18)
@@ -98,10 +102,10 @@ struct FileShareView: View {
             // Loading overlay
             if isProcessing || quickShare.isPickerOpen {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(.black.opacity(0.3))
+                    .fill(islandAppearance.isFloating ? islandAppearance.controlFill : .black.opacity(0.3))
                     .overlay(
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .progressViewStyle(CircularProgressViewStyle(tint: islandAppearance.primary))
                             .scaleEffect(0.8)
                     )
             }

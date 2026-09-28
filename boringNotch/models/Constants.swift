@@ -76,9 +76,14 @@ extension Defaults.Keys {
     static let releaseName = Key<String>("releaseName", default: "Flying Rabbit 🐇🪽")
     
     // MARK: Behavior
-    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.15)
+    /// Dwell over the physical notch or floating capsule before opening.
+    /// Zero opens on the first pointer event.
+    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.30)
     static let enableHaptics = Key<Bool>("enableHaptics", default: true)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
+    static let autoHideFloatingIsland = Key<Bool>("autoHideFloatingIsland", default: true)
+    static let automaticallyCheckAirletUpdates = Key<Bool>("automaticallyCheckAirletUpdates", default: true)
+    static let automaticallyDownloadAirletUpdates = Key<Bool>("automaticallyDownloadAirletUpdates", default: false)
     /// How long the pointer must stay outside the island before it collapses. The old
     /// 0.1s made brushing past an edge enough to lose the page being worked in.
     static let notchCloseDelay = Key<TimeInterval>("notchCloseDelay", default: 0.28)
@@ -128,6 +133,8 @@ extension Defaults.Keys {
     static let cornerRadiusScaling = Key<Bool>("cornerRadiusScaling", default: true)
 
     static let showNotHumanFace = Key<Bool>("showNotHumanFace", default: false)
+    static let idleLeftEmojis = Key<String>("idleLeftEmojis", default: "")
+    static let idleRightEmojis = Key<String>("idleRightEmojis", default: "🙂")
     static let tileShowLabels = Key<Bool>("tileShowLabels", default: false)
     static let showCalendar = Key<Bool>("showCalendar", default: true)
     static let hideCompletedReminders = Key<Bool>("hideCompletedReminders", default: true)
