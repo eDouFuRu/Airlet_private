@@ -131,6 +131,11 @@ extension Defaults.Keys {
     static let lightingEffect = Key<Bool>("lightingEffect", default: true)
     static let enableShadow = Key<Bool>("enableShadow", default: true)
     static let cornerRadiusScaling = Key<Bool>("cornerRadiusScaling", default: true)
+    /// 0 is more solid, 1 more transparent; the midpoint retains the original
+    /// floating clear-glass appearance. Physical-notch screens ignore this.
+    static let floatingGlassTransparency = Key<Double>(
+        "floatingGlassTransparency", default: FloatingGlassTransparency.original
+    )
 
     static let showNotHumanFace = Key<Bool>("showNotHumanFace", default: false)
     static let idleLeftEmojis = Key<String>("idleLeftEmojis", default: "")

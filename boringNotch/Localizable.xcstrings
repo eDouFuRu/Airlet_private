@@ -35332,6 +35332,102 @@
           }
         }
       }
+    },
+    "Floating island": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Floating island"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "悬浮灵动岛"
+          }
+        }
+      }
+    },
+    "Floating island transparency": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Floating island transparency"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "悬浮岛透明度"
+          }
+        }
+      }
+    },
+    "More solid": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More solid"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更不透明"
+          }
+        }
+      }
+    },
+    "More transparent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More transparent"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更清透"
+          }
+        }
+      }
+    },
+    "The middle keeps the previous glass appearance. This setting changes the glass shell on displays without a notch; island content stays fully visible.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The middle keeps the previous glass appearance. This setting changes the glass shell on displays without a notch; island content stays fully visible."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滑块中点保留原有玻璃外观。此设置只调整无刘海屏幕的玻璃外壳，岛内内容始终清晰可见。"
+          }
+        }
+      }
+    },
+    "macOS Reduce Transparency takes precedence over this slider.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS Reduce Transparency takes precedence over this slider."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 的「降低透明度」设置优先于此滑块。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

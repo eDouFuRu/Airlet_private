@@ -22,25 +22,45 @@ struct IslandSurface: ViewModifier {
     let isFloating: Bool
     var topRadius: CGFloat
     var bottomRadius: CGFloat
+    var transparency: Double = FloatingGlassTransparency.original
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @ViewBuilder func body(content: Content) -> some View {
         let shape = IslandSurfaceShape(topRadius: topRadius, bottomRadius: bottomRadius,
                                        contour: isFloating ? .floating : .notch)
         if isFloating {
+            let levels = FloatingGlassTransparency(reduceTransparency ? 0 : transparency)
+            let backing = Color(white: colorScheme == .dark ? 0.2 : 0.97)
             if #available(macOS 26.0, *) {
-                // A menu-bar overlay has no app-owned backdrop. The regular variant
-                // becomes a nearly opaque white sheet on the desktop and a dark
-                // sheet above a full-screen Space. Clear glass keeps the windows
-                // behind this transparent panel visible in either context.
-                content.clipShape(shape)
-                    .glassEffect(.clear, in: shape)
-                    .overlay {
-                        shape.stroke(.white.opacity(0.4), lineWidth: 0.7)
-                            .clipShape(shape)
-                            .allowsHitTesting(false)
-                    }
+                // Keep the native glass in its own layer so tuning it never fades
+                // lyrics, controls, or the rest of the island's content.
+                content.background {
+                    backing.opacity(levels.backingOpacity)
+                        .clipShape(shape)
+                        .overlay {
+                            Color.clear.glassEffect(.clear, in: shape)
+                                .opacity(levels.glassOpacity)
+                        }
+                        .allowsHitTesting(false)
+                }
+                .clipShape(shape)
+                .overlay {
+                    shape.stroke(.white.opacity(levels.rimOpacity), lineWidth: 0.7)
+                        .allowsHitTesting(false)
+                }
             } else {
-                content.clipShape(shape).background(.ultraThinMaterial, in: shape)
+                content.background {
+                    backing.opacity(levels.backingOpacity)
+                        .clipShape(shape)
+                        .overlay {
+                            Color.clear.background(.ultraThinMaterial, in: shape)
+                                .opacity(levels.glassOpacity)
+                        }
+                        .allowsHitTesting(false)
+                }
+                .clipShape(shape)
             }
         } else {
             content.background(.black).clipShape(shape)

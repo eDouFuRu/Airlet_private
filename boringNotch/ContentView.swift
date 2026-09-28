@@ -28,6 +28,7 @@ struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Default(.autoHideFloatingIsland) private var autoHideFloatingIsland
+    @Default(.floatingGlassTransparency) private var floatingGlassTransparency
     @State private var presentationID = UUID()
     @ObservedObject var webcamManager = WebcamManager.shared
 
@@ -279,7 +280,8 @@ struct ContentView: View {
                     if isFloating {
                         Color.clear.modifier(IslandSurface(isFloating: true,
                             topRadius: NotchAccessoryControl.diameter / 2,
-                            bottomRadius: NotchAccessoryControl.diameter / 2))
+                            bottomRadius: NotchAccessoryControl.diameter / 2,
+                            transparency: floatingGlassTransparency))
                     } else { Circle().fill(Color.black.opacity(0.82)) }
                 }
                 .overlay(Circle().stroke(appearance.border.opacity(enabled ? 1 : 0.5), lineWidth: 1))
@@ -305,7 +307,8 @@ struct ContentView: View {
             // Floating glass and its hit reporter share an explicit animated height.
             // Keep the native notch's existing content-driven morph unchanged.
             .frame(width: visibleWidth, height: isFloating ? visibleHeight : nil, alignment: .top)
-            .modifier(IslandSurface(isFloating: isFloating, topRadius: topCornerRadius, bottomRadius: bottomRadius))
+            .modifier(IslandSurface(isFloating: isFloating, topRadius: topCornerRadius,
+                                    bottomRadius: bottomRadius, transparency: floatingGlassTransparency))
             .shadow(color: enableShadow && (isOpen || pointer.isHoverPreparing)
                     ? .black.opacity(isFloating ? 0.16 : 0.6) : .clear, radius: 6)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: pointer.isHoverPreparing)

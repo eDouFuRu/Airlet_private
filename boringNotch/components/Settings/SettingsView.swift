@@ -1241,6 +1241,7 @@ struct Appearance: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @Default(.mirrorShape) var mirrorShape
     @Default(.sliderColor) var sliderColor
+    @Default(.floatingGlassTransparency) private var floatingGlassTransparency
     @Default(.showNotHumanFace) private var showIdleEmojis
     // Keep marked IME text in local state. Writing every keystroke to Defaults
     // rebuilds the Form row and dismisses the candidate window before selection.
@@ -1257,6 +1258,54 @@ struct Appearance: View {
 
             } header: {
                 Text("General")
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Floating island transparency")
+                        Spacer()
+                        Text("\(Int((floatingGlassTransparency * 100).rounded()))%")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $floatingGlassTransparency, in: 0...1, step: 0.01)
+                        .accessibilityLabel(Text("Floating island transparency"))
+                    HStack {
+                        Text("More solid")
+                        Spacer()
+                        Text("More transparent")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+
+                ZStack {
+                    LinearGradient(
+                        colors: [Color(red: 0.32, green: 0.47, blue: 0.76),
+                                 Color(red: 0.81, green: 0.53, blue: 0.63),
+                                 Color(red: 0.38, green: 0.71, blue: 0.78)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing)
+                    HStack(spacing: 8) {
+                        Image(systemName: "music.note")
+                        Text(verbatim: "Airlet").fontWeight(.medium)
+                    }
+                    .frame(width: 210, height: 36)
+                    .modifier(IslandSurface(isFloating: true, topRadius: 18,
+                                            bottomRadius: 18,
+                                            transparency: floatingGlassTransparency))
+                }
+                .frame(height: 70)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .accessibilityHidden(true)
+
+                Text("The middle keeps the previous glass appearance. This setting changes the glass shell on displays without a notch; island content stays fully visible.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("macOS Reduce Transparency takes precedence over this slider.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: {
+                Text("Floating island")
             }
 
             Section {
