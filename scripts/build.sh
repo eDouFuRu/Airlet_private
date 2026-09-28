@@ -19,7 +19,7 @@ case "$ISLAND_REQUESTED_IDENTITY" in
   -) [[ "$ISLAND_CONFIGURATION" == Debug ]] || island_die 'Ad-hoc signing is an explicit Debug-only fallback.' ;;
   *) island_die 'Only the dedicated local certificate or explicit ISLAND_SIGN_IDENTITY=- is supported.' ;;
 esac
-ISLAND_REQUESTED_BUILD_NUMBER="${ISLAND_BUILD_NUMBER:-305}"
+ISLAND_REQUESTED_BUILD_NUMBER="${ISLAND_BUILD_NUMBER:-306}"
 [[ "$ISLAND_REQUESTED_BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || island_die 'ISLAND_BUILD_NUMBER must be a positive decimal integer.'
 ISLAND_BUILD_JOBS="${ISLAND_BUILD_JOBS:-1}"
 [[ "$ISLAND_BUILD_JOBS" =~ ^[1-9][0-9]*$ ]] || island_die 'ISLAND_BUILD_JOBS must be a positive decimal integer.'

@@ -2,23 +2,23 @@ import XCTest
 @testable import NotchInteractionCore
 
 final class FloatingGlassTransparencyTests: XCTestCase {
-    func testMidpointPreservesThePreviouslyShippedClearGlass() {
+    func testMidpointAddsAReadableVeilWithoutAnOpaqueBacking() {
         let levels = FloatingGlassTransparency(FloatingGlassTransparency.original)
-        XCTAssertEqual(levels.glassOpacity, 1)
         XCTAssertEqual(levels.backingOpacity, 0)
-        XCTAssertEqual(levels.rimOpacity, 0.4)
+        XCTAssertGreaterThan(levels.veilOpacity, 0)
     }
 
-    func testSliderCanMoveInBothVisualDirectionsWhileRetainingSomeGlass() {
+    func testSliderAdjustsVeilAndBackingWithoutTurningTheLensOff() {
         let solid = FloatingGlassTransparency(0)
         let original = FloatingGlassTransparency(0.5)
         let clear = FloatingGlassTransparency(1)
 
         XCTAssertGreaterThan(solid.backingOpacity, original.backingOpacity)
-        XCTAssertEqual(solid.glassOpacity, original.glassOpacity)
+        XCTAssertGreaterThan(solid.veilOpacity, original.veilOpacity)
         XCTAssertEqual(clear.backingOpacity, 0)
-        XCTAssertLessThan(clear.glassOpacity, original.glassOpacity)
-        XCTAssertGreaterThan(clear.glassOpacity, 0)
+        XCTAssertGreaterThan(clear.veilOpacity, 0)
+        XCTAssertLessThan(clear.veilOpacity, original.veilOpacity)
+        XCTAssertLessThan(clear.legacyMaterialOpacity, original.legacyMaterialOpacity)
     }
 
     func testInvalidSavedValuesCannotProduceInvisibleOrOverfilledShell() {

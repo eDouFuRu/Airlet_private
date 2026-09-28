@@ -7,6 +7,7 @@
 
 import AppKit
 import AVFoundation
+import CoreGraphics
 import Defaults
 import EventKit
 import KeyboardShortcuts
@@ -1242,6 +1243,8 @@ struct Appearance: View {
     @Default(.mirrorShape) var mirrorShape
     @Default(.sliderColor) var sliderColor
     @Default(.floatingGlassTransparency) private var floatingGlassTransparency
+    @Default(.reactiveGlassEdgeLighting) private var reactiveGlassEdgeLighting
+    @State private var screenCaptureGranted = CGPreflightScreenCaptureAccess()
     @Default(.showNotHumanFace) private var showIdleEmojis
     // Keep marked IME text in local state. Writing every keystroke to Defaults
     // rebuilds the Form row and dismisses the candidate window before selection.
@@ -1287,6 +1290,14 @@ struct Appearance: View {
                                  Color(red: 0.81, green: 0.53, blue: 0.63),
                                  Color(red: 0.38, green: 0.71, blue: 0.78)],
                         startPoint: .topLeading, endPoint: .bottomTrailing)
+                    HStack(spacing: 12) {
+                        ForEach(0..<7) { _ in
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(.white.opacity(0.28))
+                                .frame(width: 22, height: 85)
+                        }
+                    }
+                    .rotationEffect(.degrees(-23))
                     HStack(spacing: 8) {
                         Image(systemName: "music.note")
                         Text(verbatim: "Airlet").fontWeight(.medium)
@@ -1300,12 +1311,28 @@ struct Appearance: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .accessibilityHidden(true)
 
-                Text("The middle keeps the previous glass appearance. This setting changes the glass shell on displays without a notch; island content stays fully visible.")
+                Text("On displays without a notch, this adjusts the light veil while keeping clear Liquid Glass and its glowing rim at every level.")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("macOS Reduce Transparency takes precedence over this slider.")
                     .font(.caption).foregroundStyle(.secondary)
+
+                Defaults.Toggle(key: .reactiveGlassEdgeLighting) {
+                    Text("Background-responsive edge light")
+                }
+                Text("Airlet samples only brightness beside the visible island. No background image is saved.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if reactiveGlassEdgeLighting && !screenCaptureGranted {
+                    Button("Allow Screen Recording for edge light") {
+                        screenCaptureGranted = CGRequestScreenCaptureAccess()
+                    }
+                    Text("Restart Airlet after granting access. Without it, the glass uses neutral edge light.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             } header: {
                 Text("Floating island")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                screenCaptureGranted = CGPreflightScreenCaptureAccess()
             }
 
             Section {

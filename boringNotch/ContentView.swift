@@ -29,6 +29,8 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Default(.autoHideFloatingIsland) private var autoHideFloatingIsland
     @Default(.floatingGlassTransparency) private var floatingGlassTransparency
+    @Default(.reactiveGlassEdgeLighting) private var reactiveGlassEdgeLighting
+    @State private var glassEdgeLight: GlassEdgeLightProfile?
     @State private var presentationID = UUID()
     @ObservedObject var webcamManager = WebcamManager.shared
 
@@ -237,6 +239,28 @@ struct ContentView: View {
                        dampingFraction: isOpen ? 0.8 : 1.0, blendDuration: 0)
     }
 
+    private var glassLightTaskID: String {
+        "\(vm.screenUUID ?? ""):\(isFloating && surfaceVisible && reactiveGlassEdgeLighting):\(isOpen)"
+    }
+
+    private func sampleBackdropLight() async {
+        guard isFloating, surfaceVisible, reactiveGlassEdgeLighting,
+              let screenID = vm.screenUUID,
+              let screen = NSScreen.screen(withUUID: screenID),
+              let sampler = await FloatingGlassBackdropSampler.make(screen: screen) else {
+            glassEdgeLight = nil
+            return
+        }
+        while !Task.isCancelled {
+            let size = CGSize(width: visibleWidth, height: visibleHeight)
+            let sampled = await sampler.sample(size: size, topInset: profile.topInset,
+                                               cornerRadius: topCornerRadius)
+            guard !Task.isCancelled else { return }
+            glassEdgeLight = sampled
+            try? await Task.sleep(for: .seconds(isOpen ? 1 : 4))
+        }
+    }
+
     /// Tab swaps are instant: an explicit per-branch identity transition overrides the
     /// scale transition the surrounding page container propagates down. With inherited
     /// or opacity transitions the incoming page still settled ~44pt low with a spring
@@ -308,7 +332,8 @@ struct ContentView: View {
             // Keep the native notch's existing content-driven morph unchanged.
             .frame(width: visibleWidth, height: isFloating ? visibleHeight : nil, alignment: .top)
             .modifier(IslandSurface(isFloating: isFloating, topRadius: topCornerRadius,
-                                    bottomRadius: bottomRadius, transparency: floatingGlassTransparency))
+                                    bottomRadius: bottomRadius, transparency: floatingGlassTransparency,
+                                    edgeLight: glassEdgeLight))
             .shadow(color: enableShadow && (isOpen || pointer.isHoverPreparing)
                     ? .black.opacity(isFloating ? 0.16 : 0.6) : .clear, radius: 6)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: pointer.isHoverPreparing)
@@ -340,6 +365,7 @@ struct ContentView: View {
             .environment(\.islandAppearance, appearance)
             .preferredColorScheme(isFloating ? nil : .dark)
             .modifier(IslandLocalization())
+            .task(id: glassLightTaskID) { await sampleBackdropLight() }
             .onAppear {
                 pointer.setSurfaceVisible(surfaceVisible)
                 syncBriefPresentation()

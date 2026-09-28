@@ -136,6 +136,7 @@ extension Defaults.Keys {
     static let floatingGlassTransparency = Key<Double>(
         "floatingGlassTransparency", default: FloatingGlassTransparency.original
     )
+    static let reactiveGlassEdgeLighting = Key<Bool>("reactiveGlassEdgeLighting", default: true)
 
     static let showNotHumanFace = Key<Bool>("showNotHumanFace", default: false)
     static let idleLeftEmojis = Key<String>("idleLeftEmojis", default: "")

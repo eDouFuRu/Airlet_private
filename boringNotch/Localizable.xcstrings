@@ -35397,18 +35397,18 @@
         }
       }
     },
-    "The middle keeps the previous glass appearance. This setting changes the glass shell on displays without a notch; island content stays fully visible.": {
+    "On displays without a notch, this adjusts the light veil while keeping clear Liquid Glass and its glowing rim at every level.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The middle keeps the previous glass appearance. This setting changes the glass shell on displays without a notch; island content stays fully visible."
+            "value": "On displays without a notch, this adjusts the light veil while keeping clear Liquid Glass and its glowing rim at every level."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "滑块中点保留原有玻璃外观。此设置只调整无刘海屏幕的玻璃外壳，岛内内容始终清晰可见。"
+            "value": "无刘海屏幕上，此滑块调整玻璃的浅色薄雾；各档位都保留清透液态玻璃与边缘光效。"
           }
         }
       }
@@ -35427,6 +35427,30 @@
             "value": "macOS 的「降低透明度」设置优先于此滑块。"
           }
         }
+      }
+    },
+    "Background-responsive edge light": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Background-responsive edge light" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "随背景变化的边缘光" } }
+      }
+    },
+    "Airlet samples only brightness beside the visible island. No background image is saved.": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Airlet samples only brightness beside the visible island. No background image is saved." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "仅在小岛可见时读取周围亮度，不保存背景画面。" } }
+      }
+    },
+    "Allow Screen Recording for edge light": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Allow Screen Recording for edge light" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "允许录屏权限以启用边缘光" } }
+      }
+    },
+    "Restart Airlet after granting access. Without it, the glass uses neutral edge light.": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Restart Airlet after granting access. Without it, the glass uses neutral edge light." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "授权后请重新启动 Airlet；未授权时使用中性的边缘光。" } }
       }
     }
   },

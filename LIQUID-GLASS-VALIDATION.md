@@ -52,3 +52,11 @@
 Apple 的 [Clear Glass 说明](https://developer.apple.com/documentation/swiftui/glass/clear)指出清透材质需要注意内容对比度；[自定义视图指南](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views)没有提供连续的原生玻璃透明度参数。参考站点的 [Liquid Glass Vue](https://liquidglassdesign.com/resources/liquid-glass-vue)使用 WebGL2 绘制网页内折射，不能直接采样 macOS 悬浮窗口背后的其他应用，因此本应用继续使用系统材质并仅调整外壳的混合强度。
 
 本机 macOS 26.6.2 / Xcode 26 上，SwiftPM **592 项测试通过**，签名 Debug 构建通过，并安装运行。运行中的外观页显示中文文案与 50% 默认值；实际窗口预览在 0% 时变得更实、100% 时更清透，文字未被一起淡出。双屏同时连接时，外接屏顶部胶囊在 100% 设置下显示为带细边的透明区域。验收后将滑块恢复为 50%，自动隐藏恢复为开启。尚未在 macOS 27 上验证新滑块，也未在全屏应用之上复测展开面板。
+
+## 2026-09-28 背景感应边缘光（v1.1.2）
+
+用户澄清后移除了时间驱动的旋转高光。无刘海岛继续使用 `.glassEffect(.clear)`，透明度滑块只改变浅色薄雾和实色衬底，不会令系统玻璃层消失。边缘光读八个方向的外侧与内侧亮度，明暗差决定对应位置的亮边或暗边；背景不变时不会自行旋转。绘制仍使用与命中检测一致的圆角轮廓。macOS「降低动态效果」会取消亮度变化的过渡动画，「降低透明度」使用不透明外壳。
+
+已授权屏幕录制的情况下，ScreenCaptureKit 只在无刘海岛可见时截取它周围的小区域，并排除 Airlet 自身窗口；截图缩至最多 320px 宽，在内存中计算八组亮度后立即丢弃。展开时最多每秒采样一次，紧凑态最多每四秒一次。未授权时不自动弹权限框，只呈现中性边缘光；外观设置提供显式授权入口，授权后需重启。此设计参考 Apple 的 [ScreenCaptureKit 显示器排除过滤器](https://developer.apple.com/documentation/screencapturekit/sccontentfilter)和[单帧截图 API](https://developer.apple.com/documentation/screencapturekit/scscreenshotmanager)。
+
+本机已通过 SwiftPM **595 项测试**与签名 Debug、Release 构建。背景感应的实际光分布仍需在授予 Airlet 屏幕录制权限后做实机检查；macOS 27 的光学观感与全屏应用场景尚未验证。此前的 592 项测试与外观截图只代表 v1.1.1，不代表这次新效果。
