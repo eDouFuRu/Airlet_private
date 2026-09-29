@@ -139,11 +139,19 @@ struct ContentView: View {
     }
     /// The system HUD wins a tie: a deliberate key press outranks a passive power event.
     private var noticeChromeActive: Bool { systemHUDVisible || powerNoticeVisible }
+    private var mediaPromptActive: Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        let pendingSong = brief.state.songChange.map { now < $0.expiration } ?? false
+        return pendingSong
+            || (coordinator.sneakPeek.show && coordinator.sneakPeek.type == .music)
+            || (coordinator.expandingView.show && coordinator.expandingView.type == .music)
+    }
     private var briefSource: BriefPresentationSource {
         brief.state.selection(now: ProcessInfo.processInfo.systemUptime, hudActive: noticeChromeActive,
                               hiEnabled: hi.current != nil,
-                              songEnabled: coordinator.sneakPeek.show && (isFloating || sneakPeekStyles == .standard) && (isFloating || isOpen || !vm.hideOnClosed),
-                              lyricAvailable: lyrics.shouldShowNotch && (isFloating || isOpen || !vm.hideOnClosed))
+                              songEnabled: (isFloating || sneakPeekStyles == .standard) && (isFloating || isOpen || !vm.hideOnClosed),
+                              lyricAvailable: lyrics.shouldShowNotch && (isFloating || isOpen || !vm.hideOnClosed),
+                              mediaPromptActive: mediaPromptActive)
     }
     private var briefVisible: Bool { briefSource.usesBriefRow }
     private var briefHeaderHeight: CGFloat { briefVisible ? headerHeight : max(0, vm.effectiveClosedNotchHeight) }
@@ -385,6 +393,7 @@ struct ContentView: View {
             }
             .onChange(of: coordinator.currentView) { syncBriefPresentation() }
             .onChange(of: briefSource) { syncBriefPresentation() }
+            .onChange(of: mediaPromptActive) { syncBriefPresentation() }
             .onChange(of: lyrics.shouldShowNotch) { syncBriefPresentation() }
             .onChange(of: vm.hideOnClosed) { syncBriefPresentation() }
             .onChange(of: boringShelf) {
@@ -407,7 +416,7 @@ struct ContentView: View {
         // Keep the eligible lyric clock alive through a blank intro/interlude,
         // so the next real cue can reveal the row without a metadata event.
         let lyricMayPresent = surfaceVisible && (isFloating || isOpen || !vm.hideOnClosed)
-            && (briefSource == .lyric || briefSource == .none)
+            && !mediaPromptActive && (briefSource == .lyric || briefSource == .none)
         lyrics.setNotchPresentation(sourceID: presentationID, visible: lyricMayPresent)
         let compact = isFloating && !isOpen
         let hasBrief = compact ? floatingContent == .notification : briefVisible

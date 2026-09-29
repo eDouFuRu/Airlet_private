@@ -102,7 +102,11 @@ ISLAND_NOTES="$ISLAND_DISTRIBUTION/RELEASE-NOTES-$ISLAND_SHORT_VERSION.md"
 cat >"$ISLAND_NOTES" <<NOTES
 ## Airlet v${ISLAND_SHORT_VERSION}（build ${ISLAND_BUILD_VERSION}）
 
-### 本版本更新
+### 本次修复
+
+- 默认及行内媒体提示期间不显示歌词。切歌提示立即优先，避免旧歌词与媒体提示叠在一起。
+
+### 主要功能
 
 - 无刘海显示器使用悬浮灵动岛，支持悬停唤出、延迟展开和自动隐藏。
 - 无刘海岛保留原生清透玻璃，透明度滑块调整浅色薄雾，不再把玻璃层淡成完全透明；岛内文字保持清晰。

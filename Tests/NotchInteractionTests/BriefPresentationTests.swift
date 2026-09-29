@@ -139,6 +139,31 @@ final class BriefPresentationTests: XCTestCase {
         XCTAssertFalse(state.selection(now: 0, hudActive: true).usesBriefRow)
     }
 
+    func testMediaPromptKeepsLyricsHiddenThroughDelayedShowAndDismissal() {
+        var state = availableState()
+        state.receiveSongChange(id: "track-b", now: 0)
+        // The coordinator's visible flag is posted asynchronously; the song
+        // deadline already exists and must win over an old lyric immediately.
+        XCTAssertEqual(state.selection(now: 0, hudActive: false,
+                                       lyricAvailable: true), .songChange)
+        XCTAssertEqual(state.selection(now: 0, hudActive: false, songEnabled: false,
+                                       lyricAvailable: true, mediaPromptActive: true), .none)
+        state.dismissSongChange()
+        // The visible media prompt can outlive its deadline for one UI update.
+        XCTAssertEqual(state.selection(now: 1, hudActive: false,
+                                       lyricAvailable: true, mediaPromptActive: true), .none)
+        XCTAssertEqual(state.selection(now: 1, hudActive: false,
+                                       lyricAvailable: true, mediaPromptActive: false), .lyric)
+    }
+
+    func testInlineMediaPromptSuppressesLyricsWithoutAddingSongRow() {
+        let state = availableState()
+        XCTAssertEqual(state.selection(now: 0, hudActive: false, songEnabled: false,
+                                       lyricAvailable: true, mediaPromptActive: true), .none)
+        XCTAssertEqual(state.selection(now: 0, hudActive: false, songEnabled: false,
+                                       lyricAvailable: true), .lyric)
+    }
+
     func testInvalidTimeOrDurationCannotCreateAnUnboundedPeek() {
         for (now, duration) in [(Double.nan, 5.0), (.infinity, 5), (0, .nan),
                                 (0, .infinity), (0, 0), (0, -1), (Double.greatestFiniteMagnitude, Double.greatestFiniteMagnitude)] {

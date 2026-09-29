@@ -2,9 +2,9 @@
 
 Airlet 是一款原生 macOS 灵动岛应用。它为带刘海和外接无刘海显示器提供各自合适的小岛样式，并把媒体、日历、专注计时和常用系统工具放在菜单栏附近。
 
-**当前版本：v1.1.2（build 306）** · **要求：macOS 15.0 或更新版本、Apple Silicon**
+**当前版本：v1.1.3（build 307）** · **要求：macOS 15.0 或更新版本、Apple Silicon**
 
-[下载 Airlet v1.1.2 DMG](https://github.com/eDouFuRu/Airlet_private/releases/download/v1.1.2/Airlet-1.1.2.dmg)（仅仓库成员可访问）
+[下载 Airlet v1.1.3 DMG](https://github.com/eDouFuRu/Airlet_private/releases/download/v1.1.3/Airlet-1.1.3.dmg)（仅仓库成员可访问）
 
 ## 灵动岛与显示器
 
@@ -17,7 +17,7 @@ Airlet 是一款原生 macOS 灵动岛应用。它为带刘海和外接无刘海
 
 ## 功能
 
-- **音乐与歌词**：控制当前播放器、显示同步歌词和专辑封面；收起时只占一行。
+- **音乐与歌词**：控制当前播放器、显示同步歌词和专辑封面；收起时只占一行。切歌媒体提示出现期间暂不显示歌词。
 - **日历**：查看日程、提醒事项和日期热力图。
 - **番茄钟**：专注与休息计时、暂停恢复、离线结算、统计和热力图。
 - **系统提示**：显示音量、亮度和电源状态。
@@ -41,7 +41,7 @@ Airlet 是一款原生 macOS 灵动岛应用。它为带刘海和外接无刘海
 
 ## 项目与验证
 
-本版本以 macOS 26.6.2、Xcode 26 为开发基准，SwiftPM 的 595 项测试已通过。外接无刘海屏的玻璃形状与静态回退已实机检查；背景感应边缘光需要在授予屏幕录制权限后继续实测，macOS 27 仍待验证。
+本版本以 macOS 26.6.2、Xcode 26 为开发基准，SwiftPM 的 597 项测试已通过。外接无刘海屏的玻璃形状与静态回退已实机检查；背景感应边缘光需要在授予屏幕录制权限后继续实测，macOS 27 仍待验证。
 
 - [Liquid Glass 实现与验证记录](LIQUID-GLASS-VALIDATION.md)
 - [使用和工程说明](README-Island.md)

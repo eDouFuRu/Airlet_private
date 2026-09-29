@@ -97,11 +97,13 @@ struct BriefPresentationState: Equatable, Sendable {
     }
 
     func selection(now: TimeInterval, hudActive: Bool, hiEnabled: Bool = true,
-                   songEnabled: Bool = true, lyricAvailable: Bool = false) -> BriefPresentationSource {
+                   songEnabled: Bool = true, lyricAvailable: Bool = false,
+                   mediaPromptActive: Bool = false) -> BriefPresentationSource {
         guard applicationAvailable, now.isFinite else { return .none }
         if hudActive { return .hud }
         if hiEnabled, let hi, heldHiRemaining != nil || now < hi.expiration { return .hi }
         if songEnabled, let songChange, now < songChange.expiration { return .songChange }
+        if mediaPromptActive { return .none }
         return lyricAvailable ? .lyric : .none
     }
 
