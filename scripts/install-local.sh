@@ -32,7 +32,9 @@ printf 'XPC requirement: %s\n' "$(island_read_requirement "$ISLAND_INSTALL_SOURC
 
 ISLAND_APPLICATIONS="$HOME/Applications"
 ISLAND_INSTALL_DESTINATION="$ISLAND_APPLICATIONS/Airlet.app"
-ISLAND_BACKUP_DIRECTORY="$ISLAND_APPLICATIONS/.NotchIsland-backups"
+# Keep previous bundles outside Applications. Launch Services treats every .app
+# beneath ~/Applications as an installable copy, even inside a hidden directory.
+ISLAND_BACKUP_DIRECTORY="$HOME/Library/Application Support/Airlet/Install Backups"
 ISLAND_BACKUP_PATH=''
 ISLAND_STAGE_DIRECTORY=''
 ISLAND_OLD_MOVED=false
@@ -106,7 +108,9 @@ island_check_destination
 island_assert_stopped
 if [[ -e "$ISLAND_INSTALL_DESTINATION" ]]; then
   /bin/mkdir -p "$ISLAND_BACKUP_DIRECTORY"
-  ISLAND_BACKUP_PATH="$ISLAND_BACKUP_DIRECTORY/Airlet-$(/bin/date '+%Y%m%d-%H%M%S')-$(/usr/bin/uuidgen).app"
+  # A retained .app is rediscovered as another installed app even in Library.
+  # Renaming this directory back to .app restores a previous version if needed.
+  ISLAND_BACKUP_PATH="$ISLAND_BACKUP_DIRECTORY/Airlet-$(/bin/date '+%Y%m%d-%H%M%S')-$(/usr/bin/uuidgen).app.backup"
   /bin/mv "$ISLAND_INSTALL_DESTINATION" "$ISLAND_BACKUP_PATH"
   ISLAND_OLD_MOVED=true
 fi

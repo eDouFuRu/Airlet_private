@@ -66,10 +66,10 @@ bash scripts/install-local.sh Release
 安装脚本不接受 `sudo`。它先验证源应用的证书、ID、DR 与嵌套签名，再复制到 `~/Applications` 内的临时目录并重新验证。已有目标必须是本应用 Bundle ID 的真实目录；符号链接或其他应用会被拒绝。替换前再次检查运行状态，然后把旧应用移动至：
 
 ```text
-~/Applications/.NotchIsland-backups/Airlet-日期时间-唯一编号.app
+~/Library/Application Support/Airlet/Install Backups/Airlet-日期时间-唯一编号.app.backup
 ```
 
-随后把通过验证的新应用移动到固定位置；最终移动失败时尝试恢复旧版本。备份不会自动删除。脚本不碰应用偏好、休息数据、钥匙串或辅助功能授权，也不操作 `/Applications/boringNotch.app`。备份与临时文件可能保留 Finder 元数据，这是复制应用的正常行为；脚本不移除 quarantine 来规避系统检查。
+随后把通过验证的新应用移动到固定位置；最终移动失败时尝试恢复旧版本。备份使用 `.app.backup` 后缀，不会作为额外 Airlet 出现在启动台中，也不会自动删除；需要恢复时将后缀改回 `.app`。脚本不碰应用偏好、休息数据、钥匙串或辅助功能授权，也不操作 `/Applications/boringNotch.app`。备份与临时文件可能保留 Finder 元数据，这是复制应用的正常行为；脚本不移除 quarantine 来规避系统检查。
 
 首次授权应针对最终的 **`~/Applications/Airlet.app`**，不要针对构建目录或备份副本。打开这份固定应用，在 HUD 设置中查看诊断的 Process、Bundle ID、Signature、AX 和 Event tap，再按界面操作授权。若系统仍保留旧临时签名条目，用户可在辅助功能列表确认并替换为固定路径下的新应用；脚本不会重置整个 TCC 数据库。
 
