@@ -6,14 +6,6 @@ Airlet 是一款 macOS 灵动岛应用：把音乐、歌词、日历、专注计
 
 > 当前版本：v1.1.4。需要 **macOS 15 或更新版本**，发布包面向 **Apple 芯片 Mac（M1 及后续机型）**。Intel Mac 未经过验证。无需升级到 macOS 27；macOS 26 可使用系统原生玻璃效果，macOS 15–25 使用系统模糊材质。
 
-## 使用截图
-
-以下为 Airlet v1.1.4 在 macOS 26.6.2 的无刘海外接屏幕上拍摄，背景是实际桌面壁纸。
-
-**收起状态：悬浮玻璃胶囊**
-
-![Airlet v1.1.4 在桌面壁纸上的悬浮玻璃胶囊](docs/screenshots/glass-compact-v1.1.4.png)
-
 ## 下载和安装
 
 1. 打开[下载页面](https://github.com/eDouFuRu/Airlet_private/releases/latest)，在 **Assets** 下点击文件名以 `.dmg` 结尾的安装包。当前版本也可[直接下载 Airlet-1.1.4.dmg](https://github.com/eDouFuRu/Airlet_private/releases/download/v1.1.4/Airlet-1.1.4.dmg)。页面上的 **Source code (zip)** 是源码，不能像安装包一样直接使用。
