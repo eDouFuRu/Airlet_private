@@ -45,10 +45,6 @@ Airlet 是一款 macOS 灵动岛应用：把音乐、歌词、日历、专注计
 - **通知转显**：按应用选择是否在小岛内显示桌面通知及内容预览。
 - **悬浮玻璃岛**：无刘海屏可调宽度、透明度和是否自动隐藏；带刘海屏保留原有贴合样式。
 
-## 从源码构建
-
-普通用户直接下载 DMG 即可。开发者需要 Xcode 26 或更新版本，打开 `boringNotch.xcodeproj` 并选择 `NotchIslandNext` scheme。项目部署目标是 macOS 15。签名和打包说明见 [LOCAL-SIGNING.md](LOCAL-SIGNING.md)；构建产物与开发机签名私钥不在仓库中。
-
 ## 项目与许可
 
 Airlet 基于 [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) v2.7.3 开发，采用 [GPL-3.0](LICENSE) 许可。代码和历史记录可在本仓库查看。应用设置、番茄钟记录及暂存内容保存在本机；歌词匹配会向歌词服务发送歌曲信息。有关实现细节和已验证范围，请参阅 [技术记录](LIQUID-GLASS-VALIDATION.md)。
