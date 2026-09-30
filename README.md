@@ -8,19 +8,11 @@ Airlet 是一款 macOS 灵动岛应用：把音乐、歌词、日历、专注计
 
 ## 使用截图
 
-以下截图以桌面壁纸为背景，展示带刘海屏幕上的 Airlet。无刘海屏幕会使用悬浮玻璃岛，外观有所不同。
+以下为 Airlet v1.1.4 在 macOS 26.6.2 的无刘海外接屏幕上拍摄，背景是实际桌面壁纸。
 
-**音乐、歌词与日历**
+**收起状态：悬浮玻璃胶囊**
 
-![Airlet 展开后显示音乐、歌词与日历，背景为桌面壁纸](docs/screenshots/island.png)
-
-**番茄钟**
-
-![Airlet 番茄钟页面，背景为桌面壁纸](docs/screenshots/timer.png)
-
-**快捷工具**
-
-![Airlet 快捷工具页面，背景为桌面壁纸](docs/screenshots/tools.png)
+![Airlet v1.1.4 在桌面壁纸上的悬浮玻璃胶囊](docs/screenshots/glass-compact-v1.1.4.png)
 
 ## 下载和安装
 
