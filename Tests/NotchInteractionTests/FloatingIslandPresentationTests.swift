@@ -45,4 +45,17 @@ final class FloatingIslandPresentationTests: XCTestCase {
             XCTAssertLessThanOrEqual(FloatingIslandMetrics.fontSize(height: height), height - 4)
         }
     }
+
+    func testCustomMinimumAndLyricExpansionSwitch() {
+        XCTAssertEqual(FloatingIslandMetrics.width(textWidth: 40, decorationWidth: 52,
+                                                   minimum: 300, maximum: 640), 300)
+        XCTAssertEqual(FloatingIslandMetrics.width(textWidth: 360, decorationWidth: 52,
+                                                   minimum: 300, maximum: 640), 412)
+        XCTAssertEqual(FloatingIslandMetrics.width(textWidth: 900, decorationWidth: 52,
+                                                   minimum: 300, maximum: 640), 640)
+        XCTAssertEqual(FloatingIslandMetrics.width(textWidth: 900, decorationWidth: 52,
+                                                   minimum: 300, maximum: 640, expandsToFit: false), 300)
+        XCTAssertEqual(FloatingIslandMetrics.width(textWidth: 900, decorationWidth: 52,
+                                                   minimum: 500, maximum: 420, expandsToFit: false), 420)
+    }
 }

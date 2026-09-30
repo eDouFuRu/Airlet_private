@@ -41,6 +41,25 @@ final class IslandDisplayProfileTests: XCTestCase {
         XCTAssertEqual(floating(width: 140).compactFrame(in: CGRect(x: 0, y: 0, width: 140, height: 500)).minX, 24)
     }
 
+    func testChosenFloatingWidthIsScreenClampedAndDoesNotChangeNotchGeometry() {
+        let wide = IslandDisplayProfile(screenWidth: 1_600, safeTop: 0, cameraWidth: 200,
+                                        nativeClosedHeight: 32, menuBarHeight: 24, floatingBaseWidth: 310)
+        XCTAssertEqual(wide.compactBaseWidth, 310)
+        XCTAssertEqual(wide.compactFrame(in: screen).midX, screen.midX)
+        let visible = wide.compactFrame(in: screen)
+        XCTAssertEqual(wide.floatingTrigger(in: screen, visibleFrame: visible, cornerRadius: 9,
+                                            expanded: false, surfaceVisible: true).frame.width, 310)
+        XCTAssertEqual(wide.floatingTrigger(in: screen, visibleFrame: visible, cornerRadius: 9,
+                                            expanded: false, surfaceVisible: false).frame.width, 120)
+        let narrow = IslandDisplayProfile(screenWidth: 280, safeTop: 0, cameraWidth: 200,
+                                          nativeClosedHeight: 32, menuBarHeight: 24, floatingBaseWidth: 500)
+        XCTAssertEqual(narrow.compactBaseWidth, 232)
+        let notched = IslandDisplayProfile(screenWidth: 1_600, safeTop: 37, cameraWidth: 200,
+                                           nativeClosedHeight: 32, menuBarHeight: 24, floatingBaseWidth: 500)
+        XCTAssertEqual(notched.compactBaseWidth, 200)
+        XCTAssertEqual(notched.cameraExclusionWidth, 200)
+    }
+
     func testNativeCameraGeometryAndHeaderStayAttached() {
         let profile = IslandDisplayProfile(screenWidth: 1_728, safeTop: 37, cameraWidth: 185,
                                            nativeClosedHeight: 32, menuBarHeight: 37)

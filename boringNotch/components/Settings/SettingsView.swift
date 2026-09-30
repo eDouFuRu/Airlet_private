@@ -149,6 +149,8 @@ struct GeneralSettings: View {
     @Default(.showEmojis) var showEmojis
     @Default(.notchHeight) var notchHeight
     @Default(.notchHeightMode) var notchHeightMode
+    @Default(.floatingIslandWidth) var floatingIslandWidth
+    @Default(.floatingIslandAutoWidthForLyrics) var floatingIslandAutoWidthForLyrics
     @Default(.showOnAllDisplays) var showOnAllDisplays
     @Default(.automaticallySwitchDisplay) var automaticallySwitchDisplay
     @Default(.openNotchOnHover) var openNotchOnHover
@@ -158,6 +160,9 @@ struct GeneralSettings: View {
     @Default(.tabSwitchOnHover) var switchOnHover
     @Default(.tabHoverSwitchDelay) var tabHoverDelay
 
+    private var validFloatingIslandWidth: CGFloat {
+        floatingIslandWidth.isFinite ? min(640, max(120, floatingIslandWidth)) : 120
+    }
 
     var body: some View {
         Form {
@@ -241,6 +246,21 @@ struct GeneralSettings: View {
                 }
                 Text("The floating glass capsule fits inside the menu bar with 3 pt above and below. Its full surface can display content.")
                     .font(.caption).foregroundStyle(.secondary)
+                LabeledContent("Floating island width") {
+                    HStack(spacing: 12) {
+                        Text("\(Int(validFloatingIslandWidth)) pt")
+                            .monospacedDigit().foregroundStyle(.secondary)
+                            .frame(width: 56, alignment: .trailing)
+                        Slider(value: Binding(get: { validFloatingIslandWidth },
+                                              set: { floatingIslandWidth = $0 }), in: 120...640, step: 10)
+                            .accessibilityLabel(Text("Floating island width"))
+                    }
+                }
+                Text("This is the minimum width on displays without a notch. Each display limits it to leave room at the sides.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Toggle("Automatically widen for long lyrics", isOn: $floatingIslandAutoWidthForLyrics)
+                Text("When off, lyrics stay within the chosen width and scroll. When on, long lyrics can widen the island up to the screen limit.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Defaults.Toggle(key: .autoHideFloatingIsland) {
                     Text("Auto-hide on non-notch displays")
                 }
@@ -263,6 +283,9 @@ struct GeneralSettings: View {
         .navigationTitle(Text(verbatim: L("General")))
         .onAppear {
             if notchHeightMode == .custom { notchHeight = min(45, max(24, notchHeight)) }
+            if floatingIslandWidth != validFloatingIslandWidth {
+                floatingIslandWidth = validFloatingIslandWidth
+            }
         }
     }
 
@@ -522,7 +545,6 @@ struct Media: View {
     @Default(.waitInterval) var waitInterval
     @Default(.mediaController) var mediaController
     @ObservedObject var coordinator = BoringViewCoordinator.shared
-    @Default(.hideNotchOption) var hideNotchOption
     @Default(.enableSneakPeek) private var enableSneakPeek
     @Default(.sneakPeekStyles) var sneakPeekStyles
 
@@ -589,19 +611,6 @@ struct Media: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                }
-                Picker(
-                    selection: $hideNotchOption,
-                    label:
-                        HStack {
-                            Text("Full screen behavior")
-                            customBadge(text: "Beta")
-                        }
-                ) {
-                    Text("Hide for all apps").tag(HideNotchOption.always)
-                    Text("Hide for media app only").tag(
-                        HideNotchOption.nowPlayingOnly)
-                    Text("Never hide").tag(HideNotchOption.never)
                 }
             } header: {
                 Text("Media playback live activity")
@@ -1311,7 +1320,7 @@ struct Appearance: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .accessibilityHidden(true)
 
-                Text("On displays without a notch, this adjusts the light veil while keeping clear Liquid Glass and its glowing rim at every level.")
+                Text("On non-notch displays, higher transparency reveals more background detail while keeping the glass rim visible.")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("macOS Reduce Transparency takes precedence over this slider.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -1725,16 +1734,6 @@ func proFeatureBadge() -> some View {
 
 func comingSoonTag() -> some View {
     Text("Coming soon")
-        .foregroundStyle(.secondary)
-        .font(.footnote.bold())
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .background(Color(nsColor: .secondarySystemFill))
-        .clipShape(.capsule)
-}
-
-func customBadge(text: String) -> some View {
-    Text(L(text))
         .foregroundStyle(.secondary)
         .font(.footnote.bold())
         .padding(.vertical, 3)

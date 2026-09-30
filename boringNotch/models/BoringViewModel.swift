@@ -69,6 +69,17 @@ class BoringViewModel: NSObject, ObservableObject {
             .store(in: &cancellables)
         
         setupDetectorObserver()
+        Defaults.publisher(.floatingIslandWidth)
+            .map(\.newValue)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self, self.displayProfile.isFloating else { return }
+                let size = getClosedNotchSize(screenUUID: self.screenUUID)
+                self.closedNotchSize = size
+                if self.notchState == .closed { self.notchSize = size }
+            }
+            .store(in: &cancellables)
     }
     
     private func setupDetectorObserver() {

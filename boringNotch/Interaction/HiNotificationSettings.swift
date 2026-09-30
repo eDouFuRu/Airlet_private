@@ -4,7 +4,6 @@ import SwiftUI
 
 /// Source-specific switches share the same observer and the existing brief-prompt queue.
 struct HiNotificationSettings: View {
-    @Default(.hideOriginalHiBanner) private var hideOriginal
     @Default(.appNotificationAllowsNewSources) private var allowsNewSources
     @Default(.appNotificationDetailsNewSources) private var detailsNewSources
     @ObservedObject private var source = HiNotificationManager.shared
@@ -57,13 +56,6 @@ struct HiNotificationSettings: View {
                 Text(L("Only desktop banners actually posted by each app can be mirrored. Focus, disabled banners, and app-specific notification settings may prevent delivery."))
                 Text(L("Click the island reminder to use the original notification action when available, otherwise open its source app. Bursts from the same app show the latest notification and a count."))
             } header: { Text(L("Delivery and interaction")) }
-
-            Section {
-                Toggle(L("Try to hide original hi banners (experimental)"), isOn: $hideOriginal)
-                    .disabled(!source.isEnabled(HiNotificationManager.bundleID) || !source.originalBannerHidingSupported)
-                Text(L("Mirror only: original banners are not taken over on this Mac. Notification Center records remain untouched. Hiding will become available only after safe repositioning is verified."))
-                    .font(.callout).foregroundStyle(.secondary)
-            } header: { Text(L("Original system banner")) }
 
             Section {
                 Text(L("Message previews are held briefly in memory and are not saved or logged. Privacy mode controls the island only; macOS controls the original banner preview."))

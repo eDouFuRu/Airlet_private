@@ -79,7 +79,8 @@ enum MusicPlayerImageSizes {
     return IslandDisplayProfile(screenWidth: screen?.frame.width ?? 1440,
                                 safeTop: screen?.safeAreaInsets.top ?? 0,
                                 cameraWidth: notchWidth, nativeClosedHeight: notchHeight,
-                                menuBarHeight: menuHeight)
+                                menuBarHeight: menuHeight,
+                                floatingBaseWidth: Defaults[.floatingIslandWidth])
 }
 
 @MainActor func getIslandDisplayProfile(screenUUID: String? = nil) -> IslandDisplayProfile {

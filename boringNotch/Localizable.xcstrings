@@ -35397,18 +35397,18 @@
         }
       }
     },
-    "On displays without a notch, this adjusts the light veil while keeping clear Liquid Glass and its glowing rim at every level.": {
+    "On non-notch displays, higher transparency reveals more background detail while keeping the glass rim visible.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "On displays without a notch, this adjusts the light veil while keeping clear Liquid Glass and its glowing rim at every level."
+            "value": "On non-notch displays, higher transparency reveals more background detail while keeping the glass rim visible."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无刘海屏幕上，此滑块调整玻璃的浅色薄雾；各档位都保留清透液态玻璃与边缘光效。"
+            "value": "无刘海屏幕上，提高透明度可以透过玻璃看清更多背景细节，同时保留边缘高光。"
           }
         }
       }
@@ -35451,6 +35451,30 @@
       "localizations": {
         "en": { "stringUnit": { "state": "translated", "value": "Restart Airlet after granting access. Without it, the glass uses neutral edge light." } },
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "授权后请重新启动 Airlet；未授权时使用中性的边缘光。" } }
+      }
+    },
+    "Floating island width": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Floating island width" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无刘海屏小岛宽度" } }
+      }
+    },
+    "This is the minimum width on displays without a notch. Each display limits it to leave room at the sides.": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "This is the minimum width on displays without a notch. Each display limits it to leave room at the sides." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "这是无刘海屏上小岛的最小宽度；每块屏幕都会为左右两侧留出空间。" } }
+      }
+    },
+    "Automatically widen for long lyrics": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Automatically widen for long lyrics" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "长歌词时自动加宽" } }
+      }
+    },
+    "When off, lyrics stay within the chosen width and scroll. When on, long lyrics can widen the island up to the screen limit.": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "When off, lyrics stay within the chosen width and scroll. When on, long lyrics can widen the island up to the screen limit." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "关闭后，歌词在设定宽度内滚动；开启后，长歌词可将小岛加宽，但不会超过屏幕上限。" } }
       }
     }
   },

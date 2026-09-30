@@ -49,11 +49,13 @@ struct IslandSurface: ViewModifier {
                 }
             } else {
                 content.background {
-                    backing.opacity(levels.backingOpacity)
+                    backing.opacity(reduceTransparency ? 1 : levels.backingOpacity)
                         .clipShape(shape)
                         .overlay {
-                            Color.clear.background(.ultraThinMaterial, in: shape)
-                                .opacity(levels.legacyMaterialOpacity)
+                            if !reduceTransparency {
+                                Color.clear.background(.ultraThinMaterial, in: shape)
+                                    .opacity(levels.legacyMaterialOpacity)
+                            }
                         }
                         .allowsHitTesting(false)
                 }
@@ -68,17 +70,15 @@ struct IslandSurface: ViewModifier {
     }
 }
 
-/// The system glass supplies the live backdrop. These optical layers add the
-/// bright inner bevel and backdrop-responsive rim that a clear floating window
-/// otherwise loses over a light or nearly uniform desktop. None is a hit area.
+/// One native glass layer supplies the live backdrop and colour diffusion.
+/// Fade only its centre: fading the entire layer also removes the system's
+/// optical edge. The mask has no effect on foreground content or hit testing.
 @available(macOS 26.0, *)
 private struct FloatingGlassLens: View {
     let shape: IslandSurfaceShape
     let levels: FloatingGlassTransparency
     let backing: Color
     let reduceTransparency: Bool
-
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -87,34 +87,20 @@ private struct FloatingGlassLens: View {
 
             if !reduceTransparency {
                 Color.clear.glassEffect(.clear, in: shape)
+                    .mask {
+                        GeometryReader { proxy in
+                            let optics = FloatingGlassLensMetrics(height: proxy.size.height)
+                            ZStack {
+                                shape.fill(.white.opacity(levels.nativeGlassCenterOpacity))
+                                shape.stroke(.white, lineWidth: optics.edgeWidth * 2)
+                                    .blur(radius: optics.featherRadius)
+                            }
+                            .clipShape(shape)
+                        }
+                    }
 
                 shape.fill(backing.opacity(levels.veilOpacity))
                     .clipShape(shape)
-
-                // The wide, soft band reads as light gathered inside a thick
-                // lens, while the sharp edge defines its physical boundary.
-                shape.stroke(
-                    LinearGradient(colors: [
-                        .white.opacity(colorScheme == .dark ? 0.24 : 0.42),
-                        .cyan.opacity(0.13),
-                        .clear,
-                        .blue.opacity(0.09),
-                        .white.opacity(0.16)
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 9
-                )
-                .blur(radius: 5)
-                .clipShape(shape)
-
-                shape.fill(
-                    LinearGradient(colors: [
-                        .white.opacity(colorScheme == .dark ? 0.09 : 0.17),
-                        .clear,
-                        .black.opacity(colorScheme == .dark ? 0.06 : 0.035)
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-                .clipShape(shape)
-
             }
         }
         .allowsHitTesting(false)

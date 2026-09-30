@@ -26,11 +26,14 @@ enum FloatingIslandContent: Equatable, Sendable {
 }
 
 enum FloatingIslandMetrics {
-    static func width(textWidth: CGFloat, decorationWidth: CGFloat, maximum: CGFloat) -> CGFloat {
+    static func width(textWidth: CGFloat, decorationWidth: CGFloat, minimum: CGFloat = 120,
+                      maximum: CGFloat, expandsToFit: Bool = true) -> CGFloat {
         let measured = textWidth.isFinite ? max(0, textWidth) : 0
         let decoration = decorationWidth.isFinite ? max(0, decorationWidth) : 0
         let limit = maximum.isFinite ? max(1, maximum) : 640
-        return min(limit, max(120, ceil(measured + decoration)))
+        let base = minimum.isFinite ? max(1, minimum) : 120
+        let floor = min(limit, base)
+        return expandsToFit ? min(limit, max(floor, ceil(measured + decoration))) : floor
     }
 
     static func fontSize(height: CGFloat) -> CGFloat { min(13, max(1, height - 4)) }

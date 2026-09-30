@@ -18,16 +18,19 @@ struct IslandDisplayProfile: Equatable, Sendable {
 
     var contour: IslandContour { isFloating ? .floating : .notch }
     var compactSize: CGSize { CGSize(width: compactBaseWidth, height: compactHeight) }
+    /// Auto-hidden islands retain a small wake target even when the visible width is large.
+    var hiddenTriggerSize: CGSize { CGSize(width: min(120, maximumWidth), height: compactHeight) }
 
     init(screenWidth: CGFloat, safeTop: CGFloat, cameraWidth: CGFloat,
-         nativeClosedHeight: CGFloat, menuBarHeight: CGFloat) {
+         nativeClosedHeight: CGFloat, menuBarHeight: CGFloat, floatingBaseWidth: CGFloat = 120) {
         isFloating = !safeTop.isFinite || safeTop <= 0
         maximumWidth = min(640, max(1, screenWidth.isFinite ? screenWidth - 48 : 640))
         topInset = isFloating ? 3 : 0
         if isFloating {
             let menuHeight = menuBarHeight.isFinite && menuBarHeight > 6 ? menuBarHeight : 24
             compactHeight = max(1, menuHeight - 6)
-            compactBaseWidth = min(120, maximumWidth)
+            let requestedWidth = floatingBaseWidth.isFinite ? max(120, floatingBaseWidth) : 120
+            compactBaseWidth = min(requestedWidth, maximumWidth)
             cameraExclusionWidth = 0
             expandedHeaderHeight = 36
         } else {
@@ -48,7 +51,8 @@ struct IslandDisplayProfile: Equatable, Sendable {
         // occupies the desktop. That outgoing panel must not become a new open target.
         let isCompact = visibleFrame.height <= compactHeight + 0.5
         if surfaceVisible && !expanded && isCompact { return (visibleFrame, cornerRadius) }
-        return (compactFrame(in: screenFrame), compactHeight / 2)
+        return (NotchHitRegion.presentationFrame(carrierFrame: screenFrame,
+                                                 size: hiddenTriggerSize, topInset: topInset), compactHeight / 2)
     }
 }
 

@@ -82,6 +82,9 @@ extension Defaults.Keys {
     static let enableHaptics = Key<Bool>("enableHaptics", default: true)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
     static let autoHideFloatingIsland = Key<Bool>("autoHideFloatingIsland", default: true)
+    /// Minimum compact width on displays without a physical notch.
+    static let floatingIslandWidth = Key<CGFloat>("floatingIslandWidth", default: 120)
+    static let floatingIslandAutoWidthForLyrics = Key<Bool>("floatingIslandAutoWidthForLyrics", default: true)
     static let automaticallyCheckAirletUpdates = Key<Bool>("automaticallyCheckAirletUpdates", default: true)
     static let automaticallyDownloadAirletUpdates = Key<Bool>("automaticallyDownloadAirletUpdates", default: false)
     /// How long the pointer must stay outside the island before it collapses. The old

@@ -28,6 +28,7 @@ struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Default(.autoHideFloatingIsland) private var autoHideFloatingIsland
+    @Default(.floatingIslandAutoWidthForLyrics) private var floatingIslandAutoWidthForLyrics
     @Default(.floatingGlassTransparency) private var floatingGlassTransparency
     @Default(.reactiveGlassEdgeLighting) private var reactiveGlassEdgeLighting
     @State private var glassEdgeLight: GlassEdgeLightProfile?
@@ -238,7 +239,10 @@ struct ContentView: View {
         let font = NSFont.systemFont(ofSize: FloatingIslandMetrics.fontSize(height: profile.compactHeight), weight: .medium)
         let measured = (floatingText as NSString).size(withAttributes: [.font: font]).width
         let decorations: CGFloat = floatingContent == .hud ? 188 : floatingContent == .music ? 68 : 52
-        return FloatingIslandMetrics.width(textWidth: measured, decorationWidth: decorations, maximum: profile.maximumWidth)
+        let expandsToFit = floatingContent != .lyric || floatingIslandAutoWidthForLyrics
+        return FloatingIslandMetrics.width(textWidth: measured, decorationWidth: decorations,
+                                           minimum: profile.compactBaseWidth, maximum: profile.maximumWidth,
+                                           expandsToFit: expandsToFit)
     }
 
     private var shellAnimation: Animation? {
